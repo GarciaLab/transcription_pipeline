@@ -1,0 +1,23 @@
+name: transcription_pipeline
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8.16
+  - mamba
+  - numpy
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - napari
+  - pandas
+  - trackpy
+  - jupyterlab
+  - pytorch
+  - numba
+  - pims
+  - deepblink
+  - ca-certificates
+  - certifi
+  - openssl
+  - tensorflow-gpu
+prefix: /home/yovan/mambaforge/envs/transcription_pipeline
