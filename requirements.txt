@@ -1,1 +1,2 @@
 PIMS==0.6.1
+deepblink==0.1.4

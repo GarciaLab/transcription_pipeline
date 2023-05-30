@@ -14,11 +14,10 @@ dependencies:
   - jupyterlab
   - pytorch
   - numba
-  - pims
   - ca-certificates
   - certifi
   - openssl
-  - tensorflow-gpu
+#  - tensorflow-gpu
   - jpype1
   - pip
   - pip:
