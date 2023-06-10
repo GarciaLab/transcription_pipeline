@@ -2,11 +2,11 @@ import glob
 from datetime import datetime
 from itertools import groupby
 from pathlib import Path
-
 import numpy as np
 import pims
 from scipy.io import savemat
 from skimage.io import imsave
+import numbers
 
 
 def extract_global_metadata(metadata_object):
@@ -310,10 +310,19 @@ def collate_frame_metadata(
                 for t_s_original in input_frame_metadata["t_s"]
             ]
             t_s_list_offset = [np.copy(t_s_series) for t_s_series in t_s_list]
-            t_s_list_offset[0][t_s_list_offset[0] == "None"] = np.nan
+            t_s_is_number = issubclass(t_s_list_offset[0].dtype.type, numbers.Number)
+            # Checking if t_s is numerical (as opposed to string) since presence of
+            # 'None' during partial scans forces conversion to <U32.
+            if not t_s_is_number:
+                t_s_list_offset[0][t_s_list_offset[0] == "None"] = np.nan
             t_s_list_offset[0] = t_s_list_offset[0].astype(float)
+
             for j in range(1, len(t_s_list)):
-                t_s_list_offset[j][t_s_list_offset[j] == "None"] = np.nan
+                t_s_is_number = issubclass(
+                    t_s_list_offset[j].dtype.type, numbers.Number
+                )
+                if not t_s_is_number:
+                    t_s_list_offset[j][t_s_list_offset[j] == "None"] = np.nan
                 t_s_list_offset[j] = (
                     t_s_list_offset[j].astype(float) + time_delta_from_0[j]
                 )
@@ -421,7 +430,9 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     )
 
     # Now we handle the frame-by-frame metadata
-    acquisition_times = input_global_metadata["ImageAcquisitionDate"][0]
+    acquisition_times = input_global_metadata["ImageAcquisitionDate"]
+    # Flatten list so it is indexed by series
+    acquisition_times = [item for sublist in acquisition_times for item in sublist]
     acquisition_times = [
         datetime.strptime(series_time, "%Y-%m-%dT%H:%M:%S")
         for series_time in acquisition_times
