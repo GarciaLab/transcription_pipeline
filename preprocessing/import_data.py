@@ -661,8 +661,16 @@ def import_save_dataset(name_folder, trim_series):
     global_metadata_path = collated_path / "original_global_metadata.mat"
     savemat(global_metadata_path, original_global_metadata)
 
+    # Convert frame metadata to numpy object-type arrays to help with
+    # saving to file later.
+    original_frame_metadata_object = {}
+    for frame_key in original_frame_metadata:
+        original_frame_metadata_object[frame_key] = np.asanyarray(
+            original_frame_metadata[frame_key], dtype=object
+        )
+
     frame_metadata_path = collated_path / "original_frame_metadata.mat"
-    savemat(frame_metadata_path, original_frame_metadata)
+    savemat(frame_metadata_path, original_frame_metadata_object)
 
     for i, channel_data in enumerate(channels_full_dataset):
         # Save metadata to file
