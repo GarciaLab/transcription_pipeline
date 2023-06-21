@@ -16,6 +16,7 @@ from functools import partial
 import multiprocessing as mp
 import dask
 from dask.distributed import Client, LocalCluster
+import gc
 
 
 def ellipsoid(diameter, height):
@@ -475,6 +476,9 @@ def segment_nuclei(
     movie_frames = [frame[0] for frame in movie_frames]
     segmentation = map(segment_frame_func, movie_frames)
 
+    gc.collect()
+    gc.disable() # Let dask manage memory by restarting workers
+
     # Set up dask client for computation
     with LocalCluster(
         n_workers=int(min(0.9 * mp.cpu_count(), num_processes)),
@@ -482,6 +486,8 @@ def segment_nuclei(
         threads_per_worker=1,
     ) as cluster, Client(cluster) as client:
         segmentation = dask.compute(*segmentation)
+
+    gc.enable()
 
     markers = [frame[0] for frame in segmentation]
     labels = [frame[1] for frame in segmentation]
