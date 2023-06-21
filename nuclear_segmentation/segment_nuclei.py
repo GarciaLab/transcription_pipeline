@@ -487,6 +487,7 @@ def segment_nuclei(
     ) as cluster, Client(cluster) as client:
         segmentation = dask.compute(*segmentation)
 
+    gc.collect()
     gc.enable()
 
     markers = [frame[0] for frame in segmentation]
