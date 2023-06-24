@@ -15,8 +15,8 @@ from scipy import ndimage as ndi
 from functools import partial
 import multiprocessing as mp
 import dask
+import dask.array as da
 from dask.distributed import Client, LocalCluster
-import gc
 
 
 def ellipsoid(diameter, height):
@@ -99,7 +99,7 @@ def iterative_peak_local_max(image, footprint):
     return coords
 
 
-def mark_nuclei(stack, *, low_sigma, high_sigma, max_footprint):
+def mark_frame(stack, *, low_sigma, high_sigma, max_footprint):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
     maximum to find markers for each nucleus. Being permissive with the filtering at
@@ -142,10 +142,10 @@ def mark_nuclei(stack, *, low_sigma, high_sigma, max_footprint):
     mask[tuple(marker_coordinates.T)] = True
     markers, _ = ndi.label(mask)
 
-    return (dog, marker_coordinates, markers)
+    return markers
 
 
-def segment_nuclei_stack(
+def segment_frame(
     stack,
     markers,
     *,
@@ -161,10 +161,10 @@ def segment_nuclei_stack(
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
     :type stack: Numpy array.
-    :param markers: Boolean array of dimensions matching stack, with nuclei containing
-        (ideally) a single 'True' value, and all other values being false. This is
-        used to see the watershed segmentation.
-    :type markers: Numpy array of booleans.
+    :param markers: Boolean array of dimensions matching movie, with nuclei containing
+        (ideally) a single unique integer value, and all other values being 0. This is
+        used to perform the watershed segmentation.
+    :type markers: Numpy array of integers.
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
@@ -282,26 +282,15 @@ def segment_nuclei_stack(
     return labels
 
 
-@dask.delayed
-def segment_frame(
-    stack,
-    *,
-    low_sigma,
-    high_sigma,
-    max_footprint,
-    denoising,
-    thresholding,
-    closing_footprint,
-    watershed_method,
-    **kwargs
-):
+def mark_movie(movie, *, low_sigma, high_sigma, max_footprint):
     """
-    Segments nuclei in a z-stack using watershed method. Marked as delayed using
-    dask decorator for subsequent parallelization over timepoints.
+    Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
+    maximum to find markers for each nucleus. Being permissive with the filtering at
+    this stage is recommended, since further filtering of the nuclear localization can
+    be done post-segmentation using the size and morphology of the segmented objects.
 
-
-    :param stack: 2D (projected) or 3D z-stack of a nuclear marker.
-    :type stack: Numpy array.
+    :param movie: 2D (projected) or 3D movie of a nuclear marker.
+    :type movie: Numpy array.
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
@@ -313,100 +302,49 @@ def segment_frame(
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
     :type max_footprint: Numpy array of booleans.
-    :param denoising: Determines which method to use for initial denoising of the
-        image (before any filtering or morphological operations) between a gaussian
-        filter and a median filter.
-        * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
-        * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
-    :type denoising: {'gaussian', 'median'}
-    :param thresholding: Determines which method to use to determine a threshold
-        for binarizing the stack, between global and local Otsu threholding, and
-        Li's cross-entropy minimization method.
-        * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
-    :type thresholding: {'global_otsu', 'local_otsu', 'li'}
-    :param closing_footprint: Footprint used for closing operation.
-    :type closing_footprint: Numpy array of booleans.
-    :param watershed_method: Determines what to use as basins for the watershed
-        segmentation, between the inverted denoised image itself (works well for
-        bright nuclear markers), the distance-transformed binarized image, and the
-        sobel gradient of the image.
-    :type watershed_method: {'raw', 'distance_transform', 'sobel'}
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie.
-    :param denoising_sigma: Sigma used for gaussian filter denoising of the image
-        prior to any morphological operations or other filtering. If given as a scalar,
-        sigma is assumed to be isotropic. Can also be given as a sequence of scalars
-        matching the dimensions of the image, where each element sets the sigma in the
-        corresponding image axis
-    :type denoising_sigma: scalar or sequence of scalars, only required if using
-        ``denoising='gaussian'``.
-    :param median_footprint: Footprint used for median filter denoising of the image
-        prior to any morphological operations or other filtering.
-    :type median_footprint: Numpy array of booleans, only required if using
-        ``denoising='median'``.
-    :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
-        image for binarization.
-    :type otsu_thresholding: Numpy array of booleans, only required if using
-        ``thresholding='local_otsu'``.
-    :param min_size: Smallest allowable object size.
-    :type min_size: int, optional
-    :return: Tuple(markers, labels) where markers is a boolean array  with the
-        marker positions used for the watershed transform given by a True value and
-        labels is an array with each label corresponding to a mask for a single
-        nucleus, assigned to an integer value (both of the same shape as movie).
-    :rtype: Tuple of Numpy arrays.
+    :return: Tuple(dog, marker_coordinates, markers) where dog is the
+        bandpass-filtered image, marker_coordinates is an array of the nuclear
+        locations in the image indexed as per the image (this can be used for
+        visualization) and markers is a boolean array of the same shape as image, with
+        the marker positions given by a True value.
+    :rtype: Tuple of numpy arrays.
     """
-    _, _, markers = mark_nuclei(
-        stack,
-        low_sigma=low_sigma,
-        high_sigma=high_sigma,
-        max_footprint=max_footprint,
-    )
-    labels = segment_nuclei_stack(
-        stack,
-        markers,
-        denoising=denoising,
-        thresholding=thresholding,
-        closing_footprint=closing_footprint,
-        watershed_method=watershed_method,
-        **kwargs
-    )
+    # Store parameters for segmentation array
+    movie_shape = movie.shape
+    num_timepoints = movie_shape[0]
 
-    return markers, labels
+    # Loop over frames of movie
+    markers = np.empty(movie_shape, dtype=np.uint32)
+    for i in range(num_timepoints):
+        markers[i] = mark_frame(
+            movie[i],
+            low_sigma=low_sigma,
+            high_sigma=high_sigma,
+            max_footprint=max_footprint,
+        )
+
+    return markers
 
 
-def segment_nuclei(
+def segment_movie(
     movie,
+    markers,
     *,
-    low_sigma,
-    high_sigma,
-    max_footprint,
     denoising,
     thresholding,
     closing_footprint,
     watershed_method,
-    num_processes=1,
     **kwargs
 ):
     """
     Segments nuclei in a movie using watershed method.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type stack: Numpy array.
-    :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
-        noise). Can be given as float (assumes isotropic sigma) or as sequence/array
-        (each element corresponsing the sigma along of the image axes).
-    :param high_sigma: Sigma to use as the high-pass filter (removes structured
-        background and dims down areas where nuclei are close together that might
-        start to coalesce under other morphological operations). Can be given as float
-        (assumes isotropic sigma) or as sequence/array (each element corresponsing the
-        sigma along of the image axes).
-    :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
-        during maximum dilation. This sets the minimum distance between peaks.
-    :type max_footprint: Numpy array of booleans.
+    :type movie: Numpy array.
+    :param markers: Boolean array of dimensions matching movie, with nuclei containing
+        (ideally) a single unique integer value, and all other values being 0. This is
+        used to perform the watershed segmentation.
+    :type markers: Numpy array of integers.
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
@@ -455,15 +393,194 @@ def segment_nuclei(
     """
     # Store parameters for segmentation array
     movie_shape = movie.shape
-    movie_dtype = movie.dtype
     num_timepoints = movie_shape[0]
 
-    # Create partial function to run through map in parallel processes
-    segment_frame_func = partial(
-        segment_frame,
+    # Loop over frames of movie
+    labels = np.empty(movie_shape, dtype=np.uint32)
+    for i in range(num_timepoints):
+        labels[i] = segment_frame(
+            movie[i],
+            markers[i],
+            denoising=denoising,
+            thresholding=thresholding,
+            closing_footprint=closing_footprint,
+            watershed_method=watershed_method,
+            **kwargs
+        )
+
+    return labels
+
+
+def mark_nuclei(
+    movie, *, low_sigma, high_sigma, max_footprint, num_processes=1, memory_limit="4GB"
+):
+    """
+    Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
+    maximum to find markers for each nucleus. Being permissive with the filtering at
+    this stage is recommended, since further filtering of the nuclear localization can
+    be done post-segmentation using the size and morphology of the segmented objects.
+    This is parallelized across a Dask LocalCluster.
+
+    :param movie: 2D (projected) or 3D movie of a nuclear marker.
+    :type movie: Numpy array.
+    :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
+        noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+        (each element corresponsing the sigma along of the image axes).
+    :param high_sigma: Sigma to use as the high-pass filter (removes structured
+        background and dims down areas where nuclei are close together that might
+        start to coalesce under other morphological operations). Can be given as float
+        (assumes isotropic sigma) or as sequence/array (each element corresponsing the
+        sigma along of the image axes).
+    :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
+        during maximum dilation. This sets the minimum distance between peaks.
+    :type max_footprint: Numpy array of booleans.
+    :param int num_processes: Number of worker processes used in parallel loop over
+        frames of movie.
+    :param str memory_limt: Memory limit of each dask worker for parallelization -
+        this shouldn't be an issue when running our usual datasets on the server,
+        but is useful if running on a different machine and seeing out-of-memory
+        errors from Dask. Should be provided as a string in format '_GB'.
+    :return: Tuple(dog, marker_coordinates, markers) where dog is the
+        bandpass-filtered image, marker_coordinates is an array of the nuclear
+        locations in the image indexed as per the image (this can be used for
+        visualization) and markers is a boolean array of the same shape as image, with
+        the marker positions given by a True value.
+    :rtype: Tuple of numpy arrays.
+    """
+    # Figure out how to split movie into chunks to distribute across processes
+    num_timepoints_per_chunk = int(np.ceil(movie.shape[0] / num_processes))
+    num_axes = len(movie.shape)
+    chunk_shape = (num_timepoints_per_chunk,) + movie.shape[1:num_axes]
+
+    if isinstance(movie, np.ndarray):
+        dask_movie = da.from_array(movie, chunks=chunk_shape)
+    elif isinstance(movie, zarr.core.Array):
+        dask_movie = da.from_zarr(movie, chunks=chunk_shape)
+    elif isinstance(movie, da.Array):
+        dask_movie = da.rechunk(movie, chunks=chunk_shape)
+    else:
+        raise Exception("Movie data type not recognized, must be numpy, zarr or dask.")
+
+    mark_movie_func = partial(
+        mark_movie,
         low_sigma=low_sigma,
         high_sigma=high_sigma,
         max_footprint=max_footprint,
+    )
+
+    with LocalCluster(
+        n_workers=int(min(0.9 * mp.cpu_count(), num_processes)),
+        processes=True,
+        threads_per_worker=1,
+        memory_limit=memory_limit,
+    ) as cluster, Client(cluster) as client:
+        markers_map = da.map_blocks(
+            mark_movie_func, dask_movie, meta=np.array((), dtype=np.int32)
+        )
+        markers = markers_map.compute()
+
+    return markers
+
+
+def segment_nuclei(
+    movie,
+    markers,
+    *,
+    denoising,
+    thresholding,
+    closing_footprint,
+    watershed_method,
+    num_processes=1,
+    memory_limit="4GB",
+    **kwargs
+):
+    """
+    Segments nuclei in a movie using watershed method, parallelizing on a Dask
+    LocalCluster.
+
+    :param movie: 2D (projected) or 3D movie of a nuclear marker.
+    :type stack: Numpy array.
+    :param markers: Boolean array of dimensions matching movie, with nuclei containing
+        (ideally) a single unique integer value, and all other values being 0. This is
+        used to perform the watershed segmentation.
+    :type markers: Numpy array of integers.
+    :param denoising: Determines which method to use for initial denoising of the
+        image (before any filtering or morphological operations) between a gaussian
+        filter and a median filter.
+        * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
+        the sigma parameter for the gaussian filter.
+        * ``median``: requires a ``median_footprint`` keyword argument to determine
+        the footprint used for the median filter.
+    :type denoising: {'gaussian', 'median'}
+    :param thresholding: Determines which method to use to determine a threshold
+        for binarizing the stack, between global and local Otsu threholding, and
+        Li's cross-entropy minimization method.
+        * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
+        the footprint used for the local Otsu thresholding.
+    :type thresholding: {'global_otsu', 'local_otsu', 'li'}
+    :param closing_footprint: Footprint used for closing operation.
+    :type closing_footprint: Numpy array of booleans.
+    :param watershed_method: Determines what to use as basins for the watershed
+        segmentation, between the inverted denoised image itself (works well for
+        bright nuclear markers), the distance-transformed binarized image, and the
+        sobel gradient of the image.
+    :type watershed_method: {'raw', 'distance_transform', 'sobel'}
+    :param int num_processes: Number of worker processes used in parallel loop over
+        frames of movie.
+    :param str memory_limt: Memory limit of each dask worker for parallelization -
+        this shouldn't be an issue when running our usual datasets on the server,
+        but is useful if running on a different machine and seeing out-of-memory
+        errors from Dask. Should be provided as a string in format '_GB'.
+    :param denoising_sigma: Sigma used for gaussian filter denoising of the image
+        prior to any morphological operations or other filtering. If given as a scalar,
+        sigma is assumed to be isotropic. Can also be given as a sequence of scalars
+        matching the dimensions of the image, where each element sets the sigma in the
+        corresponding image axis
+    :type denoising_sigma: scalar or sequence of scalars, only required if using
+        ``denoising='gaussian'``.
+    :param median_footprint: Footprint used for median filter denoising of the image
+        prior to any morphological operations or other filtering.
+    :type median_footprint: Numpy array of booleans, only required if using
+        ``denoising='median'``.
+    :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
+        image for binarization.
+    :type otsu_thresholding: Numpy array of booleans, only required if using
+        ``thresholding='local_otsu'``.
+    :param min_size: Smallest allowable object size.
+    :type min_size: int, optional
+    :return: Tuple(markers, labels) where markers is a boolean array  with the
+        marker positions used for the watershed transform given by a True value and
+        labels is an array with each label corresponding to a mask for a single
+        nucleus, assigned to an integer value (both of the same shape as movie).
+    :rtype: Tuple of Numpy arrays.
+    """
+    # Figure out how to split movie into chunks to distribute across processes
+    num_timepoints_per_chunk = int(np.ceil(movie.shape[0] / num_processes))
+    num_axes = len(movie.shape)
+    chunk_shape = (num_timepoints_per_chunk,) + movie.shape[1:num_axes]
+
+    if isinstance(movie, np.ndarray):
+        dask_movie = da.from_array(movie, chunks=chunk_shape)
+    elif isinstance(movie, zarr.core.Array):
+        dask_movie = da.from_zarr(movie, chunks=chunk_shape)
+    elif isinstance(movie, da.Array):
+        dask_movie = da.rechunk(movie, chunks=chunk_shape)
+    else:
+        raise Exception("Movie data type not recognized, must be numpy, zarr or dask.")
+
+    if isinstance(markers, np.ndarray):
+        dask_markers = da.from_array(markers, chunks=chunk_shape)
+    elif isinstance(markers, zarr.core.Array):
+        dask_markers = da.from_zarr(markers, chunks=chunk_shape)
+    elif isinstance(markers, da.Array):
+        dask_markers = da.rechunk(markers, chunks=chunk_shape)
+    else:
+        raise Exception(
+            "Markers data type not recognized, must be numpy, zarr or dask."
+        )
+
+    segment_movie_func = partial(
+        segment_movie,
         denoising=denoising,
         thresholding=thresholding,
         closing_footprint=closing_footprint,
@@ -471,30 +588,18 @@ def segment_nuclei(
         **kwargs
     )
 
-    # Loop over frames of movie
-    movie_frames = np.split(movie, num_timepoints)
-    movie_frames = [frame[0] for frame in movie_frames]
-    segmentation = map(segment_frame_func, movie_frames)
-
-    gc.collect()
-    gc.disable() # Let dask manage memory by restarting workers
-
-    # Set up dask client for computation
     with LocalCluster(
         n_workers=int(min(0.9 * mp.cpu_count(), num_processes)),
         processes=True,
         threads_per_worker=1,
+        memory_limit=memory_limit,
     ) as cluster, Client(cluster) as client:
-        segmentation = dask.compute(*segmentation)
+        segmentation_map = da.map_blocks(
+            segment_movie_func,
+            dask_movie,
+            dask_markers,
+            meta=np.array((), dtype=np.int32),
+        )
+        segmentation = segmentation_map.compute()
 
-    gc.collect()
-    gc.enable()
-
-    markers = [frame[0] for frame in segmentation]
-    labels = [frame[1] for frame in segmentation]
-
-    # Reconstruct arrays from lists
-    markers = np.stack(markers)
-    labels = np.stack(labels)
-
-    return markers, labels
+    return segmentation

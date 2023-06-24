@@ -7,6 +7,7 @@ import pims
 from scipy.io import savemat
 from skimage.io import imsave
 import numbers
+import zarr
 
 
 def extract_global_metadata(metadata_object):
@@ -565,7 +566,9 @@ def import_dataset(name_folder, trim_series):
         series_shape[4],
         series_shape[5],
     )
-    full_dataset = np.empty(dataset_shape)
+
+    dtype = original_global_metadata["PixelsType"]
+    full_dataset = np.empty(dataset_shape, dtype=dtype)
 
     original_frame_metadata = {}  # One element per series
 
@@ -610,7 +613,7 @@ def import_dataset(name_folder, trim_series):
     )
 
 
-def import_save_dataset(name_folder, trim_series):
+def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
     """
     Imports and collates the data files in the name_directory, and generates
     metadata dictionaries for the original files metadata and new metadata
@@ -623,27 +626,29 @@ def import_save_dataset(name_folder, trim_series):
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
+    :param mode: Format to save and return data array.
+    :type mode: {'tiff', 'zarr'}
+    :param chunks: Chunk shape for zarr storage. If True, will be guessed from shape
+        and dtype. If False, will be set to shape, i.e., single chunk for the whole
+        array. If an int, the chunk size in each dimension will be given by the
+        value of chunks. Default is False.
+    :type chunks: bool, int or tuple of ints, optional.
     :return: Tuple(channels_full_dataset, original_global_metadata,
         original_frame_metadata, export_global_metadata,export_frame_metadata)
-        * ``channels_full_dataset``: list of numpy arrays, with each
-        element of the list being a collated dataset for a given channel.
+        * ``channels_full_dataset``: list of numpy (if mode='tiff') or zarr arrays
+        (if mode='zarr'), with each element of the list being a collated dataset
+        for a given channel.
         * ``original_global_metadata``: dictionary of global metadata
         for all files and series in a dataset.
-       * ``original_frame_metadata``: dictionary of frame-by-frame metadata
-       for all files and series in a dataset.
-       * ``export_global_metadata``: list of dictionaries of global
-       metadata for the collated dataset, with each element of the list
-       corresponding to a channel.
-       * ``export_frame_metadata``: list of dictionaries of frame-by-frame
-       metadata for the collated dataset, with each element of the list
-       corresponding to a channel.
+        * ``original_frame_metadata``: dictionary of frame-by-frame metadata
+        for all files and series in a dataset.
+        * ``export_global_metadata``: list of dictionaries of global
+        metadata for the collated dataset, with each element of the list
+        corresponding to a channel.
+        * ``export_frame_metadata``: list of dictionaries of frame-by-frame
+        metadata for the collated dataset, with each element of the list
+        corresponding to a channel.
     :rtype: Tuple of dicts
-
-    .. note::
-        Saving the metadata dicts to .mat files involves
-        conversion of the values to arrays, which will raise a
-        VisibleDeprecationWarning and make the converted array default to
-        dtype=object - this can be safely ignored.
     """
     (
         channels_full_dataset,
@@ -686,11 +691,26 @@ def import_save_dataset(name_folder, trim_series):
             collated_frame_path,
             export_frame_metadata[i],
         )
+        if mode == "tiff":
+            # Save data to file for each channel
+            filename = "".join([(export_global_metadata[i])["ImageName"], ".tiff"])
+            collated_data_path = collated_path / filename
+            imsave(collated_data_path, channel_data, plugin="tifffile")
 
-        # Save data to file for each channel
-        filename = "".join([(export_global_metadata[i])["ImageName"], ".tiff"])
-        collated_data_path = collated_path / filename
-        imsave(collated_data_path, channel_data, plugin="tifffile")
+        elif mode == "zarr":
+            # Save data to file for each channel
+            filename = "".join([(export_global_metadata[i])["ImageName"], ".zarr"])
+            collated_data_path = collated_path / filename
+
+            # Convert to zarr
+            store = zarr.storage.DirectoryStore(collated_data_path)
+            channel_data = zarr.creation.array(channel_data, chunks=chunks, store=store)
+            store.close()
+
+            channels_full_dataset[i] = channel_data
+
+        else:
+            raise Exception("Save mode not recognized.")
 
     return (
         channels_full_dataset,
