@@ -1,6 +1,7 @@
 name: transcription_pipeline
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - python=3.10.11
   - mamba
@@ -17,9 +18,14 @@ dependencies:
   - ca-certificates
   - certifi
   - openssl
-#  - tensorflow-gpu
   - jpype1
   - pip
-  - pip:
-    - -r requirements.txt
-prefix: /home/yovan/mambaforge/envs/transcription_pipeline
+  - jupyterlab_code_formatter
+  - black
+  - isort
+  - autopep8
+  - multiprocess
+  - ray-default
+  - ipywidgets
+  - pipreqs
+prefix: /home/ybadal/mambaforge/envs/transcription_pipeline
