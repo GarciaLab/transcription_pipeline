@@ -475,7 +475,7 @@ def mark_nuclei(
         memory_limit=memory_limit,
     ) as cluster, Client(cluster) as client:
         markers_map = da.map_blocks(
-            mark_movie_func, dask_movie, meta=np.array((), dtype=np.int32)
+            mark_movie_func, dask_movie, meta=np.array((), dtype=np.uint32)
         )
         markers = markers_map.compute()
 
@@ -598,7 +598,7 @@ def segment_nuclei(
             segment_movie_func,
             dask_movie,
             dask_markers,
-            meta=np.array((), dtype=np.int32),
+            meta=np.array((), dtype=np.uint32),
         )
         segmentation = segmentation_map.compute()
 
