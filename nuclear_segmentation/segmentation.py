@@ -154,7 +154,7 @@ def _find_plateau(array, **kwargs):
 
     plateau = np.zeros((array.size, array.size), dtype=bool)
 
-    # This sufficient to find all plateaus because the input array is monotonically
+    # This suffices to find all plateaus because the input array is monotonically
     # decreasing such that points within some tolerance max_diff of any given
     # value are necessarily contiguous.
     for i in range(array.size):
