@@ -14,6 +14,7 @@ from skimage.util import img_as_ubyte
 from skimage.util import img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
+import zarr
 import multiprocessing as mp
 import dask
 import dask.array as da
