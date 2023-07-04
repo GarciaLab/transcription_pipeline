@@ -378,16 +378,34 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     fields_num_channels = [
         "ChannelAnnotationRefCount",
         "ChannelColor",
+        "ChannelName",
         "ChannelPinholeSize",
         "ChannelSamplesPerPixel",
-        "FilterAnnotationRefCount",
+        "DetectorAmplificationGain",
+        "DetectorAnnotationRefCount",
+        "DetectorGain",
+        "DetectorID",
+        "DetectorSettingsID",
+        "DetectorType",
+        "DetectorZoom",
+        "DichroicAnnotationRefCount",
+        "DichroicID",
+        "DichroicModel",
+        "LaserID",
+        "LaserLaserMedium",
+        "LaserModel",
+        "LaserType",
+        "LaserWavelength",
         "LightPathAnnotationRefCount",
         "LightPathEmissionFilterRefCount",
         "LightPathExcitationFilterRefCount",
+        "LightSourceAnnotationRefCount",
+        "LightSourceType",
         "PlaneAnnotationRefCount",
         "PlaneDeltaT",
         "PlanePositionX",
         "PlanePositionY",
+        "PlanePositionZ",
         "PlaneTheC",
         "PlaneTheT",
         "PlaneTheZ",
@@ -396,7 +414,6 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     # The following fields should be lists of the same length as the
     # number of series.
     fields_num_series = [
-        "ImageAcquisitionDate",
         "ImageID",
         "ImageInstrumentRef",
         "InstrumentID",
@@ -407,7 +424,10 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
 
     # The following fields are nested lists, indexed first by series then by
     # channel.
-    fields_num_series_channels = ["ChannelID", "FilterID", "LightPathEmissionFilterRef"]
+    fields_num_series_channels = [
+        "ChannelID",
+        "ImageAcquisitionDate",
+    ]
 
     # The following fields are taken care of explicitly above to match the
     # dataset collation.
