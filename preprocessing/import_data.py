@@ -505,6 +505,7 @@ def import_dataset(name_folder, trim_series):
     dataset_name = name_folder.split("/")[-1]
     file_path = "".join([name_folder, "/", dataset_name, "*"])
     file_list = glob.glob(file_path)
+    file_list.sort()
 
     # Metadata fields to ignore during consistency checks (these fields
     # typically vary from series to series).
