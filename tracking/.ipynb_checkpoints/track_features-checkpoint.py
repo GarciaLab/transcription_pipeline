@@ -1,8 +1,12 @@
 from skimage.measure import regionprops_table
 import pandas as pd
+import numpy as np
 import trackpy as tp
 from preprocessing import process_metadata
-from utils.parallel_computing import send_compute_to_cluster
+from functools import partial
+import dask
+import dask.array as da
+import dask.dataframe as dd
 
 
 def _reverse_segmentation_df(segmentation_df):
@@ -103,7 +107,7 @@ def segmentation_df(
     return movie_properties
 
 
-def link_dataframe(
+def link_df(
     segmentation_df,
     *,
     search_range,
@@ -166,6 +170,21 @@ def link_dataframe(
     return linked_dataframe
 
 
+def _switch_labels(segmentation_mask, reordered_mask, properties):
+    """
+    Reorders segmentation mask labels specified by a row `properties` of a linked
+    segmentation dataframe to match the tracking. The output reordered segmentation
+    array reordered_mask is passed as an argument and modified in-place.
+    """
+    frame_index = int(properties["frame"]) - 1
+    old_label = properties["label"]
+    new_label = properties["particle"]
+
+    object = segmentation_mask[frame_index] == old_label
+    reordered_mask[frame_index][object] = new_label
+    return reordered_mask
+
+
 def reorder_labels(segmentation_mask, linked_dataframe):
     """
     Relabels the input segmentation_mask to match the particle ID assigned by
@@ -184,13 +203,8 @@ def reorder_labels(segmentation_mask, linked_dataframe):
     reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
 
     # Switch labels using 'particle' column in linked dataframe
-    for i, properties in linked_df.iterrows():
-        frame_index = int(properties["frame"]) - 1
-        old_label = properties["label"]
-        new_label = properties["particle"]
-
-        object = segmentation_mask[frame_index] == old_label
-        reordered_mask[frame_index][object] = new_label
+    for _, properties in linked_dataframe.iterrows():
+        _switch_labels(segmentation_mask, reordered_mask, properties)
 
     return reordered_mask
 
@@ -222,9 +236,16 @@ def reorder_labels_parallel(segmentation_mask, linked_dataframe, **kwargs):
         particles.
     :rtype: Numpy array.
     """
-    reorder_labels_func = partial(reorder_labels, linked_dataframe)
+    reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
+    reordered_mask = dask.delayed(reordered_mask)
+    segmentation_mask = dask.delayed(segmentation_mask)
+    delayed_switch_labels = dask.delayed(_switch_labels)
+    linked_dataframe = dask.delayed(linked_dataframe)
 
-    reordered_mask = send_compute_to_cluster(
-        segmentation_mask, reorder_labels_func, kwargs, np.uint32
-    )
+    # Switch labels using 'particle' column in linked dataframe
+    for _, properties in linked_dataframe.iterrows():
+        delayed_switch_labels(segmentation_mask, reordered_mask, properties)
+
+    reordered_mask = reordered_mask.compute()
+    
     return reordered_mask
