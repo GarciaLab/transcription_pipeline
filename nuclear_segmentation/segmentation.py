@@ -1,20 +1,19 @@
 import warnings
 import numpy as np
-from skimage.filters import difference_of_gaussians
-from skimage.filters import rank
-from skimage.filters import gaussian
-from skimage.filters import threshold_otsu
-from skimage.filters import threshold_li
-from skimage.filters import sobel
-from skimage.feature import peak_local_max
+from skimage.filters import (
+    difference_of_gaussians,
+    rank,
+    gaussian,
+    threshold_otsu,
+    threshold_li,
+    sobel,
+)
 from skimage.segmentation import watershed
-from skimage.morphology import binary_closing
-from skimage.morphology import remove_small_objects
-from skimage.util import img_as_ubyte
-from skimage.util import img_as_float32
+from skimage.morphology import binary_closing, remove_small_objects
+from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
-from utils.parallel_computing import send_compute_to_cluster
+from utils import parallel_computing
 
 
 def ellipsoid(diameter, height):
@@ -306,8 +305,7 @@ def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
 
 def denoise_frame(stack, denoising, **kwargs):
     """
-    Binarizes frames in a z-stack using specified method, separating between
-    foreground and background.
+    Denoises a z-stack using specified method (gaussian or median filtering).
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
     :type stack: Numpy array.
@@ -356,7 +354,7 @@ def denoise_frame(stack, denoising, **kwargs):
 
 def binarize_frame(stack, *, thresholding, closing_footprint, **kwargs):
     """
-    Binarizes frames in a z-stack using specified method, separating between
+    Binarizes a z-stack using specified thresholding method, separating between
     foreground and background.
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
@@ -530,8 +528,8 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
 
 def denoise_movie(movie, *, denoising, **kwargs):
     """
-    Binarizes frames in a z-stack using specified method, separating between
-    foreground and background.
+    Denoises a movie frame-by-frame using specified method (gaussian or median
+    filtering).
 
     :param movie: 2D (projected) or 3D image of a nuclear marker.
     :type movie: Numpy array.
@@ -566,8 +564,8 @@ def denoise_movie(movie, *, denoising, **kwargs):
 
 def binarize_movie(movie, *, thresholding, closing_footprint, **kwargs):
     """
-    Binarizes frames in a z-stack using specified method, separating between
-    foreground and background.
+    Binarizes a movie frame-by-frame using specified thresholding method, separating
+    between foreground and background.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
     :type stack: Numpy array.
@@ -707,10 +705,10 @@ def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
     return labels
 
 
-def denoise_movie_parallel(movie, *, denoising, **kwargs):
+def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     """
-    Binarizes frames in a z-stack using specified method, separating between
-    foreground and background.
+    Denoises a movie frame-by-frame using specified method (gaussian or median
+    filtering). This is parallelized across a Dask LocalCluster.
 
     :param movie: 2D (projected) or 3D image of a nuclear marker.
     :type movie: Numpy array.
@@ -728,38 +726,53 @@ def denoise_movie_parallel(movie, *, denoising, **kwargs):
         prior to any morphological operations or other filtering.
     :type median_footprint: Numpy array of booleans, only required if using
         ``denoising='median'``.
-    :param address: Check specified port (default is 8786) for existing
-        LocalCluster to connect to.
-    :type address: str or LocalCluster object
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie. Only required if not connecting to existing LocalCluster.
-        Default is 4.
-    :param str memory_limit: Memory limit of each dask worker for parallelization -
-        this shouldn't be an issue when running our usual datasets on the server,
-        but is useful if running on a different machine and seeing out-of-memory
-        errors from Dask. Should be provided as a string in format '_GB'. Only
-        required if not connecting to existing LocalCluster. Default is 4GB.
-    :return: Denoised movie.
-    :rtype: Numpy array.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: Tuple(denoised_movie, denoised_movie_futures, scattered_movie) where
+        *denoised_movie is the fully evaluated denoised movie as an ndarray of the
+        same shape and `dtype` as `movie`.
+        *denoised_movie_futures is the list of futures objects resulting from the
+        denoising in the worker memories before gathering and concatenation.
+        *scattered_movie is a list of futures pointing to the input movie in
+        the workers' memory, wrapped in a list.
+    :rtype: tuple
+    .. note::
+        This function can also pass along any kwargs taken by
+        :func:`~utils.parallel_computing.parallelize`.
     """
-
     denoise_movie_func = partial(
         denoise_movie,
         denoising=denoising,
         **kwargs,
     )
 
-    denoised_movie = send_compute_to_cluster(
-        [movie], denoise_movie_func, kwargs, np.float32
+    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+        kwargs
     )
 
-    return denoised_movie
+    (
+        denoised_movie,
+        denoised_movie_futures,
+        scattered_movie,
+    ) = parallel_computing.parallelize(
+        [movie],
+        denoise_movie_func,
+        client,
+        evaluate=evaluate,
+        futures_in=futures_in,
+        futures_out=futures_out,
+    )
+
+    return denoised_movie, denoised_movie_futures, scattered_movie
 
 
-def binarize_movie_parallel(movie, *, thresholding, closing_footprint, **kwargs):
+def binarize_movie_parallel(
+    movie, *, thresholding, closing_footprint, client, **kwargs
+):
     """
-    Binarizes frames in a z-stack using specified method, separating between
-    foreground and background. This is parallelized across a Dask LocalCluster.
+    Binarizes a movie frame-by-frame using specified thresholding method, separating
+    between foreground and background. This is parallelized across a Dask
+    LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
     :type stack: Numpy array.
@@ -775,20 +788,20 @@ def binarize_movie_parallel(movie, *, thresholding, closing_footprint, **kwargs)
         image for binarization.
     :type otsu_thresholding: Numpy array of booleans, only required if using
         ``thresholding='local_otsu'``.
-    :param address: Check specified port (default is 8786) for existing
-        LocalCluster to connect to.
-    :type address: str or LocalCluster object
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie. Only required if not connecting to existing LocalCluster.
-        Default is 4.
-    :param str memory_limit: Memory limit of each dask worker for parallelization -
-        this shouldn't be an issue when running our usual datasets on the server,
-        but is useful if running on a different machine and seeing out-of-memory
-        errors from Dask. Should be provided as a string in format '_GB'. Only
-        required if not connecting to existing LocalCluster. Default is 4GB.
-    :return: A boolean array of the same type and shape as stack, with True values
-        corresponding to the foreground and False to the background.
-    :rtype: Numpy array.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: Tuple(binarized_movie, binarized_movie_futures, scattered_movie) where
+        *binarized_movie is the fully evaluated binarized movie as an ndarray of
+        booleans of the same shape as movie, with only the pixels in the foreground
+        corresponding to a `True` value.
+        *binarized_movie_futures is the list of futures objects resulting from the
+        binarization in the worker memories before gathering and concatenation.
+        *scattered_movie is a list of futures pointing to the input movie in
+        the workers' memory, wrapped in a list.
+    :rtype: tuple
+    .. note::
+        This function can also pass along any kwargs taken by
+        :func:`~utils.parallel_computing.parallelize`.
     """
     binarize_movie_func = partial(
         binarize_movie,
@@ -797,14 +810,29 @@ def binarize_movie_parallel(movie, *, thresholding, closing_footprint, **kwargs)
         **kwargs,
     )
 
-    binarized_movie = send_compute_to_cluster(
-        [movie], binarize_movie_func, kwargs, bool
+    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+        kwargs
     )
 
-    return binarized_movie
+    (
+        binarized_movie,
+        binarized_movie_futures,
+        scattered_movie,
+    ) = parallel_computing.parallelize(
+        [movie],
+        binarize_movie_func,
+        client,
+        evaluate=evaluate,
+        futures_in=futures_in,
+        futures_out=futures_out,
+    )
+
+    return binarized_movie, binarized_movie_futures, scattered_movie
 
 
-def mark_movie_parallel(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
+def mark_movie_parallel(
+    movie, mask, *, low_sigma, high_sigma, max_footprint, client, **kwargs
+):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
     maximum to find markers for each nucleus. Being permissive with the filtering at
@@ -837,23 +865,21 @@ def mark_movie_parallel(movie, mask, *, low_sigma, high_sigma, max_footprint, **
     :param int averaging_window: Size of averaging window used to perform moving
         average of number of detected peaks when selecting the 'elbow' in the
         detection. Defaults to 3, only used as fallback if plateau finding fails.
-    :param address: Check specified port (default is 8786) for existing
-        LocalCluster to connect to.
-    :type address: str or LocalCluster object
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie. Only required if not connecting to existing LocalCluster.
-        Default is 4.
-    :param str memory_limit: Memory limit of each dask worker for parallelization -
-        this shouldn't be an issue when running our usual datasets on the server,
-        but is useful if running on a different machine and seeing out-of-memory
-        errors from Dask. Should be provided as a string in format '_GB'. Only
-        required if not connecting to existing LocalCluster. Default is 4GB.
-    :return: Tuple(dog, marker_coordinates, markers) where dog is the
-        bandpass-filtered image, marker_coordinates is an array of the nuclear
-        locations in the image indexed as per the image (this can be used for
-        visualization) and markers is a boolean array of the same shape as image, with
-        the marker positions given by a True value.
-    :rtype: Tuple of numpy arrays.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: Tuple(marked_movie, marked_movie_futures, scattered_movies) where
+        *marked_movie is the fully evaluated marked movie as an ndarray of
+        booleans of the same shape as movie, with each nucleus containing a single
+        `True` value.
+        *marked_movie_futures is the list of futures objects resulting from the
+        marking in the worker memories before gathering and concatenation.
+        *scattered_movies is a list with each element corresponding to a list of
+        futures pointing to the input movie and mask in the workers' memory
+        respectively.
+    :rtype: tuple
+    .. note::
+        This function can also pass along any kwargs taken by
+        :func:`~utils.parallel_computing.parallelize`.
     """
     mark_movie_func = partial(
         mark_movie,
@@ -863,14 +889,27 @@ def mark_movie_parallel(movie, mask, *, low_sigma, high_sigma, max_footprint, **
         **kwargs,
     )
 
-    markers = send_compute_to_cluster(
-        [movie, mask], mark_movie_func, kwargs, np.uint32
+    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+        kwargs
     )
 
-    return markers
+    (
+        marked_movie,
+        marked_movie_futures,
+        scattered_movies,
+    ) = parallel_computing.parallelize(
+        [movie, mask],
+        mark_movie_func,
+        client,
+        evaluate=evaluate,
+        futures_in=futures_in,
+        futures_out=futures_out,
+    )
+
+    return marked_movie, marked_movie_futures, scattered_movies
 
 
-def segment_movie_parallel(movie, markers, mask, *, watershed_method, **kwargs):
+def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **kwargs):
     """
     Segments nuclei in a movie using watershed method, parallelizing on a Dask
     LocalCluster.
@@ -891,31 +930,43 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, **kwargs):
         bright nuclear markers), the distance-transformed binarized image, and the
         sobel gradient of the image.
     :type watershed_method: {'raw', 'distance_transform', 'sobel'}
-    :param address: Check specified port (default is 8786) for existing
-        LocalCluster to connect to.
-    :type address: str or LocalCluster object
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie. Only required if not connecting to existing LocalCluster.
-        Default is 4.
-    :param str memory_limit: Memory limit of each dask worker for parallelization -
-        this shouldn't be an issue when running our usual datasets on the server,
-        but is useful if running on a different machine and seeing out-of-memory
-        errors from Dask. Should be provided as a string in format '_GB'. Only
-        required if not connecting to existing LocalCluster. Default is 4GB.
     :param min_size: Smallest allowable object size.
     :type min_size: int, optional
-    :return: Tuple(markers, labels) where markers is a boolean array  with the
-        marker positions used for the watershed transform given by a True value and
-        labels is an array with each label corresponding to a mask for a single
-        nucleus, assigned to an integer value (both of the same shape as movie).
-    :rtype: Tuple of Numpy arrays.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: Tuple(segmented_movie, segmented_movie_futures, scattered_movies) where
+        *segmented_movie is the fully evaluated segmented movie as an ndarray of
+        the same shape as movie with `dtype=np.uint32`, with unique integer labels
+        corresponding to each nucleus.
+        *segmented_movie_futures is the list of futures objects resulting from the
+        segmentation in the worker memories before gathering and concatenation.
+        *scattered_movies is a list with each element corresponding to a list of
+        futures pointing to the input movie, markers, and mask in the workers'
+        memory respectively.
+    :rtype: tuple
+    .. note::
+        This function can also pass along any kwargs taken by
+        :func:`~utils.parallel_computing.parallelize`.
     """
     segment_movie_func = partial(
         segment_movie, watershed_method=watershed_method, **kwargs
     )
 
-    segmentation = send_compute_to_cluster(
-        [movie, markers, mask], segment_movie_func, kwargs, np.uint32
+    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+        kwargs
     )
 
-    return segmentation
+    (
+        segmented_movie,
+        segmented_movie_futures,
+        scattered_movies,
+    ) = parallel_computing.parallelize(
+        [movie, markers, mask],
+        segment_movie_func,
+        client,
+        evaluate=evaluate,
+        futures_in=futures_in,
+        futures_out=futures_out,
+    )
+
+    return segmented_movie, segmented_movie_futures, scattered_movies
