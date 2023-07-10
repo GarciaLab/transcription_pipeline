@@ -5,8 +5,7 @@ import trackpy as tp
 from preprocessing import process_metadata
 from functools import partial
 import dask
-import dask.array as da
-import dask.dataframe as dd
+from utils import parallel_computing
 
 
 def _reverse_segmentation_df(segmentation_df):
@@ -209,7 +208,22 @@ def reorder_labels(segmentation_mask, linked_dataframe):
     return reordered_mask
 
 
-def reorder_labels_parallel(segmentation_mask, linked_dataframe, **kwargs):
+def _chunk_dataframe(dataframe, first_frame, last_frame):
+    """
+    Select [`first_frame`, `last_frame`] from a movie and reindex the `frames`
+    column so that they are indexed within the chunk starting at `first_frame`.
+    """
+    chunk_selector = dataframe["frame"].between(first_frame, last_frame)
+    chunk_dataframe = dataframe[chunk_selector].copy()
+
+    chunk_dataframe["frame"] = chunk_dataframe["frame"].apply(
+        lambda x: x - first_frame + 1
+    )
+
+    return chunk_dataframe
+
+
+def reorder_labels_parallel(segmentation_mask, linked_dataframe, client, **kwargs):
     """
     Relabels the input segmentation_mask to match the particle ID assigned by
     :func:`~link_dataframe`, with the relabeling operation parallelized across
@@ -217,34 +231,62 @@ def reorder_labels_parallel(segmentation_mask, linked_dataframe, **kwargs):
 
     :param segmentation_mask: A labeled array, with each label corresponding to a mask
         for a single feature.
-    :type segmentation_mask: Numpy array.
+    :type segmentation_mask: Numpy array of integers or list of Futures corresponding
+        to chunks of `segmentation_mask`.
     :param linked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
-    :param address: Check specified port (default is 8786) for existing
-        LocalCluster to connect to.
-    :type address: str or LocalCluster object
-    :param int num_processes: Number of worker processes used in parallel loop over
-        frames of movie. Only required if not connecting to existing LocalCluster.
-        Default is 4.
-    :param str memory_limit: Memory limit of each dask worker for parallelization -
-        this shouldn't be an issue when running our usual datasets on the server,
-        but is useful if running on a different machine and seeing out-of-memory
-        errors from Dask. Should be provided as a string in format '_GB'. Only
-        required if not connecting to existing LocalCluster. Default is 4GB.
-    :return: Segmentation mask for a movie with labels consistent between linked
-        particles.
-    :rtype: Numpy array.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: Tuple(`reordered_labels`, `reordered_labels_futures`, `scattered_movies`)
+        where
+        *`reordered_labels` is the fully evaluated segmentation mask reordered as per
+        the tracking, as an ndarray of the same shape as and dtype as
+        `segmentation_mask`, with unique integer labels corresponding to each nucleus.
+        *`reordered_labels_futures` is the list of futures objects resulting from the
+        reordering in the worker memories before gathering and concatenation.
+        *`scattered_data` is a list with each element corresponding to a list of
+        futures pointing to the input `segmentation_mask` and `linked_dataframe` in
+        the workers' memory respectively.
+    :rtype: tuple
+    .. note::
+        This function can also pass along any kwargs taken by
+        :func:`~utils.parallel_computing.parallelize`.
     """
-    reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
-    reordered_mask = dask.delayed(reordered_mask)
-    segmentation_mask = dask.delayed(segmentation_mask)
-    delayed_switch_labels = dask.delayed(_switch_labels)
+    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+        kwargs
+    )
 
-    # Switch labels using 'particle' column in linked dataframe
-    for _, properties in linked_dataframe.iterrows():
-        delayed_switch_labels(segmentation_mask, reordered_mask, properties)
+    # Figure out which frames to split `linked_dataframe` around.
+    num_processes = len(client.scheduler_info()["workers"])
+    num_frames = parallel_computing.number_of_frames(segmentation_mask, client)
+    frame_array = np.arange(num_frames) + 1 # Frames are 1-indexed
+    split_array = np.array_split(frame_array, num_processes)
 
-    reordered_mask = reordered_mask.compute()
-    
-    return reordered_mask
+    first_last_frames = []
+    for chunk in split_array:
+        first_last_frames.append([chunk[0], chunk[-1]])
+
+    split_linked_dataframe = []
+    for frame_split in first_last_frames:
+        split_linked_dataframe.append(
+            _chunk_dataframe(linked_dataframe, frame_split[0], frame_split[1])
+        )
+
+    # Manually scatter split dataframes to pass type check in `parallelize`.
+    scattered_linked_dataframe = client.scatter(split_linked_dataframe)
+
+    (
+        reordered_labels,
+        reordered_labels_futures,
+        scattered_data,
+    ) = parallel_computing.parallelize(
+        [segmentation_mask, scattered_linked_dataframe],
+        reorder_labels,
+        client,
+        evaluate=evaluate,
+        futures_in=futures_in,
+        futures_out=futures_out,
+    )
+
+    return reordered_labels, reordered_labels_futures, scattered_data

@@ -12,16 +12,32 @@ def _check_input_form(movies_list, client):
     """
     scattered_data = []
     for movie in movies_list:
+        num_processes = len(client.scheduler_info()["workers"])
+
         if isinstance(movie, np.ndarray):
-            num_processes = len(client.scheduler_info()["workers"])
             scattered_data.append(client.scatter(np.array_split(movie, num_processes)))
 
         elif isinstance(movie, list):
-            scattered_data.append(movie)
+            # Check that any already chunked and scattered input matches the
+            # number of processes on the cluster
+            if not len(movie) == num_processes:
+                raise Exception(
+                    "Inputs passed as list of Futures must match the number of processes."
+                )
+
+            if all(
+                isinstance(chunk, dask.distributed.client.Future) for chunk in movie
+            ):
+                scattered_data.append(movie)
+
+            else:
+                raise TypeError(
+                    "Unsupported input movie type, must be ndarray or list of futures."
+                )
 
         else:
-            raise Exception(
-                "Unsupported input movie time, must be ndarray or list of futures."
+            raise TypeError(
+                "Unsupported input movie type, must be ndarray or list of futures."
             )
 
     return scattered_data
@@ -68,8 +84,9 @@ def parallelize(
     :type client: `dask.distributed.client.Client` object.
     :param bool evaluate: If True (default), deserialize and concatenate results of
         worker computations on execution. If False, processed_movie is set to None.
-        This is useful if you don't need the result of a function computation by
-        itself, but require it as an input to a downstream parallelized function.
+        This is useful for avoiding unnecessary gathering and deserialization if you
+        don't need the result of a function computation by itself, but require it as
+        an input to a downstream parallelized function.
     :param bool futures_in: If True (default), keeps the futures objects used to
         send the input movies from movies_list and passes them to the scattered_data
         output. If False, scattered_output is set to None and the futures objects
@@ -130,3 +147,36 @@ def parse_parallelize_kwargs(kwargs):
         futures_out = True
 
     return evaluate, futures_in, futures_out
+
+
+def number_of_frames(movie, client):
+    """
+    Finds number of frames in input `movie`, whether movie is passed as a Numpy
+    array or a list of Futures corresponding to chunks of `movie`.
+
+    :param movie: Input movie as passed wrapped in list to `parallelize`.
+    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :return: Number of frames in input movie.
+    :rtype: int
+    """
+    if isinstance(movie, np.ndarray):
+        num_frames = movie.shape[0]
+
+    elif isinstance(movie, list):
+        if all(isinstance(chunk, dask.distributed.client.Future) for chunk in movie):
+            count_frames = lambda x: x.shape[0]
+            frames = client.map(count_frames, movie)
+            frames = np.array(client.gather(frames))
+            num_frames = int(np.sum(frames))
+
+        else:
+            raise TypeError(
+                "Unsupported input movie type, must be ndarray or list of futures."
+            )
+
+    else:
+        raise TypeError(
+            "Unsupported input movie type, must be ndarray or list of futures."
+        )
+
+    return num_frames

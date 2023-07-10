@@ -634,7 +634,7 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     :param int averaging_window: Size of averaging window used to perform moving
         average of number of detected peaks when selecting the 'elbow' in the
         detection. Defaults to 3, only used as fallback if plateau finding fails.
-    :return: Tuple(dog, marker_coordinates, markers) where dog is the
+    :return: Tuple(`dog`, `marker_coordinates`, `markers`) where dog is the
         bandpass-filtered image, marker_coordinates is an array of the nuclear
         locations in the image indexed as per the image (this can be used for
         visualization) and markers is a boolean array of the same shape as image, with
@@ -685,7 +685,7 @@ def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
         frames of movie.
     :param min_size: Smallest allowable object size.
     :type min_size: int, optional
-    :return: Tuple(markers, labels) where markers is a boolean array  with the
+    :return: Tuple(`markers`, `labels`) where markers is a boolean array  with the
         marker positions used for the watershed transform given by a True value and
         labels is an array with each label corresponding to a mask for a single
         nucleus, assigned to an integer value (both of the same shape as movie).
@@ -711,7 +711,7 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     filtering). This is parallelized across a Dask LocalCluster.
 
     :param movie: 2D (projected) or 3D image of a nuclear marker.
-    :type movie: Numpy array.
+    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
@@ -728,12 +728,13 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
         ``denoising='median'``.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(denoised_movie, denoised_movie_futures, scattered_movie) where
-        *denoised_movie is the fully evaluated denoised movie as an ndarray of the
+    :return: Tuple(`denoised_movie`, `denoised_movie_futures`, `scattered_movie`)
+        where
+        *`denoised_movie` is the fully evaluated denoised movie as an ndarray of the
         same shape and `dtype` as `movie`.
-        *denoised_movie_futures is the list of futures objects resulting from the
+        *`denoised_movie_futures` is the list of futures objects resulting from the
         denoising in the worker memories before gathering and concatenation.
-        *scattered_movie is a list of futures pointing to the input movie in
+        *`scattered_movie` is a list of futures pointing to the input movie in
         the workers' memory, wrapped in a list.
     :rtype: tuple
     .. note::
@@ -775,7 +776,7 @@ def binarize_movie_parallel(
     LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type stack: Numpy array.
+    :type stack: Numpy array or list of Futures corresponding to chunks of `movie`.
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
@@ -790,13 +791,14 @@ def binarize_movie_parallel(
         ``thresholding='local_otsu'``.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(binarized_movie, binarized_movie_futures, scattered_movie) where
-        *binarized_movie is the fully evaluated binarized movie as an ndarray of
+    :return: Tuple(`binarized_movie`, `binarized_movie_futures`, `scattered_movie`)
+        where
+        *`binarized_movie` is the fully evaluated binarized movie as an ndarray of
         booleans of the same shape as movie, with only the pixels in the foreground
         corresponding to a `True` value.
-        *binarized_movie_futures is the list of futures objects resulting from the
+        *`binarized_movie_futures` is the list of futures objects resulting from the
         binarization in the worker memories before gathering and concatenation.
-        *scattered_movie is a list of futures pointing to the input movie in
+        *`scattered_movie` is a list of futures pointing to the input movie in
         the workers' memory, wrapped in a list.
     :rtype: tuple
     .. note::
@@ -841,12 +843,13 @@ def mark_movie_parallel(
     This is parallelized across a Dask LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type movie: Numpy array.
+    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
-        iterations). Same shape as movie.
-    :type mask: Numpy array of booleans.
+        iterations). Same shape as `movie`.
+    :type mask: Numpy array of booleans or list of Futures corresponding to chunks
+        of `mask`.
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
@@ -867,13 +870,13 @@ def mark_movie_parallel(
         detection. Defaults to 3, only used as fallback if plateau finding fails.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(marked_movie, marked_movie_futures, scattered_movies) where
-        *marked_movie is the fully evaluated marked movie as an ndarray of
+    :return: Tuple(`marked_movie`, `marked_movie_futures`, `scattered_movies`) where
+        *`marked_movie` is the fully evaluated marked movie as an ndarray of
         booleans of the same shape as movie, with each nucleus containing a single
         `True` value.
-        *marked_movie_futures is the list of futures objects resulting from the
+        *`marked_movie_futures` is the list of futures objects resulting from the
         marking in the worker memories before gathering and concatenation.
-        *scattered_movies is a list with each element corresponding to a list of
+        *`scattered_movies` is a list with each element corresponding to a list of
         futures pointing to the input movie and mask in the workers' memory
         respectively.
     :rtype: tuple
@@ -919,12 +922,14 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     :param markers: Boolean array of dimensions matching movie, with nuclei containing
         (ideally) a single unique integer value, and all other values being 0. This is
         used to perform the watershed segmentation.
-    :type markers: Numpy array of integers.
+    :type markers: Numpy array of integers or list of Futures corresponding to chunks
+        of `markers`.
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations). Same shape as movie.
-    :type mask: Numpy array of booleans.
+    :type mask: Numpy array of booleans or list of Futures corresponding to chunks
+        of `mask`.
     :param watershed_method: Determines what to use as basins for the watershed
         segmentation, between the inverted denoised image itself (works well for
         bright nuclear markers), the distance-transformed binarized image, and the
@@ -934,14 +939,15 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     :type min_size: int, optional
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(segmented_movie, segmented_movie_futures, scattered_movies) where
-        *segmented_movie is the fully evaluated segmented movie as an ndarray of
+    :return: Tuple(`segmented_movie`, `segmented_movie_futures`, `scattered_movies`)
+        where
+        *`segmented_movie` is the fully evaluated segmented movie as an ndarray of
         the same shape as movie with `dtype=np.uint32`, with unique integer labels
         corresponding to each nucleus.
-        *segmented_movie_futures is the list of futures objects resulting from the
+        *`segmented_movie_futures` is the list of futures objects resulting from the
         segmentation in the worker memories before gathering and concatenation.
-        *scattered_movies is a list with each element corresponding to a list of
-        futures pointing to the input movie, markers, and mask in the workers'
+        *`scattered_movies` is a list with each element corresponding to a list of
+        futures pointing to the input `movie`, `markers`, and `mask` in the workers'
         memory respectively.
     :rtype: tuple
     .. note::
