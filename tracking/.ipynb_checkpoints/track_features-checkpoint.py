@@ -106,6 +106,68 @@ def segmentation_df(
     return movie_properties
 
 
+def _calculate_velocities(particle_dataframe, pos, t_column):
+    """
+    Returns an array of velocities in the single coordinate `pos` for each frame in a
+    particle-grouped dataframe after tracking by calculating successive differences.
+    """
+    if particle_dataframe.shape[0] == 1:
+        velocity_series = np.array([np.nan])
+    else:
+        time_sorted_dataframe = particle_dataframe.sort_values(t_column)
+        positions_series = time_sorted_dataframe[pos].values
+        time_series = time_sorted_dataframe[t_column].values
+        velocity_series = np.zeros(positions_series.size)
+
+        # Calculate successive differences
+        delta_position = positions_series[1:] - positions_series[:-1]
+
+        # Find number of timepoints between each sample
+        delta_t = time_series[1:] - time_series[:-1]
+
+        velocity_series[1:] = delta_position / delta_t
+        velocity_series[0] = velocity_series[1]  # Reflective boundary condition
+
+    return velocity_series
+
+
+def add_velocity(tracked_dataframe, pos_columns, t_column):
+    """
+    Returns a copy of a dataframe of tracked features (post linking with trackpy) with
+    added columns for the instantaneous velocities in cooridinates specified in
+    `pos_columns`.
+    :param tracked_dataframe: DataFrame of measured features after tracking with
+        :func:`~link_dataframe`.
+    :type linked_dataframe: pandas DataFrame
+    :param pos_columns: Name of columns in segmentation_df containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
+    :param t_column: Name of column in segmentation_df containing the time-coordinate
+        for each feature.
+    :type t_column: DataFrame column name,
+        {`frame`, `t_frame`, `frame_reverse`, `t_frame_reverse`}. For explanation of
+        column names, see :func:`~segmentation_df`.
+    :return: Copy of input tracked dataframe with added columns for coordinate
+        velocities.
+    :rtype: pandas DataFrame
+    """
+    dataframe = tracked_dataframe.copy()
+    vel_columns = ["".join(["v_", pos]) for pos in pos_columns]
+    dataframe[vel_columns] = np.nan
+
+    # Construct array of particle labels
+    particles = np.unique(dataframe["particle"].values)
+
+    for particle in particles:
+        particle_subdataframe_index = dataframe["particle"] == particle
+
+        for i, vel in enumerate(vel_columns):
+            dataframe.loc[particle_subdataframe_index, vel] = _calculate_velocities(
+                dataframe.loc[particle_subdataframe_index], pos_columns[i], t_column
+            )
+    return dataframe
+
+
 def link_df(
     segmentation_df,
     *,
@@ -119,7 +181,8 @@ def link_df(
     """
     Use trackpy to link particles across frames, assigning unique particles an
     identity in a `particle` column added in place to the input segmentation_df
-    dataframe.
+    dataframe and an estimate of the instantaneous velocity of tracked features
+    in each specified coordinate in `pos_columns`.
 
     :param segmentation_df: trackpy-compatible pandas DataFrame for linking particles
         across frame.
@@ -130,15 +193,18 @@ def link_df(
     :param pos_columns: Name of columns in segmentation_df containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
-    :param t_column: Name of column in segmentation_df containing the frame number
+    :param t_column: Name of column in segmentation_df containing the time coordinate
         for each feature.
-    :type t_column: DataFrame column name
+    :type t_column: DataFrame column name,
+        {`frame`, `t_frame`, `frame_reverse`, `t_frame_reverse`}. For explanation of
+        column names, see :func:`~segmentation_df`.
     :param bool velocity_predict: If True, uses trackpy's
         `predict.NearestVelocityPredict` class to estimate a velocity for each feature
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
     :return: Original segmentation_df DataFrame with an added `particle` column
-        assigning an ID to each unique feature as tracked by trackpy.
+        assigning an ID to each unique feature as tracked by trackpy and velocity
+        columns for each coordinate in `pos_columns`.
     :rtype: pandas DataFrame
 
     .. note::
@@ -165,6 +231,9 @@ def link_df(
 
     # Increment particle labels by 1 to avoid erasing 0-th particle
     linked_dataframe["particle"] = linked_dataframe["particle"].apply(lambda x: x + 1)
+
+    # Add velocities
+    linked_dataframe = add_velocity(linked_dataframe, pos_columns, t_column)
 
     return linked_dataframe
 
@@ -260,7 +329,7 @@ def reorder_labels_parallel(segmentation_mask, linked_dataframe, client, **kwarg
     # Figure out which frames to split `linked_dataframe` around.
     num_processes = len(client.scheduler_info()["workers"])
     num_frames = parallel_computing.number_of_frames(segmentation_mask, client)
-    frame_array = np.arange(num_frames) + 1 # Frames are 1-indexed
+    frame_array = np.arange(num_frames) + 1  # Frames are 1-indexed
     split_array = np.array_split(frame_array, num_processes)
 
     first_last_frames = []
