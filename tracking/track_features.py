@@ -182,7 +182,9 @@ def link_df(
     Use trackpy to link particles across frames, assigning unique particles an
     identity in a `particle` column added in place to the input segmentation_df
     dataframe and an estimate of the instantaneous velocity of tracked features
-    in each specified coordinate in `pos_columns`.
+    in each coordinate (this expects the coordinate columns to be given as 
+    `x`, `y` and `z` and if those cannot be found will fall back on coordinates
+    specified in `pos_columns`).
 
     :param segmentation_df: trackpy-compatible pandas DataFrame for linking particles
         across frame.
@@ -232,8 +234,16 @@ def link_df(
     # Increment particle labels by 1 to avoid erasing 0-th particle
     linked_dataframe["particle"] = linked_dataframe["particle"].apply(lambda x: x + 1)
 
-    # Add velocities
-    linked_dataframe = add_velocity(linked_dataframe, pos_columns, t_column)
+    #  Try to add velocities for all coordinates for flexibility, if not fall
+    # back to velocities in requested coordinates.
+    vel_columns = ['z', 'y', 'x']
+    try:
+        linked_dataframe = add_velocity(linked_dataframe, vel_columns, t_column)
+    except KeyError:
+        linked_dataframe = add_velocity(linked_dataframe, pos_columns, t_column)
+
+    # Drop reversed time coordinates since we're done with trackpy
+    linked_dataframe.drop(['frame_reverse', 't_frame_reverse'], axis=1, inplace=True)
 
     return linked_dataframe
 
