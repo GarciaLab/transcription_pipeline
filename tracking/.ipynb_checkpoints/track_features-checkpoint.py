@@ -1,6 +1,7 @@
 from skimage.measure import regionprops_table
 import pandas as pd
 import numpy as np
+from scipy.ndimage import uniform_filter1d
 import trackpy as tp
 from preprocessing import process_metadata
 from functools import partial
@@ -106,7 +107,7 @@ def segmentation_df(
     return movie_properties
 
 
-def _calculate_velocities(particle_dataframe, pos, t_column):
+def _calculate_velocities(particle_dataframe, pos, t_column, averaging):
     """
     Returns an array of velocities in the single coordinate `pos` for each frame in a
     particle-grouped dataframe after tracking by calculating successive differences.
@@ -120,18 +121,23 @@ def _calculate_velocities(particle_dataframe, pos, t_column):
         velocity_series = np.zeros(positions_series.size)
 
         # Calculate successive differences
-        delta_position = positions_series[1:] - positions_series[:-1]
+        delta_position = -np.diff(positions_series)
 
         # Find number of timepoints between each sample
-        delta_t = time_series[1:] - time_series[:-1]
+        delta_t = np.diff(time_series)
 
         velocity_series[1:] = delta_position / delta_t
         velocity_series[0] = velocity_series[1]  # Reflective boundary condition
 
+        if averaging is not None:
+            velocity_series = uniform_filter1d(
+                velocity_series, size=averaging, mode="mirror"
+            )
+
     return velocity_series
 
 
-def add_velocity(tracked_dataframe, pos_columns, t_column):
+def add_velocity(tracked_dataframe, pos_columns, t_column, averaging=None):
     """
     Returns a copy of a dataframe of tracked features (post linking with trackpy) with
     added columns for the instantaneous velocities in cooridinates specified in
@@ -147,6 +153,7 @@ def add_velocity(tracked_dataframe, pos_columns, t_column):
     :type t_column: DataFrame column name,
         {`frame`, `t_frame`, `frame_reverse`, `t_frame_reverse`}. For explanation of
         column names, see :func:`~segmentation_df`.
+    :param int averaging: Number of frames to average velocity over.
     :return: Copy of input tracked dataframe with added columns for coordinate
         velocities.
     :rtype: pandas DataFrame
@@ -163,7 +170,10 @@ def add_velocity(tracked_dataframe, pos_columns, t_column):
 
         for i, vel in enumerate(vel_columns):
             dataframe.loc[particle_subdataframe_index, vel] = _calculate_velocities(
-                dataframe.loc[particle_subdataframe_index], pos_columns[i], t_column
+                dataframe.loc[particle_subdataframe_index],
+                pos_columns[i],
+                t_column,
+                averaging=averaging,
             )
     return dataframe
 
@@ -176,13 +186,14 @@ def link_df(
     pos_columns,
     t_column,
     velocity_predict=True,
+    velocity_averaging=None,
     **kwargs
 ):
     """
     Use trackpy to link particles across frames, assigning unique particles an
     identity in a `particle` column added in place to the input segmentation_df
     dataframe and an estimate of the instantaneous velocity of tracked features
-    in each coordinate (this expects the coordinate columns to be given as 
+    in each coordinate (this expects the coordinate columns to be given as
     `x`, `y` and `z` and if those cannot be found will fall back on coordinates
     specified in `pos_columns`).
 
@@ -204,6 +215,7 @@ def link_df(
         `predict.NearestVelocityPredict` class to estimate a velocity for each feature
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
+    :param int averaging: Number of frames to average velocity over.
     :return: Original segmentation_df DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
@@ -236,14 +248,18 @@ def link_df(
 
     #  Try to add velocities for all coordinates for flexibility, if not fall
     # back to velocities in requested coordinates.
-    vel_columns = ['z', 'y', 'x']
+    vel_columns = ["z", "y", "x"]
     try:
-        linked_dataframe = add_velocity(linked_dataframe, vel_columns, t_column)
+        linked_dataframe = add_velocity(
+            linked_dataframe, vel_columns, t_column, averaging=velocity_averaging
+        )
     except KeyError:
-        linked_dataframe = add_velocity(linked_dataframe, pos_columns, t_column)
+        linked_dataframe = add_velocity(
+            linked_dataframe, pos_columns, t_column, averaging=velocity_averaging
+        )
 
     # Drop reversed time coordinates since we're done with trackpy
-    linked_dataframe.drop(['frame_reverse', 't_frame_reverse'], axis=1, inplace=True)
+    linked_dataframe.drop(["frame_reverse", "t_frame_reverse"], axis=1, inplace=True)
 
     return linked_dataframe
 
