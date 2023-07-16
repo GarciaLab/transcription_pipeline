@@ -1,46 +1,85 @@
 import numpy as np
+import trackpy
 
 
-def tracks_start_end(tracked_dataframe, min_track_length=1):
+def tracks_start(
+    tracked_dataframe,
+    pos_columns,
+    min_track_length=1,
+    modify_df=True,
+    image_dimensions=None,
+    exclude_border=None,
+    output=False,
+):
     """
     Uses input `tracked_dataframe` with tracking information to construct
-    sub-dataframes with entries corresponing to the start and end of a particle track
-    (i.e. the first and last frames it is present in respectively) and a sub-dataframe
-    of all singletons (particles not connected in any other frames).
+    sub-dataframes with entries corresponing to the start of a particle track
+    (i.e. the first frame it is present in).
+
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
+    :param pos_columns: Name of columns in segmentation_df containing a position
+        coordinate.
     :param int min_track_length: Minimum number of frames that a new track must
         span to be considered. This helps reduce spurious detections.
-    :return: Tuple(`track_first_frames`, `track_last_frames`, `track_singletons`) where
-        *`track_first_frames` contains all rows in the input `tracked_dataframe`
-        corresponding to the start of a particle track.
-        *`track_last_frames` contains all rows in the input `tracked_dataframe`
-        corresponding to the end of a particle track.
-        *`track_singletons` contains all rows in the input `tracked_dataframe`
-        corresponding to disconnected particles.
-    :rtype: Tuple of pandas DataFrames
+    :param bool modify_df: If `True`, the input `tracked_dataframe` is modified
+        in-place to add a column of booleans `new_particle` which keeps track of
+        whether the particle in every row is a newly-appearing particle.
+    :param image_dimensions: Image dimension in each respective coordinate of
+        `pos_columns`.
+    :type image_dimensions: Array of integers.
+    :param exclude_border: Fraction of border in each position coordinate
+        to exclude when searching for new particles to assign siblings to.
+    :type exclude_border: float or array of floats for each coordinate.
+    :return: All rows in the input `tracked_dataframe` corresponding to the start of
+        a particle track.
+    :rtype: pandas DataFrame
     """
+    if (exclude_border is None) or (image_dimensions is None):
+        exclude_border = 0
+        image_dimensions = 0
+
+    image_dimensions = np.asarray(image_dimensions)
+    try:
+        iter(exclude_border)
+        exclude_border = np.asarray(exclude_border)
+    except TypeError:
+        pass
+
     first_frame = []
-    last_frame = []
-    short_tracks = []
 
     for particle_group in tracked_dataframe.groupby("particle"):
         _, particle = particle_group
-        if particle.shape[0] <= min_track_length:
-            short_tracks.append(particle.index[0])
-        else:
-            first_frame.append(particle["frame"].idxmin())
-            last_frame.append(particle["frame"].idxmax())
+        initial_frame_index = particle["frame"].idxmin()
+        coordinates = np.array(
+            [tracked_dataframe[pos].iloc[initial_frame_index] for pos in pos_columns]
+        )
+
+        start_border = (
+            np.abs(coordinates - np.asarray(image_dimensions))
+            < exclude_border * image_dimensions
+        )
+        end_border = np.abs(coordinates) < exclude_border * image_dimensions
+        in_border = np.any(np.array([start_border, end_border]))
+
+        if not (particle.shape[0] <= min_track_length or in_border):
+            first_frame.append(initial_frame_index)
 
     track_first_frames = tracked_dataframe.iloc[first_frame]
-    track_last_frames = tracked_dataframe.iloc[last_frame]
-    track_short_tracks = tracked_dataframe.iloc[short_tracks]
 
-    return track_first_frames, track_last_frames, track_short_tracks
+    if modify_df:
+        new_particles = track_first_frames.index
+        tracked_dataframe["new_particle"] = False
+        tracked_dataframe.loc[new_particles, "new_particle"] = True
+
+    if not output:
+        tracked_first_frames = None
+
+    return track_first_frames
 
 
-def _find_sibling(
+def _find_sibling_threshold(
     tracked_dataframe,
     track_start_row,
     pos_columns,
@@ -48,14 +87,17 @@ def _find_sibling(
     antiparallel_threshold,
 ):
     """
-    Finds the index in `tracked_dataframe` of the likeliest sibling of a new particle
-    (given by the row `track_start_row` of `tracked_dataframe`). This determines
-    candidate siblings based on proximity (within a cuboid of dimensions set by
-    `search_range_mitosis` of the particle centroid) and antiparallel velocity vectors
-    as determined by a thresholded normalized dot product (an `antiparallel_threshold`
-    value of 0 corresponds to perfectly antiparallel vectors, 1 corresponds to
-    orthogonal vectors). Within any remaining candidates, the nearest-neighbor is
-    returned.
+    Deprecated in favor of sibling linking using `trackpy` in
+    :func:`~_assign_siblings_frame` and :func:`~_assign_siblings`, keeping in the
+    code base for now in case some dataset respond better to thresholding off of
+    antiparallel velocity vectors. Finds the index in `tracked_dataframe` of the
+    likeliest sibling of a new particle (given by the row `track_start_row` of
+    `tracked_dataframe`).cThis determines candidate siblings based on proximity
+    (within a cuboid of dimensions set by `search_range_mitosis` of the particle
+    centroid) andvantiparallel velocity vectors as determined by a thresholded
+    normalized dot product (an `antiparallel_threshold` value of 0 corresponds to
+    perfectlyvantiparallel vectors, 1 corresponds to orthogonal vectors). Within any
+    remaining candidates, the nearest-neighbor is returned.
     """
     # Select subdataframe for first frame of this particle
     frame = track_start_row["frame"]
@@ -112,7 +154,7 @@ def _find_sibling(
     return sibling_index
 
 
-def _assign_siblings(
+def _assign_siblings_threshold(
     tracked_dataframe,
     pos_columns,
     search_range_mitosis,
@@ -122,11 +164,14 @@ def _assign_siblings(
     exclude_border,
 ):
     """
-    Returns an (2, n)-shape ndarray with each element along the 0-th axis corresponding
-    respectively to the index in `tracked_dataframe` of a new track and to the index
-    of its sibling. This can then be used to construct lineages. Fraction
-    `exclude_border` of the image in each border is excluded from the search for
-    new particles to assign siblings to.
+    Deprecated in favor of sibling linking using `trackpy` in
+    :func:`~_assign_siblings_frame` and :func:`~_assign_siblings`, keeping in the
+    code base for now in case some dataset respond better to thresholding off of
+    antiparallel velocity vectors. Returns an (2, n)-shape ndarray with each element
+    along the 0-th axis corresponding respectively to the index in `tracked_dataframe`
+    of a new track and to the index of its sibling. This can then be used to construct
+    lineages. Fraction `exclude_border` of the image in each border is excluded from
+    the search for new particles to assign siblings to.
     """
     if (exclude_border is None) or (image_dimensions is None):
         exclude_border = 0
@@ -139,7 +184,16 @@ def _assign_siblings(
     except TypeError:
         pass
 
-    track_first_frames, _, _ = tracks_start_end(tracked_dataframe, min_track_length)
+    track_first_frames = tracks_start(
+        tracked_dataframe,
+        pos_columns,
+        min_track_length=min_track_length,
+        modify_df=False,
+        image_dimensions=image_dimensions,
+        exclude_border=exclude_border,
+        output=True,
+    )
+
     track_start_index = []
     siblings = []
     for i, track_start_row in track_first_frames.iterrows():
@@ -153,7 +207,7 @@ def _assign_siblings(
         in_border = np.any(np.array([start_border, end_border]))
 
         if not in_border:
-            track_siblings = _find_sibling(
+            track_siblings = _find_sibling_threshold(
                 tracked_dataframe,
                 track_start_row,
                 pos_columns,
@@ -169,6 +223,141 @@ def _assign_siblings(
 
     sibling_array = np.array([track_start_index, siblings]).T
     return sibling_array
+
+
+def _assign_siblings_frame(
+    frame_df,
+    pos_columns,
+    search_range,
+    antiparallel_coordinate,
+    antiparallel_weight,
+    **kwargs,
+):
+    """
+    Finds pairs of siblings in a single frame. Takes subdataframe of full tracking
+    dataframe as input, and maps to a new coordinate space that includes a measure
+    of the 'antiparallel-ness' of velocities to select for sibling nuclei, using
+    trackpy to link siblings using this coordinate space. The 'antiparallel-ness'
+    coordinate can be based on the full velocity vector or on the directions only,
+    and can be rescaled to give arbitrary weight relative to spacial proximity
+    during tracking. This can also pass through all of the standard trackpy keyword
+    arguments.
+    """
+    # Rescale position coordinates so that mean distance between nuclei in each coordinate
+    # direction is unity
+    bounding_box = np.array(
+        [(frame_df[pos].max() - frame_df[pos].min()) for pos in pos_columns]
+    )
+    bounding_volume = np.prod(bounding_box)
+    mean_separation = (bounding_volume / frame_df.shape[0]) ** (1 / len(pos_columns))
+    frame_df[pos_columns] /= mean_separation
+
+    # Change frame numbers so all old particles are in frame 1 and all new particles are
+    # in frame 2. This is so we can directly use trackpy to link siblings by pretending
+    # that the new particles are in the next frame and need to be linked
+    frame_df.loc[~frame_df["new_particle"], "frame"] = 1
+    frame_df.loc[frame_df["new_particle"], "frame"] = 2
+
+    # We can now add a coordinate that represents the rescaled velocities such that the
+    # mean velocity in each coordinate direction is unity, similar to what we did for the
+    # position coordinates. Now, however, invert the velocities of the new particles such
+    # that they appeak 'closer' to trackpy the more antiparallel their velocities are
+    vel_columns = ["".join(["v_", pos]) for pos in pos_columns]
+
+    # We can construct the antiparallelism coordinates so that they represent the full
+    # velocity vector (taking into consideration their magnitude) or just the directions
+    if antiparallel_coordinate == "direction":
+        normalization = (
+            frame_df[vel_columns]
+            .apply(lambda x: x**2)
+            .sum(axis=1)
+            .apply(lambda x: np.sqrt(x))
+        )
+        frame_df[vel_columns] = frame_df[vel_columns].divide(normalization, axis=0)
+
+    elif antiparallel_coordinate == "velocity":
+        frame_df[vel_columns] /= frame_df[vel_columns].abs().mean()
+
+    else:
+        raise Exception("`antiparallel_coordinate` option not recognized.")
+
+    # We can further rescale the antiparallelism measure to weigh spatial proximity vs
+    # velocity antiparallelism as needed
+    frame_df[vel_columns] *= antiparallel_weight
+    frame_df.loc[frame_df["new_particle"], vel_columns] *= -1
+
+    linked_siblings = trackpy.link_df(
+        frame_df,
+        search_range=search_range,
+        pos_columns=pos_columns + vel_columns,
+        t_column="frame",
+        **kwargs,
+    )
+
+    # We can finally extract pairs of siblings from the linking
+    siblings_mask = linked_siblings.duplicated(subset=["particle"], keep=False)
+    num_siblings = siblings_mask.sum()
+
+    siblings_array = np.asarray(
+        np.split(
+            linked_siblings[siblings_mask]
+            .sort_values(["particle", "frame"], ascending=[True, False])
+            .index,
+            2,
+        )
+    ).reshape((int(num_siblings / 2), 2))
+
+    return siblings_array
+
+
+def _assign_siblings(
+    tracked_df,
+    pos_columns,
+    search_range,
+    antiparallel_coordinate,
+    antiparallel_weight,
+    min_track_length,
+    image_dimensions,
+    exclude_border,
+    **kwargs,
+):
+    """
+    Returns an (2, n)-shape ndarray with each element along the 0-th axis corresponding
+    respectively to the index in `tracked_dataframe` of a new track and to the index
+    of its sibling. This can then be used to construct lineages. Fraction
+    `exclude_border` of the image in each border is excluded from the search for
+    new particles to assign siblings to.
+    """
+    # Mark new tracks
+    tracks_start(
+        tracked_df,
+        pos_columns,
+        min_track_length=min_track_length,
+        modify_df=True,
+        image_dimensions=image_dimensions,
+        exclude_border=exclude_border,
+        output=False,
+    )
+
+    group_by_frame = tracked_df.groupby("frame")
+
+    siblings_array = []
+    for _, frame_group in group_by_frame:
+        frame_df = frame_group.copy()
+        frame_siblings = _assign_siblings_frame(
+            frame_df,
+            pos_columns,
+            search_range,
+            antiparallel_coordinate,
+            antiparallel_weight,
+            **kwargs,
+        )
+        if not frame_siblings.size == 0:
+            siblings_array.append(frame_siblings)
+
+    siblings_array = np.concatenate(siblings_array)
+
+    return siblings_array
 
 
 def _assign_parents(mitosis_dataframe, sibling_array):
@@ -243,10 +432,12 @@ def construct_lineage(
     *,
     pos_columns,
     search_range_mitosis,
-    antiparallel_threshold,
+    antiparallel_coordinate="direction",
+    antiparallel_weight=1,
     min_track_length=1,
     image_dimensions=None,
     exclude_border=None,
+    **kwargs,
 ):
     """
     Constructs lineages in dividing nuclei by iterating over new tracks and identifying
@@ -262,15 +453,25 @@ def construct_lineage(
     :param pos_columns: Name of columns in segmentation_df containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
-    :param search_range_mitosis: Coordinate search region to look for sibling
-        candidates, indexed as per `pos_columns`. Assumes isotropic if given as a
-        scalar.
-    :type search_range_mitosis: scalar or tuple of scalars
-    :param antiparallel_threshold: Threshold for (1 + normalized dot product of
-        velocity vectors) right after division above which particles are not considered
-        to be viable candidate siblings. This is 0 for perfectly antiparallel
-        velocities, 1 for orthogonal velocities and 2 for perfectly parallel velocities.
-    :type antiparallel_threshold: scalar
+    :param float search_range_mitosis: Search range in transformed coordinate space
+        (spatial coordinates in `pos_columns` renormalized so that the mean distance
+        between nuclei in each frame is set to unity + one extra coordinate for each
+        of the spatial coordinates used to evaluate how antiparallel the velocities
+        of candidate siblings are, either using direction vectors or the full
+        velocity vectors.
+    :param antiparallel_coordinate: Selects which approach to use to construct the
+        measure of anti-parallel velocities, with `velocity` using the full velocity
+        vector (i.e. it expects siblings to move away from each other at the same
+        speed in the scope frame) normalized such that the mean velocity of all
+        particles in the frame in each coordinate is unity and `direction` using
+        direction vectors.
+    :type antiparallel_threshold: {'velocity', 'direction'}
+    :param float antiparallel_weight: Rescales the coordinate space so that an
+        arbitrary weight can be places on spatial proximity vs having
+        antiparallel velocities during the search for sibling nuclei, with 1
+        corresponding to no rescaling other than that described above (i.e. with
+        mean separation between nuclei and velocities in all specified coordinates
+        rescaled to unity).
     :param int min_track_length: Minimum number of frames that a new track must
         span to be considered. This helps reduce spurious detections.
     :param image_dimensions: Image dimension in each respective coordinate of
@@ -282,18 +483,24 @@ def construct_lineage(
     :return: Copy of `tracked_dataframe` with particle identities corresponding to
         lineage and an added column with parent identities.
     :rtype: pandas DataFrame
+
+    .. note::
+        This function can also pass through any of the `trackpy.link_df`
+        arguments.
     """
     mitosis_dataframe = tracked_dataframe.copy()
 
     # Construct array of siblings
     sibling_array = _assign_siblings(
-        mitosis_dataframe,
+        tracked_dataframe,
         pos_columns,
         search_range_mitosis,
-        antiparallel_threshold,
+        antiparallel_coordinate,
+        antiparallel_weight,
         min_track_length,
         image_dimensions,
         exclude_border,
+        **kwargs,
     )
 
     # Assign parent by indexing over dataframe
@@ -318,7 +525,7 @@ def construct_lineage(
     return mitosis_dataframe
 
 
-def tracks_to_napari(viewer, dataframe, name='tracks', output=False):
+def tracks_to_napari(viewer, dataframe, name="tracks", output=False):
     """
     Uses tracking and lineage information in `mitosis_dataframe` to construct
     tracks datastructures compatible with napari tracks layer. If output is requested,
@@ -336,10 +543,10 @@ def tracks_to_napari(viewer, dataframe, name='tracks', output=False):
     :rtype: {Tuple, None}
     """
     mitosis_dataframe = dataframe.copy()
-    mitosis_dataframe['frame'] = mitosis_dataframe['frame'] - 1
-    
+    mitosis_dataframe["frame"] = mitosis_dataframe["frame"] - 1
+
     tracks = mitosis_dataframe.loc[:, ["particle", "frame", "z", "y", "x"]].to_numpy()
-    
+
     lineage = {}
     for _, family in mitosis_dataframe.groupby("parent"):
         parent = (family["parent"].values)[0]
