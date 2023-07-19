@@ -853,11 +853,13 @@ def mark_movie_parallel(
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
+    :type low_sigma: scalar or tuple of scalars
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
+    :type high_sigma: scalar or tuple of scalars
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
     :type max_footprint: Numpy array of booleans.
