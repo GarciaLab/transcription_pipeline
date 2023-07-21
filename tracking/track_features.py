@@ -14,7 +14,7 @@ def _reverse_segmentation_df(segmentation_df):
     Reverses the frame numbering in the segmentation dataframe to make trackpy track
     the movie backwards - this helps with structures with high acceleration by low
     deceleration, like nuclei as they divide. This adds a column with the reversed
-    frame numbers in place to the input segmentation_df.
+    frame numbers in place to the input `segmentation_df` 
     """
     max_frame = segmentation_df.max(axis=0)["frame"]
     segmentation_df["frame_reverse"] = segmentation_df.apply(
@@ -66,16 +66,17 @@ def segmentation_df(
 
     num_timepoints = segmentation_mask.shape[0]
     for i in range(num_timepoints):
-        frame_properties = regionprops_table(
-            segmentation_mask[i],
-            intensity_image=intensity_image[i],
-            properties=("label", "centroid_weighted") + extra_properties,
-        )
-        num_labels = np.unique(frame_properties["label"]).size
-        frame_properties["frame"] = np.full(num_labels, i + 1)
-
-        frame_properties = pd.DataFrame.from_dict(frame_properties)
-        movie_properties.append(frame_properties)
+        if segmentation_mask[i].any():
+            frame_properties = regionprops_table(
+                segmentation_mask[i],
+                intensity_image=intensity_image[i],
+                properties=("label", "centroid_weighted") + extra_properties,
+            )
+            num_labels = np.unique(frame_properties["label"]).size
+            frame_properties["frame"] = np.full(num_labels, i + 1)
+    
+            frame_properties = pd.DataFrame.from_dict(frame_properties)
+            movie_properties.append(frame_properties)
 
     movie_properties = pd.concat(movie_properties)
     movie_properties = movie_properties.reset_index(drop=True)  # Reset index of rows
@@ -145,10 +146,10 @@ def add_velocity(tracked_dataframe, pos_columns, t_column, averaging=None):
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
-    :param pos_columns: Name of columns in segmentation_df containing a position
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
-    :param t_column: Name of column in segmentation_df containing the time-coordinate
+    :param t_column: Name of column in `segmentation_df` containing the time-coordinate
         for each feature.
     :type t_column: DataFrame column name,
         {`frame`, `t_frame`, `frame_reverse`, `t_frame_reverse`}. For explanation of
@@ -203,10 +204,10 @@ def link_df(
     :param float search_range: The maximum distance features can move between frames.
     :param int memory: The maximum number of frames during which a feature can vanish,
         then reppear nearby, and be considered the same particle.
-    :param pos_columns: Name of columns in segmentation_df containing a position
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
-    :param t_column: Name of column in segmentation_df containing the time coordinate
+    :param t_column: Name of column in `segmentation_df` containing the time coordinate
         for each feature.
     :type t_column: DataFrame column name,
         {`frame`, `t_frame`, `frame_reverse`, `t_frame_reverse`}. For explanation of
@@ -216,7 +217,7 @@ def link_df(
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
     :param int averaging: Number of frames to average velocity over.
-    :return: Original segmentation_df DataFrame with an added `particle` column
+    :return: Original `segmentation_df` DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
     :rtype: pandas DataFrame
