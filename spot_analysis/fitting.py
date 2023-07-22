@@ -132,41 +132,47 @@ def fit_gaussian_3d_sym_xy(
     .. note:: This function can also pass through any kwargs accepted by
         `scipy.optimization.least_squares`.
     """
-    if amplitude_guess is None:
-        amplitude_guess = data.max()
+    error_out = (np.full(3, np.nan),) + (np.nan,)*5
+    
+    if data is None:
+        out = error_out
 
-    if offset_guess is None:
-        offset_guess = _extract_perimeter_mean(data)
-
-    param_initial = np.array(
-        [
-            *centroid_guess,
-            sigma_x_y_guess,
-            sigma_z_guess,
-            amplitude_guess,
-            offset_guess,
-        ]
-    )
-
-    residuals_func = lambda x: (
-        generate_gaussian_3d_sym_xy(data.shape, [x[0], x[1], x[2]], *x[3:]) - data
-    ).ravel()
-
-    result = least_squares(
-        residuals_func, param_initial, bounds=(0, np.inf), method=method, **kwargs
-    )
-
-    if not result.success:
-        out = (None,) * 6
     else:
-        params = result.x
-        centroid = params[:3]
-        sigma_x_y = params[3]
-        sigma_z = params[4]
-        amplitude = params[5]
-        offset = params[6]
-        cost = result.cost
-
-        out = (centroid, sigma_x_y, sigma_z, amplitude, offset, cost)
+        if amplitude_guess is None:
+            amplitude_guess = data.max()
+    
+        if offset_guess is None:
+            offset_guess = _extract_perimeter_mean(data)
+    
+        param_initial = np.array(
+            [
+                *centroid_guess,
+                sigma_x_y_guess,
+                sigma_z_guess,
+                amplitude_guess,
+                offset_guess,
+            ]
+        )
+    
+        residuals_func = lambda x: (
+            generate_gaussian_3d_sym_xy(data.shape, [x[0], x[1], x[2]], *x[3:]) - data
+        ).ravel()
+    
+        result = least_squares(
+            residuals_func, param_initial, bounds=(0, np.inf), method=method, **kwargs
+        )
+    
+        if not result.success:
+            out = (np.full(3, np.nan),) + (np.nan,)*5
+        else:
+            params = result.x
+            centroid = params[:3]
+            sigma_x_y = params[3]
+            sigma_z = params[4]
+            amplitude = params[5]
+            offset = params[6]
+            cost = result.cost
+    
+            out = (centroid, sigma_x_y, sigma_z, amplitude, offset, cost)
 
     return out
