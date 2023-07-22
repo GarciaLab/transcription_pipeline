@@ -14,7 +14,7 @@ def _reverse_segmentation_df(segmentation_df):
     Reverses the frame numbering in the segmentation dataframe to make trackpy track
     the movie backwards - this helps with structures with high acceleration by low
     deceleration, like nuclei as they divide. This adds a column with the reversed
-    frame numbers in place to the input `segmentation_df` 
+    frame numbers in place to the input `segmentation_df`
     """
     max_frame = segmentation_df.max(axis=0)["frame"]
     segmentation_df["frame_reverse"] = segmentation_df.apply(
@@ -74,7 +74,7 @@ def segmentation_df(
             )
             num_labels = np.unique(frame_properties["label"]).size
             frame_properties["frame"] = np.full(num_labels, i + 1)
-    
+
             frame_properties = pd.DataFrame.from_dict(frame_properties)
             movie_properties.append(frame_properties)
 
@@ -265,7 +265,7 @@ def link_df(
     return linked_dataframe
 
 
-def _switch_labels(segmentation_mask, reordered_mask, properties):
+def _switch_labels(properties, segmentation_mask, reordered_mask):
     """
     Reorders segmentation mask labels specified by a row `properties` of a linked
     segmentation dataframe to match the tracking. The output reordered segmentation
@@ -298,8 +298,9 @@ def reorder_labels(segmentation_mask, linked_dataframe):
     reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
 
     # Switch labels using 'particle' column in linked dataframe
-    for _, properties in linked_dataframe.iterrows():
-        _switch_labels(segmentation_mask, reordered_mask, properties)
+    linked_dataframe.apply(
+        _switch_labels, args=(segmentation_mask, reordered_mask), axis=1
+    )
 
     return reordered_mask
 

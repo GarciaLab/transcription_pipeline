@@ -233,7 +233,8 @@ def make_spot_mask(
         )
 
         if threshold == "triangle":
-            range_func = lambda x: [np.min(x), np.max(x)]
+            def range_func(x):
+                return [np.min(x), np.max(x)]
 
             chunked_histogram_range = client.map(range_func, bandpassed_movie_futures)
             histogram_range_array = np.array(client.gather(chunked_histogram_range))
@@ -371,12 +372,10 @@ def detect_spots(
     return spot_dataframe, spot_mask, bandpassed_movie
 
 
-def _add_neighborhood(
+def _add_neighborhood_row(
+    spot_dataframe_row,
     movie,
     span,
-    spot_dataframe,
-    spot_dataframe_row,
-    spot_dataframe_row_index,
     pos_columns=["z", "y", "x"],
 ):
     """
@@ -396,10 +395,7 @@ def _add_neighborhood(
     if neighborhood is not None:
         neighborhood = neighborhood[0]
 
-    spot_dataframe.at[spot_dataframe_row_index, "raw_spot"] = neighborhood
-    spot_dataframe.at[spot_dataframe_row_index, "coordinates_start"] = coordinates_start
-
-    return None
+    return neighborhood, coordinates_start
 
 
 def _add_neighborhoods_to_dataframe(
@@ -420,8 +416,12 @@ def _add_neighborhoods_to_dataframe(
         object
     )
 
-    for i, row in spot_dataframe.iterrows():
-        _add_neighborhood(movie, span, spot_dataframe, row, i, pos_columns=pos_columns)
+    spot_dataframe[["raw_spot", "coordinates_start"]] = spot_dataframe.apply(
+        _add_neighborhood_row,
+        args=(movie, span, pos_columns),
+        axis="columns",
+        result_type="expand",
+    )
 
     return None
 
@@ -498,7 +498,7 @@ def detect_and_gather_spots(
         properties.
     :rtype: pandas DataFrame
     """
-    spot_dataframe, spot_mask, bandpassed_movie = detection.detect_spots(
+    spot_dataframe, spot_mask, bandpassed_movie = detect_spots(
         spot_movie,
         frame_metadata=frame_metadata,
         low_sigma=low_sigma,
