@@ -38,7 +38,7 @@ def segmentation_df(
     frame-indexed array of segmentation masks.
 
     :param segmentation_mask: Integer-labelled segmentation, as returned by
-        :func:``scikit.segmentation.watershed``.
+        `scikit.segmentation.watershed`.
     :type segmentation_mask: Numpy array of integers.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
