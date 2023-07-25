@@ -16,13 +16,13 @@ def _reverse_segmentation_df(segmentation_df):
     deceleration, like nuclei as they divide. This adds a column with the reversed
     frame numbers in place to the input `segmentation_df`
     """
-    max_frame = segmentation_df.max(axis=0)["frame"]
+    max_frame = segmentation_df["frame"].max()
     segmentation_df["frame_reverse"] = segmentation_df.apply(
         lambda row: int(1 + max_frame - row["frame"]),
         axis=1,
     )
 
-    max_t_frame = segmentation_df.max(axis=0)["t_frame"]
+    max_t_frame = segmentation_df["t_frame"].max()
     segmentation_df["t_frame_reverse"] = segmentation_df.apply(
         lambda row: int(max_t_frame - row["t_frame"]),
         axis=1,
@@ -241,9 +241,6 @@ def link_df(
         **kwargs,
     )
 
-    # Reindex dataframe
-    linked_dataframe = linked_dataframe.reset_index(drop=True)
-
     # Increment particle labels by 1 to avoid erasing 0-th particle
     linked_dataframe["particle"] = linked_dataframe["particle"].apply(lambda x: x + 1)
 
@@ -260,7 +257,9 @@ def link_df(
         )
 
     # Drop reversed time coordinates since we're done with trackpy
-    linked_dataframe.drop(["frame_reverse", "t_frame_reverse"], axis=1, inplace=True)
+    linked_dataframe.drop(
+        ["frame_reverse", "t_frame_reverse"], axis=1, inplace=True, errors="ignore"
+    )
 
     return linked_dataframe
 
