@@ -223,6 +223,32 @@ def _fit_spot_dataframe_row(
     return out
 
 
+def intensity_from_fit_row(spot_dataframe_row):
+    """
+    Uses the analytical expression for the integral of a 3D xy-symmetric Gaussian
+    over space to estimate the integrated spot brightness from the amplitude and
+    sigma fit parameters.
+
+    :param spot_dataframe: DataFrame containing information about putative spots as
+        output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type spot_dataframe: pandas DataFrame
+
+    .. note::
+        $$
+        \int_{\mathbb{R}^3} A e^{- \frac{x^2 + y^2}{2 \sigma_{xy}^2}
+        - \frac{z^2}{2 \sigma_z^2}} \ dx \ dy \ dz =
+        2 \sqrt{2} A \pi^{3/2} \sigma_{xy}^2 \sigma_z
+        $$
+    """
+    amplitude = spot_dataframe_row["amplitude"]
+    sigma_x_y = spot_dataframe_row["sigma_x_y"]
+    sigma_z = spot_dataframe_row["sigma_z"]
+    integrated_amplitude = (
+        2 * np.sqrt(2) * amplitude * (np.pi ** (3 / 2)) * (sigma_x_y**2) * sigma_z
+    )
+    return integrated_amplitude
+
+
 def add_fits_spots_dataframe(
     spot_df,
     *,
@@ -248,6 +274,8 @@ def add_fits_spots_dataframe(
     *"norm_cost": Normalized cost, defined as the L2-norm of the residuals divided
     by the product of the amplitude and the number of voxels. This gives a dimensionless
     measure of cost of the fit that can be more easily used for downstream filtering.
+    *"intensity_from_fit": Estimated spot intensity by using analytical expression for
+    integral of 3D Gaussian over space and fit parameters.
 
     :param spot_df: DataFrame containing information about putative spots as output by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
@@ -312,6 +340,12 @@ def add_fits_spots_dataframe(
         .divide(dataset_size * amplitude)
     )
 
+    # Add intensity estimates from fit parameters
+    spot_dataframe["intensity_from_fit"] = np.nan
+    spot_dataframe.loc[attempted_fit_mask, "intensity_from_fit"] = spot_dataframe[
+        attempted_fit_mask
+    ].apply(intensity_from_fit_row, axis=1)
+
     return out
 
 
@@ -366,7 +400,15 @@ def add_fits_spots_dataframe_parallel(
     """
     # Preallocate columns to facilitate sharing metadata with Dask
     spot_dataframe[
-        ["sigma_x_y", "sigma_z", "amplitude", "offset", "cost", "norm_cost"]
+        [
+            "sigma_x_y",
+            "sigma_z",
+            "amplitude",
+            "offset",
+            "cost",
+            "norm_cost",
+            "intensity_from_fit",
+        ]
     ] = np.nan
     num_processes = len(client.scheduler_info()["workers"])
     spot_dataframe_dask = dd.from_pandas(spot_dataframe, npartitions=num_processes)
