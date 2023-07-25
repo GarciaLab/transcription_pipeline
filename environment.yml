@@ -28,4 +28,6 @@ dependencies:
   - ray-default
   - ipywidgets
   - pipreqs
-prefix: /home/ybadal/mambaforge/envs/transcription_pipeline
+  - deprecation
+  - pip
+    - -r requirements.txt
