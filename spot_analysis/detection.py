@@ -357,7 +357,7 @@ def detect_spots(
         client=client,
     )
 
-    spot_dataframe = track_features.segmentation_df(
+    spot_dataframe, _, _ = track_features.segmentation_df(
         spot_mask, spot_movie, frame_metadata, extra_properties=extra_properties
     )
 

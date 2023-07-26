@@ -171,6 +171,7 @@ def track_spots(
         t_column=t_column,
         velocity_predict=velocity_predict,
         velocity_averaging=velocity_averaging,
+        reindex=False,
         **kwargs,
     )
 

@@ -211,7 +211,11 @@ def _assign_siblings_threshold(
 
     track_start_index = []
     siblings = []
-    for i, track_start_row in track_first_frames.iterrows():
+
+    def _iterate_siblings(track_start_row):
+        """
+        Iterates over row of dataframe of new particles to find siblings.
+        """
         coordinates = np.array([track_start_row[pos] for pos in pos_columns])
 
         start_border = (
@@ -233,10 +237,14 @@ def _assign_siblings_threshold(
             track_siblings = None
 
         if track_siblings is not None:
-            track_start_index.append(i)
+            track_start_index.append(track_start_row.index)
             siblings.append(track_siblings)
 
+        return None
+
+    track_first_frames.apply(_iterate_siblings)
     sibling_array = np.array([track_start_index, siblings]).T
+    
     return sibling_array
 
 

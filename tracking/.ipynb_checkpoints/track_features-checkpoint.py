@@ -7,6 +7,137 @@ from preprocessing import process_metadata
 from functools import partial
 import dask
 from utils import parallel_computing
+import scipy.signal as sig
+
+
+def _number_detected_objects(feature_dataframe):
+    """
+    Construct an array of the number of detected objects for each frame.
+    """
+    frames = np.sort(feature_dataframe["frame"].unique())
+    num_objects = np.array(
+        [(feature_dataframe["frame"] == frame).sum() for frame in frames]
+    )
+    return frames, num_objects
+
+
+def determine_nuclear_cycle_frames(frame_array, num_objects, height=0.15, distance=10):
+    """
+    Looks for maxima of the discrete time-derivative of the log of the number of detected
+    nuclei to assign frames to nuclear divisions. The log is used so that the same peak
+    threshold parameters can be used for every nuclear cycle and any zoom dataset (doubling
+    of the number of detected objects corresponding to a constant additive increase in log-
+    space).
+
+    :param frame_array: Sorted rray corresponding to the frame numbers.
+    :type frame_array: Numpy array
+    :param num_objects: Array corresponding to the number of detected features in each frame
+        of `frame_array`.
+    :type num_objects: Numpy array.
+    :param float height: Required height of peaks.
+    :param int distance: Required minimal horizontal distance (>= 1) in samples between
+        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
+        for all remaining peaks.
+    :return: Array of the frames with detected division waves.
+    :rtype: Numpy array
+    """
+    # Using chain rule to take derivative of log of number of detected objects - this
+    # makes the default parameters more generalizable to different zooms since
+    # doubling of the number of objects corresponds to the same order-of-magnitude
+    # peak in the derivative
+    derivative_log = np.gradient(num_objects) / num_objects
+    division_index, _ = sig.find_peaks(derivative_log, height=height, distance=distance)
+    frames = frame_array[division_index]
+    return frames
+
+
+def _nuclear_cycle_by_number_objects(num_objects, num_nuclei_per_fov):
+    """
+    Determines the nuclear cycle based on the detected number of objects in the field
+    of view. The acceptable range of detected number of objects per field of view
+    is contained in the dictionary `num_nuclei_per_fov` in the form
+    {nuclear_cycle: (lower bound, upper bound)}.
+    """
+    nuclear_cycle = []
+    for cycle in num_nuclei_per_fov:
+        if (
+            num_objects > num_nuclei_per_fov[cycle][0]
+            and num_objects < num_nuclei_per_fov[cycle][1]
+        ):
+            nuclear_cycle.append(cycle)
+
+    if len(nuclear_cycle) > 1:
+        raise ValueError(
+            "Range of number of objects in FOV used to determine nuclear cycle is overlapping."
+        )
+
+    if len(nuclear_cycle) == 0:
+        raise Exception(
+            "Number of detected objects outside specified bounds for nuclear cycle determination."
+        )
+
+    return nuclear_cycle[0]
+
+
+def assign_nuclear_cycle(
+    feature_dataframe, num_nuclei_per_fov, height=0.15, distance=10
+):
+    """
+    Traverses input `feature_dataframe` (usually corresponding to a nuclear marker)
+    of segmented features and uses the number of features per field-of-view to assign
+    a nuclear cycle to the particle as per the specifications of a dictionary
+    `num_nuclei_per_fov`. `feature_dataframe` is modified in-place to add a
+    "nuclear_cycle" column.
+
+    :param feature_dataframe: Dataframe with each row corresponding to a detected and
+        segmented feature, and a column `frame` containing the corresponding frame.
+    :type feature_dataframe: pandas DataFrame
+    :param dict num_nuclei_per_fov: Dictionary specifying the acceptable range of median
+        number of detected objects per FOV for a contiguous series of frames bounded
+        by detected division waves. The ranges are specified in the form
+        {nuclear_cycle: (lower bound, upper bound)}.
+    :param float height: Required height of peaks.
+    :param int distance: Required minimal horizontal distance (>= 1) in samples between
+        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
+        for all remaining peaks.
+    :return: Tuple(division_frames, nuclear_cycle)
+        *`division_frames`: Numpy array of frame number (not index - the frames are
+        1-indexed as per `trackpy`'s convention) of the detected division windows.
+        *`nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
+        entry of `division_frames` - this will be one entry larger than `division_frames`
+        since we obviously don't see division out of the last cycle observed.
+    :rtype: Tuple of Numpy arrays.
+    """
+    frames, num_objects = _number_detected_objects(feature_dataframe)
+    division_frames = determine_nuclear_cycle_frames(
+        frames, num_objects, height=height, distance=distance
+    )
+
+    division_indices = np.arange(frames.size)[np.isin(frames, division_frames)]
+    division_split_frames = np.split(frames, division_indices)
+    division_split_indices = np.split(np.arange(frames.size), division_indices)
+
+    median_num_objects_cycle = [
+        np.median(num_objects[cycle_indices])
+        for cycle_indices in division_split_indices
+    ]
+    nuclear_cycle = [
+        _nuclear_cycle_by_number_objects(num_objects, num_nuclei_per_fov)
+        for num_objects in median_num_objects_cycle
+    ]
+
+    def _determine_nuclear_cycle(object_row):
+        frame = object_row["frame"]
+        for i, cycle_frames in enumerate(division_split_frames):
+            if frame in cycle_frames:
+                return nuclear_cycle[i]
+        return None
+
+    feature_dataframe["nuclear_cycle"] = feature_dataframe.apply(
+        _determine_nuclear_cycle, axis=1
+    )
+
+    return division_frames, np.array(nuclear_cycle)
 
 
 def _reverse_segmentation_df(segmentation_df):
@@ -31,7 +162,14 @@ def _reverse_segmentation_df(segmentation_df):
 
 
 def segmentation_df(
-    segmentation_mask, intensity_image, frame_metadata, *, extra_properties=tuple()
+    segmentation_mask,
+    intensity_image,
+    frame_metadata,
+    *,
+    num_nuclei_per_fov=None,
+    division_peak_height=0.1,
+    min_time_between_divisions=10,
+    extra_properties=tuple(),
 ):
     """
     Constructs a trackpy-compatible pandas DataFrame for tracking from a
@@ -45,20 +183,34 @@ def segmentation_df(
     :param intensity_image: Intensity (i.e., input) image with same size as
         labeled image.
     :type intensity_image: Numpy array.
+    :param dict num_nuclei_per_fov: Dictionary specifying the acceptable range of median
+        number of detected objects per FOV for a contiguous series of frames bounded
+        by detected division waves. The ranges are specified in the form
+        {nuclear_cycle: (lower bound, upper bound)}. This can be passed as `None` (Default)
+        to skip assigning nuclear cycles.
+    :param float height: Required height of peaks.
+    :param int distance: Required minimal horizontal distance (>= 1) in samples between
+        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
+        for all remaining peaks.
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
     :type extra_properties: Tuple of strings, optional.
-    :param str z_label: Axis label corresponding to z-axis, used to interpolate
-        time between z-slices if necessary.
-    :return: pandas DataFrame of frame, label, centroids, and imaging time `t_s` for
-        each labelled region in the segmentation mask (along with other measurements
-        specified by extra_properties). Also includes column `t_frame` for the imaging
-        time in units of z-stack scanning time, and columns `frame_reverse` and
-        `t_frame_reverse` with the frame numbers reversed to allow tracking in reverse
-        (this performs better on high-acceleration, low-deceleration particles).
-    :rtype: pandas DataFrame
+    :return: Tuple(mitosis_dataframe, division_frames, nuclear_cycle) where
+        *`mitosis_dataframe`: pandas DataFrame of frame, label, centroids, and imaging time
+        `t_s` for each labelled region in the segmentation mask (along with other measurements
+        specified by extra_properties). Also includes column `t_frame` for the imaging time
+        in units of z-stack scanning time, and columns `frame_reverse` and `t_frame_reverse`
+        with the frame numbers reversed to allow tracking in reverse (this performs better
+        on high-acceleration, low-deceleration particles), along with the assigned nuclear
+        cycle for the particle as per `assign_nuclear_cycle`.
+        *`division_frames`: Numpy array of frame number (not index - the frames are
+        1-indexed as per `trackpy`'s convention) of the detected division windows.
+        *`nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
+        entry of `division_frames` - this will be one entry larger than `division_frames`
+        since we obviously don't see division out of the last cycle observed.
+    :rtype: Tuple(pandas DataFrame, numpy array, numpy array)
     """
     # Go over every frame and make a pandas-compatible dict for each labelled object
     # in the segmentation.
@@ -105,7 +257,19 @@ def segmentation_df(
     # Add columns with reversed frame and t_frame to enable reverse tracking
     _reverse_segmentation_df(movie_properties)
 
-    return movie_properties
+    # Add nuclear cycles for later use when compiling traces
+    if num_nuclei_per_fov is not None:
+        division_frames, nuclear_cycle = assign_nuclear_cycle(
+            movie_properties,
+            num_nuclei_per_fov,
+            height=division_peak_height,
+            distance=min_time_between_divisions,
+        )
+    else:
+        division_frames = None
+        nuclear_cycle = None
+
+    return movie_properties, division_frames, nuclear_cycle
 
 
 def _calculate_velocities(particle_dataframe, pos, t_column, averaging):
@@ -188,7 +352,8 @@ def link_df(
     t_column,
     velocity_predict=True,
     velocity_averaging=None,
-    **kwargs
+    reindex=True,
+    **kwargs,
 ):
     """
     Use trackpy to link particles across frames, assigning unique particles an
@@ -216,7 +381,11 @@ def link_df(
         `predict.NearestVelocityPredict` class to estimate a velocity for each feature
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
-    :param int averaging: Number of frames to average velocity over.
+    :param int velocity_averaging: Number of frames to average velocity over.
+    :param bool reindex: If `True`, reindexes the dataframe after linking. This is
+        important for subsequent mitosis detection on the nuclear channel, but
+        prevents the split-apply-combine operations on the dataframe during spot
+        analysis.
     :return: Original `segmentation_df` DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
@@ -240,6 +409,10 @@ def link_df(
         t_column=t_column,
         **kwargs,
     )
+
+    # Reindex dataframe, next step in mitosis detection needs fresh index
+    if reindex:
+        linked_dataframe = linked_dataframe.reset_index(drop=True)
 
     # Increment particle labels by 1 to avoid erasing 0-th particle
     linked_dataframe["particle"] = linked_dataframe["particle"].apply(lambda x: x + 1)
