@@ -539,9 +539,9 @@ def construct_lineage(
         particles in the frame in each coordinate is unity, `direction` using
         direction vectors, and 'collision' projecting velocities back a half-frame
         and linking by proximity.
-    :type antiparallel_threshold: {'velocity', 'direction', 'collision'}
+    :type antiparallel_coordinate: {'velocity', 'direction', 'collision'}
     :param float antiparallel_weight: Rescales the coordinate space so that an
-        arbitrary weight can be places on spatial proximity vs having
+        arbitrary weight can be placed on spatial proximity vs having
         antiparallel velocities during the search for sibling nuclei, with 1
         corresponding to no rescaling other than that described above (i.e. with
         mean separation between nuclei and velocities in all specified coordinates
