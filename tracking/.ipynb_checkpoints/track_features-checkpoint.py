@@ -170,6 +170,7 @@ def segmentation_df(
     division_peak_height=0.1,
     min_time_between_divisions=10,
     extra_properties=tuple(),
+    spacing=None,
 ):
     """
     Constructs a trackpy-compatible pandas DataFrame for tracking from a
@@ -197,6 +198,9 @@ def segmentation_df(
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
     :type extra_properties: Tuple of strings, optional.
+    :param spacing: The pixel spacing along each axis of the image. `None` defaults to
+        isotropic.
+    :type spacing: tuple of float
     :return: Tuple(mitosis_dataframe, division_frames, nuclear_cycle) where
         *`mitosis_dataframe`: pandas DataFrame of frame, label, centroids, and imaging time
         `t_s` for each labelled region in the segmentation mask (along with other measurements
@@ -223,6 +227,7 @@ def segmentation_df(
                 segmentation_mask[i],
                 intensity_image=intensity_image[i],
                 properties=("label", "centroid_weighted") + extra_properties,
+                spacing=spacing,
             )
             num_labels = np.unique(frame_properties["label"]).size
             frame_properties["frame"] = np.full(num_labels, i + 1)
