@@ -197,7 +197,7 @@ def _find_plateau(array, **kwargs):
 
 
 def _iterative_peak_warnings(
-    stationary_point, num_iter_range, frame_message, frame_end
+    stationary_point, num_iter_range, frame_message, frame_message_end
 ):
     """
     Constructs warnings depending on value of stationary point found during
@@ -728,7 +728,8 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
         ``denoising='median'``.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(denoised_movie, denoised_movie_futures, scattered_movie) where
+    :return: Tuple(`denoised_movie`, `denoised_movie_futures`, `scattered_movie`)
+        where
         *`denoised_movie` is the fully evaluated denoised movie as an ndarray of the
         same shape and `dtype` as `movie`.
         *`denoised_movie_futures` is the list of futures objects resulting from the
@@ -790,7 +791,8 @@ def binarize_movie_parallel(
         ``thresholding='local_otsu'``.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(binarized_movie, binarized_movie_futures, scattered_movie) where
+    :return: Tuple(`binarized_movie`, `binarized_movie_futures`, `scattered_movie`)
+        where
         *`binarized_movie` is the fully evaluated binarized movie as an ndarray of
         booleans of the same shape as movie, with only the pixels in the foreground
         corresponding to a `True` value.
@@ -851,11 +853,13 @@ def mark_movie_parallel(
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
+    :type low_sigma: scalar or tuple of scalars
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
+    :type high_sigma: scalar or tuple of scalars
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
     :type max_footprint: Numpy array of booleans.
@@ -868,7 +872,7 @@ def mark_movie_parallel(
         detection. Defaults to 3, only used as fallback if plateau finding fails.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(marked_movie, marked_movie_futures, scattered_movies) where
+    :return: Tuple(`marked_movie`, `marked_movie_futures`, `scattered_movies`) where
         *`marked_movie` is the fully evaluated marked movie as an ndarray of
         booleans of the same shape as movie, with each nucleus containing a single
         `True` value.
@@ -937,7 +941,8 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     :type min_size: int, optional
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(segmented_movie, segmented_movie_futures, scattered_movies) where
+    :return: Tuple(`segmented_movie`, `segmented_movie_futures`, `scattered_movies`)
+        where
         *`segmented_movie` is the fully evaluated segmented movie as an ndarray of
         the same shape as movie with `dtype=np.uint32`, with unique integer labels
         corresponding to each nucleus.

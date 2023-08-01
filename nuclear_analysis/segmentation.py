@@ -197,7 +197,7 @@ def _find_plateau(array, **kwargs):
 
 
 def _iterative_peak_warnings(
-    stationary_point, num_iter_range, frame_message, frame_end
+    stationary_point, num_iter_range, frame_message, frame_message_end
 ):
     """
     Constructs warnings depending on value of stationary point found during

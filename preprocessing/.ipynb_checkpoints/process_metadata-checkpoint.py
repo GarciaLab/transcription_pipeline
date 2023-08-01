@@ -25,11 +25,13 @@ def extract_time(frame_metadata):
     first_frame_times = frame_times[0]
     time_by_frame = np.sum(first_frame_times - first_frame_times[0]) == 0
 
+    time_between_frames = np.diff(frame_times[:, 0])
+    # Use median difference between frames to estimate time to scan over a z-stack
+    # (this avoids issues with datasets made of multiple series).
+    frame_scan_time = np.median(time_between_frames)
+
     if time_by_frame:
-        time_between_frames = np.diff(frame_times[:, 0])
-        # Use median difference between frames to estimate time to scan over a z-stack
-        # (this avoids issues with datasets made of multiple series).
-        frame_scan_time = np.median(time_between_frames)
+        
         num_slices = frame_metadata["z"].max() + 1
         time_per_slice = frame_scan_time / num_slices
 
@@ -39,9 +41,10 @@ def extract_time(frame_metadata):
         )
 
     else:
-        time_func = lambda frame_number, z_position: frame_time[
+        time_func = lambda frame_number, z_position: frame_times[
             frame_number - 1, int(z_position)
         ]
+        
 
     return time_func, frame_scan_time
 
