@@ -114,7 +114,7 @@ def _iterate_local_max(image, mask, iteration_params):
     # We apply a maximum dilation to the image, then compare to the original image
     # such that the only points that are selected correspond to maxima within the net
     # footprint of the dilation after the iterated application of the max filter.
-    image_max = np.copy(image)
+    image_max = np.copy(image) * mask # Remove spurious peaks in background
     for _ in range(num_iter):
         image_max = ndi.maximum_filter(image_max, footprint=footprint)
 
@@ -126,11 +126,10 @@ def _iterate_local_max(image, mask, iteration_params):
             max_dilations_iter[i - 1], footprint=footprint
         )
 
-    # Construct boolean mask marking local maxima for each number of iterations,
-    # multiplying by mask to remove spurious peaks outside foreground
+    # Construct boolean mask marking local maxima for each number of iterations
     peak_mask_iter = np.empty(max_dilations_iter.shape, dtype=bool)
     for i in range(peak_mask_iter.shape[0]):
-        peak_mask_iter[i] = (max_dilations_iter[i] == image) * mask
+        peak_mask_iter[i] = (max_dilations_iter[i] == image)
 
     return peak_mask_iter
 
