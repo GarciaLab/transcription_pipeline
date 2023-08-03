@@ -10,7 +10,7 @@ from skimage.filters import (
 )
 from skimage.segmentation import watershed
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_closing, remove_small_objects, isotropic_dilation
+from skimage.morphology import binary_closing, remove_small_objects, binary_dilation
 from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
@@ -382,7 +382,11 @@ def _check_for_backgound(binarized_mask, min_span):
 
 
 def _background_mask(
-    frame, sigma_blur, max_span, threshold_method="otsu", expand_mask=1
+    frame,
+    sigma_blur,
+    max_span,
+    threshold_method="otsu",
+    background_dilation_footprint=None,
 ):
     """
     Uses a large Gaussian blur to lowpass the image and find large regions of high
@@ -428,8 +432,10 @@ def _background_mask(
     # much of the stack, do not mark as background.
     if background_spans_surface and np.all(span <= max_span):
         binarized_background = labeled_background == background_regionprop.label
-        isotropic_dilation(
-            binarized_background, radius=expand_mask, out=binarized_background
+        binary_dilation(
+            binarized_background,
+            footprint=background_dilation_footprint,
+            out=binarized_background,
         )
     else:
         binarized_background = np.zeros_like(binarized_background)
@@ -446,7 +452,7 @@ def binarize_frame(
     background_max_span,
     background_sigma,
     background_threshold_method,
-    expand_background_mask,
+    background_dilation_footprint,
     **kwargs
 ):
     """
@@ -486,8 +492,9 @@ def binarize_frame(
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
-    :param float expand_background_mask: Distance by which to expand the surface noise
-        mask. This is useful for weak signals with high surface noise.
+    :param background_dilation_footprint: Structuring element used for binary dilation
+        of the background surface noise mask when removing background noise.
+    :type background_dilation_footprint: Numpy array of booleans.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
     :type otsu_thresholding: Numpy array of booleans, only required if using
@@ -534,7 +541,7 @@ def binarize_frame(
             background_sigma,
             background_max_span,
             background_threshold_method,
-            expand_background_mask,
+            background_dilation_footprint,
         )
 
         if thresholding == "global_otsu":
@@ -719,7 +726,7 @@ def binarize_movie(
     background_max_span,
     background_sigma,
     background_threshold_method,
-    expand_background_mask,
+    background_dilation_footprint,
     **kwargs
 ):
     """
@@ -757,8 +764,9 @@ def binarize_movie(
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
-    :param float expand_background_mask: Distance by which to expand the surface noise
-        mask. This is useful for weak signals with high surface noise.
+    :param background_dilation_footprint: Structuring element used for binary dilation
+        of the background surface noise mask when removing background noise.
+    :type background_dilation_footprint: Numpy array of booleans.
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
@@ -784,7 +792,7 @@ def binarize_movie(
             background_max_span=background_max_span,
             background_sigma=background_sigma,
             background_threshold_method=background_threshold_method,
-            expand_background_mask=expand_background_mask,
+            background_dilation_footprint=background_dilation_footprint,
             **kwargs,
         )
 
@@ -965,7 +973,7 @@ def binarize_movie_parallel(
     background_max_span,
     background_sigma,
     background_threshold_method,
-    expand_background_mask,
+    background_dilation_footprint,
     client,
     **kwargs
 ):
@@ -1007,8 +1015,9 @@ def binarize_movie_parallel(
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
-    :param float expand_background_mask: Distance by which to expand the surface noise
-        mask. This is useful for weak signals with high surface noise.
+    :param background_dilation_footprint: Structuring element used for binary dilation
+        of the background surface noise mask when removing background noise.
+    :type background_dilation_footprint: Numpy array of booleans.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
     :type otsu_thresholding: Numpy array of booleans, only required if using
@@ -1037,7 +1046,7 @@ def binarize_movie_parallel(
         background_max_span=background_max_span,
         background_sigma=background_sigma,
         background_threshold_method=background_threshold_method,
-        expand_background_mask=expand_background_mask,
+        background_dilation_footprint=background_dilation_footprint,
         **kwargs,
     )
 

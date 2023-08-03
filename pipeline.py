@@ -73,6 +73,7 @@ def choose_nuclear_analysis_parameters(
     background_max_span[0] = nuclear_size_pixels[0] / 2
     background_sigma = nuclear_size_pixels * 2
     background_sigma[0] = nuclear_size_pixels[0] / 50
+    background_dilation_footprint = segmentation.ellipsoid(nuclear_size[1], 3)
     binarize_params = {
         "thresholding": "global_otsu",
         "closing_footprint": closing_footprint,
@@ -80,7 +81,7 @@ def choose_nuclear_analysis_parameters(
         "background_max_span": background_max_span,
         "background_sigma": background_sigma,
         "background_threshold_method": "otsu",
-        "expand_background_mask": 1,
+        "background_dilation_footprint": background_dilation_footprint,
     }
 
     # The guidelines for choosing DoG sigmas can be found here:
@@ -97,7 +98,7 @@ def choose_nuclear_analysis_parameters(
     # once for every pixel in the lengthcale of a feature since each iteration dilates
     # a maximum by 2 px.
     max_iter = np.ceil(nuclear_size_pixels[1:].max()).astype(int)
-    max_footprint = ((1, max_iter), segmentation.ellipsoid(3, 3))
+    max_footprint = ((1, max_iter), segmentation.ellipsoid(3, 5))
     mark_params = {
         "low_sigma": low_sigma,
         "high_sigma": high_sigma,
