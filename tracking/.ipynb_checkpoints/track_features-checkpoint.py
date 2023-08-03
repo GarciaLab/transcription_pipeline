@@ -8,6 +8,7 @@ from functools import partial
 import dask
 from utils import parallel_computing
 import scipy.signal as sig
+import warnings
 
 
 def _number_detected_objects(feature_dataframe):
@@ -72,9 +73,11 @@ def _nuclear_cycle_by_number_objects(num_objects, num_nuclei_per_fov):
         )
 
     if len(nuclear_cycle) == 0:
-        raise Exception(
-            "Number of detected objects outside specified bounds for nuclear cycle determination."
+        warnings.warn(
+            "Number of detected objects outside specified bounds for nuclear cycle determination.",
+            stacklevel=2,
         )
+        nuclear_cycle.append(np.nan)
 
     return nuclear_cycle[0]
 

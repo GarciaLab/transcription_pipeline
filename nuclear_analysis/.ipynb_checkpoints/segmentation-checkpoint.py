@@ -9,7 +9,8 @@ from skimage.filters import (
     sobel,
 )
 from skimage.segmentation import watershed
-from skimage.morphology import binary_closing, remove_small_objects
+from skimage.measure import label, regionprops
+from skimage.morphology import binary_closing, remove_small_objects, isotropic_dilation
 from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
@@ -114,7 +115,7 @@ def _iterate_local_max(image, mask, iteration_params):
     # We apply a maximum dilation to the image, then compare to the original image
     # such that the only points that are selected correspond to maxima within the net
     # footprint of the dilation after the iterated application of the max filter.
-    image_max = np.copy(image) * mask # Remove spurious peaks in background
+    image_max = np.copy(image) * mask  # Remove spurious peaks in background
     for _ in range(num_iter):
         image_max = ndi.maximum_filter(image_max, footprint=footprint)
 
@@ -129,7 +130,7 @@ def _iterate_local_max(image, mask, iteration_params):
     # Construct boolean mask marking local maxima for each number of iterations
     peak_mask_iter = np.empty(max_dilations_iter.shape, dtype=bool)
     for i in range(peak_mask_iter.shape[0]):
-        peak_mask_iter[i] = (max_dilations_iter[i] == image)
+        peak_mask_iter[i] = max_dilations_iter[i] == image
 
     return peak_mask_iter
 
@@ -351,7 +352,103 @@ def denoise_frame(stack, denoising, **kwargs):
     return denoised_stack
 
 
-def binarize_frame(stack, *, thresholding, closing_footprint, **kwargs):
+def _find_largest_cc(labelled_mask):
+    """
+    Extracts a RegionProperties object for the largest connected component.
+    """
+    measured_labels = regionprops(labelled_mask)
+    component_sizes = np.array([component.num_pixels for component in measured_labels])
+    largest_component_idx = np.argmax(component_sizes)
+    largest_cc_regionprops = measured_labels[largest_component_idx]
+    return largest_cc_regionprops
+
+
+def _check_for_backgound(binarized_mask, min_span):
+    """
+    Checks a binarized nuclear mask for the presence of unexpectedly large connected
+    components that would indicate surface background.
+    """
+    labelled_mask = label(binarized_mask)
+    largest_cc_regionprops = _find_largest_cc(labelled_mask)
+    largest_cc_bbox = largest_cc_regionprops.bbox
+
+    # If largest connected component spans a large enough section of the FOV, it is
+    # likely surface background
+    bbox_bounds = np.split(np.asarray(largest_cc_bbox), 2)
+    span = bbox_bounds[1] - bbox_bounds[0]
+    has_large_cc = np.all(span > np.asarray(min_span))
+
+    return has_large_cc
+
+
+def _background_mask(
+    frame, sigma_blur, max_span, threshold_method="otsu", expand_mask=1
+):
+    """
+    Uses a large Gaussian blur to lowpass the image and find large regions of high
+    background by Otsu thresholding. A mask of the background is return to help with
+    background subtraction downstream.
+    """
+    # Blur the input frame, preferably with an asymmetric kernel small in z and much
+    # larger than the nuclei in xy
+    gaussian_blur = gaussian(frame, sigma=sigma_blur)
+
+    # Threshold to find background
+    threshold = threshold_otsu(gaussian_blur)
+
+    if threshold_method == "li":
+        threshold = threshold_li(gaussian_blur, initial_guess=threshold)
+    elif threshold_method == "otsu":
+        pass
+    else:
+        raise ValueError("`threshold_method` parameter not recognized.")
+
+    binarized_background = gaussian_blur > threshold
+
+    # Choose the largest connected component in the blurred image as the likeliest
+    # surface background component
+    labeled_background = label(binarized_background)
+    background_regionprop = _find_largest_cc(labeled_background)
+
+    # We now check the bounding box of the largest connected component to make sure
+    # that it is in fact surface noise - otherwise, it could just be a noisy dataset
+    # causing the nuclei to join together as a large connected component under
+    # Gaussian filtering and binarization.
+    background_bbox = background_regionprop.bbox
+    bbox_bounds = np.split(np.asarray(background_bbox), 2)
+    span = bbox_bounds[1] - bbox_bounds[0]
+
+    # Check if surface noise is at the top or bottom of the z-stack
+    if (bbox_bounds[0][0] == 0) or (bbox_bounds[1][0] == frame.shape[0]):
+        background_spans_surface = True
+    else:
+        background_spans_surface = False
+
+    # If connected component from blurred image is not near surface or spans too
+    # much of the stack, do not mark as background.
+    if background_spans_surface and np.all(span <= max_span):
+        binarized_background = labeled_background == background_regionprop.label
+        isotropic_dilation(
+            binarized_background, radius=expand_mask, out=binarized_background
+        )
+    else:
+        binarized_background = np.zeros_like(binarized_background)
+
+    return binarized_background
+
+
+def binarize_frame(
+    stack,
+    *,
+    thresholding,
+    closing_footprint,
+    cc_min_span,
+    background_max_span,
+    background_sigma,
+    background_threshold_method,
+    expand_background_mask,
+    **kwargs
+):
     """
     Binarizes a z-stack using specified thresholding method, separating between
     foreground and background.
@@ -366,6 +463,31 @@ def binarize_frame(stack, *, thresholding, closing_footprint, **kwargs):
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
+    :param cc_min_span: Minimum span in each axis that the largest connected component
+        in a binarized image must have to be considered possible background noise. The
+        key here is that large x- and y-axis span (more than a few nuclei) indicates
+        either a region of high-intensity surface noise or a low signal-to-noise image
+        that causes nuclei to appear connected when binarized. This flags the image for
+        further processing and possible background removal.
+    :type cc_min_span: Array-like
+    :param background_max_span: Maximum span in each axis that a connected component
+        flagged as surface noise can have and still be consisdered surface noise (i.e.
+        if a large part of the stack is surface noise, the data might not be usable
+        in the first place and will be very difficult to segment in 3D so we stop the
+        analysis). Connected blurred regions with bounding boxes spanning this parameter
+        will be removed from consideration when thresholding to obtain a nuclear mask.
+    :type background_max_span: Array-like
+    :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
+        of image prior to segmenting out the surface noise. This should be small in z
+        so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+        y- so as to only keep low-frequency noise.
+    :type background_sigma: Array-like
+    :param background_threshold_method: Method to use for thresholding the Gaussian-
+        blurred image for surface noise detection. Only global Otsu and Li methods
+        are implemented.
+    :type background_threshold_method: {"otsu", "li"}
+    :param float expand_background_mask: Distance by which to expand the surface noise
+        mask. This is useful for weak signals with high surface noise.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
     :type otsu_thresholding: Numpy array of booleans, only required if using
@@ -399,6 +521,33 @@ def binarize_frame(stack, *, thresholding, closing_footprint, **kwargs):
 
     # Binarize stack by thresholding
     binarized_stack = stack >= threshold
+
+    # Check if thresholded stack has large connected components that would indicate
+    # surface background
+    has_background = _check_for_backgound(binarized_stack, cc_min_span)
+
+    # If stack has surface background, make a mask of background by blurring
+    # heavily in xy and binarizing
+    if has_background:
+        background_mask = _background_mask(
+            stack,
+            background_sigma,
+            background_max_span,
+            background_threshold_method,
+            expand_background_mask,
+        )
+
+        if thresholding == "global_otsu":
+            threshold = threshold_otsu(stack[~background_mask])
+        elif thresholding == "local_otsu":
+            # If thresholding is done using local Otsu, the conversion to ubyte
+            # and extraction of the footprint kwarg will have already happened
+            threshold = rank.otsu(stack, otsu_footprint, mask=(~background_mask))
+        elif thresholding == "li":
+            threshold_guess = threshold_otsu(stack[~background_mask])
+            threshold = threshold_li(stack[~background_mask])
+
+        binarized_stack = (stack >= threshold) * (~background_mask)
 
     # Clean up binarized image with a closing operation
     binarized_stack = binary_closing(binarized_stack, closing_footprint)
@@ -561,7 +710,18 @@ def denoise_movie(movie, *, denoising, **kwargs):
     return denoised_movie
 
 
-def binarize_movie(movie, *, thresholding, closing_footprint, **kwargs):
+def binarize_movie(
+    movie,
+    *,
+    thresholding,
+    closing_footprint,
+    cc_min_span,
+    background_max_span,
+    background_sigma,
+    background_threshold_method,
+    expand_background_mask,
+    **kwargs
+):
     """
     Binarizes a movie frame-by-frame using specified thresholding method, separating
     between foreground and background.
@@ -574,6 +734,31 @@ def binarize_movie(movie, *, thresholding, closing_footprint, **kwargs):
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
         the footprint used for the local Otsu thresholding.
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
+    :param cc_min_span: Minimum span in each axis that the largest connected component
+        in a binarized image must have to be considered possible background noise. The
+        key here is that large x- and y-axis span (more than a few nuclei) indicates
+        either a region of high-intensity surface noise or a low signal-to-noise image
+        that causes nuclei to appear connected when binarized. This flags the image for
+        further processing and possible background removal.
+    :type cc_min_span: Array-like
+    :param background_max_span: Maximum span in each axis that a connected component
+        flagged as surface noise can have and still be consisdered surface noise (i.e.
+        if a large part of the stack is surface noise, the data might not be usable
+        in the first place and will be very difficult to segment in 3D so we stop the
+        analysis). Connected blurred regions with bounding boxes spanning this parameter
+        will be removed from consideration when thresholding to obtain a nuclear mask.
+    :type background_max_span: Array-like
+    :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
+        of image prior to segmenting out the surface noise. This should be small in z
+        so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+        y- so as to only keep low-frequency noise.
+    :type background_sigma: Array-like
+    :param background_threshold_method: Method to use for thresholding the Gaussian-
+        blurred image for surface noise detection. Only global Otsu and Li methods
+        are implemented.
+    :type background_threshold_method: {"otsu", "li"}
+    :param float expand_background_mask: Distance by which to expand the surface noise
+        mask. This is useful for weak signals with high surface noise.
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
@@ -595,6 +780,11 @@ def binarize_movie(movie, *, thresholding, closing_footprint, **kwargs):
             movie[i],
             thresholding=thresholding,
             closing_footprint=closing_footprint,
+            cc_min_span=cc_min_span,
+            background_max_span=background_max_span,
+            background_sigma=background_sigma,
+            background_threshold_method=background_threshold_method,
+            expand_background_mask=expand_background_mask,
             **kwargs,
         )
 
@@ -767,7 +957,17 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
 
 
 def binarize_movie_parallel(
-    movie, *, thresholding, closing_footprint, client, **kwargs
+    movie,
+    *,
+    thresholding,
+    closing_footprint,
+    cc_min_span,
+    background_max_span,
+    background_sigma,
+    background_threshold_method,
+    expand_background_mask,
+    client,
+    **kwargs
 ):
     """
     Binarizes a movie frame-by-frame using specified thresholding method, separating
@@ -784,6 +984,31 @@ def binarize_movie_parallel(
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
+    :param cc_min_span: Minimum span in each axis that the largest connected component
+        in a binarized image must have to be considered possible background noise. The
+        key here is that large x- and y-axis span (more than a few nuclei) indicates
+        either a region of high-intensity surface noise or a low signal-to-noise image
+        that causes nuclei to appear connected when binarized. This flags the image for
+        further processing and possible background removal.
+    :type cc_min_span: Array-like
+    :param background_max_span: Maximum span in each axis that a connected component
+        flagged as surface noise can have and still be consisdered surface noise (i.e.
+        if a large part of the stack is surface noise, the data might not be usable
+        in the first place and will be very difficult to segment in 3D so we stop the
+        analysis). Connected blurred regions with bounding boxes spanning this parameter
+        will be removed from consideration when thresholding to obtain a nuclear mask.
+    :type background_max_span: Array-like
+    :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
+        of image prior to segmenting out the surface noise. This should be small in z
+        so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+        y- so as to only keep low-frequency noise.
+    :type background_sigma: Array-like
+    :param background_threshold_method: Method to use for thresholding the Gaussian-
+        blurred image for surface noise detection. Only global Otsu and Li methods
+        are implemented.
+    :type background_threshold_method: {"otsu", "li"}
+    :param float expand_background_mask: Distance by which to expand the surface noise
+        mask. This is useful for weak signals with high surface noise.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
     :type otsu_thresholding: Numpy array of booleans, only required if using
@@ -808,6 +1033,11 @@ def binarize_movie_parallel(
         binarize_movie,
         thresholding=thresholding,
         closing_footprint=closing_footprint,
+        cc_min_span=cc_min_span,
+        background_max_span=background_max_span,
+        background_sigma=background_sigma,
+        background_threshold_method=background_threshold_method,
+        expand_background_mask=expand_background_mask,
         **kwargs,
     )
 
