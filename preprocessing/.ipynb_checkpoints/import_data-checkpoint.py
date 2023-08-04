@@ -171,11 +171,21 @@ def collate_global_metadata(
         channel_global_metadata = {}
         for field in input_global_metadata:
             if field in fields_num_channels:
-                channel_global_metadata[field] = (input_global_metadata[field])[i]
+                if num_channels > 1:
+                    channel_global_metadata[field] = (input_global_metadata[field])[i]
+                else:
+                    channel_global_metadata[field] = input_global_metadata[field]
             elif field in fields_num_series:
                 channel_global_metadata[field] = (input_global_metadata[field])[0][0]
             elif field in fields_num_series_channels:
-                channel_global_metadata[field] = (input_global_metadata[field])[0][0][i]
+                if num_channels > 1:
+                    channel_global_metadata[field] = (input_global_metadata[field])[0][
+                        0
+                    ][i]
+                else:
+                    channel_global_metadata[field] = (input_global_metadata[field])[0][
+                        0
+                    ]
             elif field not in fields_explicit:
                 if isinstance(input_global_metadata[field], list):
                     channel_global_metadata[field] = "inconsistent_metadata"
@@ -285,18 +295,28 @@ def collate_frame_metadata(
             end = None
 
         try:
-            z_list = [
-                (z_original[:end])[:, i, :] for z_original in input_frame_metadata["z"]
-            ]
+            if num_channels > 1:
+                z_list = [
+                    (z_original[:end])[:, i, :] for z_original in input_frame_metadata["z"]
+                ]
+            else:
+                z_list = [
+                    z_original[:end] for z_original in input_frame_metadata["z"]
+                ]
             z = np.concatenate(z_list)
             channel_frame_metadata["z"] = z
         except ValueError:
             z = "inconsistent_metadata"
 
         try:
-            t_list = [
-                (t_original[:end])[:, i, :] for t_original in input_frame_metadata["t"]
-            ]
+            if num_channels > 1:
+                t_list = [
+                    (t_original[:end])[:, i, :] for t_original in input_frame_metadata["t"]
+                ]
+            else:
+                t_list = [
+                    (t_original[:end]) for t_original in input_frame_metadata["t"]
+                ]
             t_list_offset = [np.copy(t_series) for t_series in t_list]
             for j in range(1, len(t_list)):
                 t_list_offset[j] += t_list_offset[j - 1][-1, -1] + 1
@@ -306,10 +326,16 @@ def collate_frame_metadata(
             t = "inconsistent_metadata"
 
         try:
-            t_s_list = [
-                (t_s_original[:end])[:, i, :]
-                for t_s_original in input_frame_metadata["t_s"]
-            ]
+            if num_channels > 1:
+                t_s_list = [
+                    (t_s_original[:end])[:, i, :]
+                    for t_s_original in input_frame_metadata["t_s"]
+                ]
+            else:
+                t_s_list = [
+                    (t_s_original[:end])
+                    for t_s_original in input_frame_metadata["t_s"]
+                ]
             t_s_list_offset = [np.copy(t_s_series) for t_s_series in t_s_list]
             t_s_is_number = issubclass(t_s_list_offset[0].dtype.type, numbers.Number)
             # Checking if t_s is numerical (as opposed to string) since presence of
@@ -535,7 +561,13 @@ def import_dataset(name_folder, trim_series):
     for file in file_list:
         # Open a reader for the first series of the file
         series = pims.Bioformats(file, series=0)
-        series.bundle_axes = "tczyx"
+        try:
+            series.bundle_axes = "tczyx"
+            multichannel = True
+        except ValueError:
+            series.bundle_axes = "tzyx"
+            multichannel = False
+
         data.append(series)
         num_frames_series.append((series.shape)[1])
 
@@ -548,7 +580,10 @@ def import_dataset(name_folder, trim_series):
         num_series = checked_file_metadata["ImageCount"]
         for i in range(1, num_series):
             series = pims.Bioformats(file, series=i)
-            series.bundle_axes = "tczyx"
+            if multichannel:
+                series.bundle_axes = "tczyx"
+            else:
+                series.bundle_axes = "tzyx"
             data.append(series)
             num_frames_series.append((series.shape)[1])
 
@@ -582,10 +617,7 @@ def import_dataset(name_folder, trim_series):
     series_shape = data[0].shape
     dataset_shape = (
         num_frames,
-        series_shape[2],
-        series_shape[3],
-        series_shape[4],
-        series_shape[5],
+        *series_shape[2:],
     )
 
     dtype = original_global_metadata["PixelsType"]
@@ -623,7 +655,10 @@ def import_dataset(name_folder, trim_series):
     num_channels = original_global_metadata["ChannelCount"]
     channels_full_dataset = []
     for i in range(num_channels):
-        channels_full_dataset.append(full_dataset[:, i, ...])
+        if num_channels > 1:
+            channels_full_dataset.append(full_dataset[:, i, ...])
+        else:
+            channels_full_dataset.append(full_dataset)
 
     return (
         channels_full_dataset,
