@@ -10,7 +10,12 @@ from skimage.filters import (
 )
 from skimage.segmentation import watershed
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_closing, remove_small_objects, binary_dilation
+from skimage.morphology import (
+    binary_closing,
+    binary_opening,
+    remove_small_objects,
+    binary_dilation,
+)
 from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
@@ -447,6 +452,7 @@ def binarize_frame(
     stack,
     *,
     thresholding,
+    opening_footprint,
     closing_footprint,
     cc_min_span,
     background_max_span,
@@ -467,6 +473,8 @@ def binarize_frame(
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
         the footprint used for the local Otsu thresholding.
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
+    :param opening_footprint: Footprint used for closing operation.
+    :type opening_footprint: Numpy array of booleans.
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
     :param cc_min_span: Minimum span in each axis that the largest connected component
@@ -556,8 +564,11 @@ def binarize_frame(
 
         binarized_stack = (stack >= threshold) * (~background_mask)
 
+    # Remove remnant surface backgound using an opening operation
+    binary_opening(binarized_stack, footprint=opening_footprint, out=binarized_stack)
+
     # Clean up binarized image with a closing operation
-    binarized_stack = binary_closing(binarized_stack, closing_footprint)
+    binary_closing(binarized_stack, footprint=closing_footprint, out=binarized_stack)
 
     return binarized_stack
 
@@ -721,6 +732,7 @@ def binarize_movie(
     movie,
     *,
     thresholding,
+    opening_footprint,
     closing_footprint,
     cc_min_span,
     background_max_span,
@@ -767,6 +779,8 @@ def binarize_movie(
     :param background_dilation_footprint: Structuring element used for binary dilation
         of the background surface noise mask when removing background noise.
     :type background_dilation_footprint: Numpy array of booleans.
+    :param opening_footprint: Footprint used for closing operation.
+    :type opening_footprint: Numpy array of booleans.
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
@@ -787,6 +801,7 @@ def binarize_movie(
         binarized_movie[i] = binarize_frame(
             movie[i],
             thresholding=thresholding,
+            opening_footprint=opening_footprint,
             closing_footprint=closing_footprint,
             cc_min_span=cc_min_span,
             background_max_span=background_max_span,
@@ -968,6 +983,7 @@ def binarize_movie_parallel(
     movie,
     *,
     thresholding,
+    opening_footprint,
     closing_footprint,
     cc_min_span,
     background_max_span,
@@ -990,6 +1006,8 @@ def binarize_movie_parallel(
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
         the footprint used for the local Otsu thresholding.
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
+    :param opening_footprint: Footprint used for closing operation.
+    :type opening_footprint: Numpy array of booleans.
     :param closing_footprint: Footprint used for closing operation.
     :type closing_footprint: Numpy array of booleans.
     :param cc_min_span: Minimum span in each axis that the largest connected component
@@ -1041,6 +1059,7 @@ def binarize_movie_parallel(
     binarize_movie_func = partial(
         binarize_movie,
         thresholding=thresholding,
+        opening_footprint=opening_footprint,
         closing_footprint=closing_footprint,
         cc_min_span=cc_min_span,
         background_max_span=background_max_span,

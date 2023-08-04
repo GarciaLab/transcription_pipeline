@@ -60,6 +60,10 @@ def choose_nuclear_analysis_parameters(
     denoising_sigma = nuclear_size_pixels / 20
     denoise_params = {"denoising": "gaussian", "denoising_sigma": denoising_sigma}
 
+    opening_footprint_dimensions = np.floor(
+        np.maximum(nuclear_size_pixels / 2, 3)
+    ).astype(int)
+    opening_footprint = segmentation.ellipsoid(3, opening_footprint_dimensions[0])
     closing_footprint_dimensions = np.floor(
         np.maximum(nuclear_size_pixels / 10, 3)
     ).astype(int)
@@ -76,6 +80,7 @@ def choose_nuclear_analysis_parameters(
     background_dilation_footprint = segmentation.ellipsoid(nuclear_size[1], 3)
     binarize_params = {
         "thresholding": "global_otsu",
+        "opening_footprint": opening_footprint,
         "closing_footprint": closing_footprint,
         "cc_min_span": cc_min_span,
         "background_max_span": background_max_span,
@@ -126,10 +131,10 @@ def choose_nuclear_analysis_parameters(
         "min_time_between_divisions": 10,
     }
 
-    # A search range of ~4.2 um seems to work very well for tracking nuclei in the XY
+    # A search range of ~3.5 um seems to work very well for tracking nuclei in the XY
     # plane. 3D tracking is not as of now handled in the defaults and has to be
     # explicitly passes along with an appropriate search range
-    search_range = 4.2 / mppY
+    search_range = 3.5 / mppY
     pos_columns = ["y", "x"]  # Tracking only in XY in case z-stack was adjusted
     t_column = "frame_reverse"  # Track reversed time to help with large accelerations
     link_df_params = {
