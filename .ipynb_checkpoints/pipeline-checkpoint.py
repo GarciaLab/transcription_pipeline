@@ -4,6 +4,9 @@ from spot_analysis import detection, fitting, track_filtering
 from scipy.optimize import fsolve
 import warnings
 import numpy as np
+import zarr
+from skimage.io import imsave
+from pathlib import Path
 
 
 def choose_nuclear_analysis_parameters(
@@ -418,6 +421,7 @@ def choose_spot_analysis_parameters(
     extract_sigma_multiple,
     dog_sigma_ratio,
     keep_bandpass,
+    keep_spot_mask,
 ):
     """
     Chooses reasonable default parameters based on provided physical scale in microns
@@ -452,6 +456,8 @@ def choose_spot_analysis_parameters(
         filter used to preprocess the data.
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory.
+    :param bool keep_spot_mask: If `True`, keeps a copy of the spot mask after thresholding
+        but before filtering in memory.
     :return: Dictionary of kwarg dicts corresponding to each function in the spot
         segmentation and tracking pipeline:
         *`detection.detect_and_gather_spots`
@@ -493,7 +499,7 @@ def choose_spot_analysis_parameters(
         "span": spot_sigmas_pixels * np.asarray(extract_sigma_multiple),
         "pos_columns": ["z", "y", "x"],
         "return_bandpass": keep_bandpass,
-        "return_spot_mask": True,
+        "return_spot_mask": keep_spot_mask,
         "drop_reverse_time": True,
     }
 
@@ -547,12 +553,12 @@ class Spot:
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for the spot
         channel, as output by `preprocessing.import_data.import_save_dataset`.
-    :param nuclear_labels: Labelled nuclear mask, with each nucleus assigned a unique
-        integer value. Can also be passed as a list of futures corresponding to the
-        labelled nuclear mask in Dask worker memories. Setting to `None` results in
+    :param labels: Labelled mask, with each label assigned a unique integer value and
+        containing a single spot. Can also be passed as a list of futures corresponding to
+        the labelled mask in Dask worker memories. Setting to `None` results in
         independent tracking and fitting of the spots, without the filtering steps
         that would require a nuclear mask.
-    :type nuclear_labels: Numpy array, list of Dask Fututes objects, or `None`
+    :type labels: Numpy array, list of Dask Fututes objects, or `None`
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :param spot_sigmas: Standard deviations in each coordinate axis of diffraction-
@@ -585,6 +591,8 @@ class Spot:
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory. This is kept as `dtype=np.float64`, and on machines lacking in memory
         can cause the Python kernel to crash for larger datasets.
+    :param bool keep_spot_mask: If `True`, keeps a copy of the spot mask after thresholding
+        but before filtering in memory.
 
     :ivar default_params: Dictionary of dictionaries, with each subdictionary corresponding
         to the kwargs for one of the functions in the spot analysis pipeline, as described
@@ -600,11 +608,11 @@ class Spot:
         of Gaussians.
     :ivar reordered_spot_labels: Spot segmentation mask, with labels now corresponding to
         the IDs in the `particle` column of `spot_dataframe`. If available, the IDs are
-        transferred over from provided `nuclear_labels`.
+        transferred over from provided `labels`.
     :ivar reordered_spot_labels_futures: Spot segmentation mask, with labels now
         corresponding to the IDs in the `particle` column of `spot_dataframe`, as a list
         of scattered futures in the Dask Client worker memeories. If available, the IDs are
-        transferred over from provided `nuclear_labels`.
+        transferred over from provided `labels`.
 
     .. note::
         *The default $\sigma_z = 0.43 \ \mu m$, $\sigma_{x, y} = 0.21 \ \mu m$ along with the
@@ -624,7 +632,7 @@ class Spot:
         data,
         global_metadata,
         frame_metadata,
-        nuclear_labels,
+        labels,
         client,
         spot_sigmas=[0.43, 0.21, 0.21],
         spot_sigma_x_y_bounds=(0.052, 0.52),
@@ -634,6 +642,7 @@ class Spot:
         evaluate=True,
         keep_futures=True,
         keep_bandpass=True,
+        keep_spot_mask=True,
     ):
         """
         Constructor method.
@@ -647,8 +656,9 @@ class Spot:
         self.spot_sigma_z_bounds = spot_sigma_z_bounds
         self.extract_sigma_multiple = extract_sigma_multiple
         self.dog_sigma_ratio = dog_sigma_ratio
-        self.nuclear_labels = nuclear_labels
+        self.labels = labels
         self.keep_bandpass = keep_bandpass
+        self.keep_spot_mask = keep_spot_mask
 
         self.default_params = choose_spot_analysis_parameters(
             self.global_metadata,
@@ -658,6 +668,7 @@ class Spot:
             self.extract_sigma_multiple,
             self.dog_sigma_ratio,
             self.keep_bandpass,
+            self.keep_spot_mask,
         )
 
         self.evaluate = evaluate
@@ -690,7 +701,7 @@ class Spot:
 
         track_filtering.track_and_filter_spots(
             self.spot_dataframe,
-            nuclear_labels=self.nuclear_labels,
+            nuclear_labels=self.labels,
             client=self.client,
             **(self.default_params["track_and_filter_spots_params"]),
         )
@@ -708,3 +719,65 @@ class Spot:
             evaluate=self.evaluate,
         )
         del futures_in
+
+    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
+        """
+        Saves results of spot segmentation and tracking to disk as HDF5, with the
+        labelled segmentation mask saved as zarr or TIFF as specified.
+
+        :param str file_name: Name to save reordered (post-tracking) labelled spot
+            mask under.
+        :param str name_folder: Name of folder to create `analysis_results`
+            subdirectory in, in which analysis results are stored.
+        :param save_array_as: Format to save reordered spot labels in:
+        :type save_array_as: {"zarr", "tiff"}
+        :param bool save_all: If true, saves a tiff file for each intermediate step
+            of the spot analysis pipeline
+        """
+        # Make `analysis_results` directory if it doesn't exist
+        name_path = Path(name_folder)
+        results_path = name_path / "analysis_results"
+        results_path.mkdir(exist_ok=True)
+
+        # Save movies, saving intermediate steps if requested
+        save_movies = {"reordered_spot_labels": self.reordered_spot_labels}
+
+        if save_all:
+            save_movies["spot_mask"] = self.spot_mask
+            save_movies["bandpassed_movie"] = self.bandpassed_movie
+
+        file_not_found = "".join(
+            [
+                " could not be found, check to make",
+                " sure the `keep_bandpass` and `keep_spot_mask`",
+                " kwargs were used when running the",
+                " `extract_spot_traces` method so that the",
+                " intermediate steps are not deleted to save",
+                " memory.",
+            ]
+        )
+
+        if save_array_as == "zarr":
+            for movie in save_movies:
+                if save_movies[movie] is not None:
+                    save_name = "".join([movie, ".zarr"])
+                    save_path = results_path / save_name
+
+                    store = zarr.storage.DirectoryStore(save_path)
+                    analyzed_data = zarr.creation.array(save_movies[movie], store=store)
+                    store.close()
+                else:
+                    warnings.warn("".join([movie, file_not_found]))
+
+        elif save_as_array == "tiff":
+            for movie in save_movies:
+                if save_movies[movie] is not None:
+                    save_name = "".join([movie, ".tiff"])
+                    save_path = results_path / save_name
+                    imsave(save_path, save_movies[movie], plugin="tifffile")
+                else:
+                    warnings.warn("".join([movie, file_not_found]))
+
+        # Save spot dataframe
+        spot_dataframe_path = results_path / "spot_dataframe.h5"
+        self.spot_dataframe.to_hdf(spot_dataframe_path, key="spot_dataframe", mode="w")
