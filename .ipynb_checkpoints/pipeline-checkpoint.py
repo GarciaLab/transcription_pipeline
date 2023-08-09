@@ -4,9 +4,11 @@ from spot_analysis import detection, fitting, track_filtering
 from scipy.optimize import fsolve
 import warnings
 import numpy as np
+import pandas as pd
 import zarr
 from skimage.io import imsave
 from pathlib import Path
+import pickle
 
 
 def choose_nuclear_analysis_parameters(
@@ -260,30 +262,31 @@ class Nuclear:
     def __init__(
         self,
         *,
-        data,
-        global_metadata,
-        frame_metadata,
-        client,
+        data=None,
+        global_metadata=None,
+        frame_metadata=None,
+        client=None,
         nuclear_size=[8.0, 4.2, 4.2],
         sigma_ratio=5,
         evaluate=False,
         keep_futures=False,
     ):
         """
-        Constructor method.
+        Constructor method. Instantiates class with no attributes if `data=None`.
         """
-        self.global_metadata = global_metadata
-        self.frame_metadata = frame_metadata
-        self.nuclear_size = nuclear_size
-        self.sigma_ratio = sigma_ratio
-        self.data = data
-        self.client = client
+        if data is not None:
+            self.global_metadata = global_metadata
+            self.frame_metadata = frame_metadata
+            self.nuclear_size = nuclear_size
+            self.sigma_ratio = sigma_ratio
+            self.data = data
+            self.client = client
 
-        self.default_params = choose_nuclear_analysis_parameters(
-            self.nuclear_size, self.sigma_ratio, self.global_metadata
-        )
-        self.evaluate = evaluate
-        self.keep_futures = keep_futures
+            self.default_params = choose_nuclear_analysis_parameters(
+                self.nuclear_size, self.sigma_ratio, self.global_metadata
+            )
+            self.evaluate = evaluate
+            self.keep_futures = keep_futures
 
     def track_nuclei(self):
         """
@@ -387,6 +390,134 @@ class Nuclear:
         if not self.keep_futures:
             del self.labels_futures
             self.labels_futures = None
+
+    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
+        """
+        Saves results of nuclear segmentation and tracking to disk as HDF5, with the
+        labelled segmentation mask saved as zarr or TIFF as specified.
+
+        :param str file_name: Name to save reordered (post-tracking) labelled nuclear
+            mask under.
+        :param str name_folder: Name of folder to create `nuclear_analysis_results`
+            subdirectory in, in which analysis results are stored.
+        :param save_array_as: Format to save reordered nuclear labels in:
+        :type save_array_as: {"zarr", "tiff"}
+        :param bool save_all: If true, saves a tiff file for each intermediate step
+            of the nuclear analysis pipeline
+        """
+        # Make `nuclear_analysis_results` directory if it doesn't exist
+        name_path = Path(name_folder)
+        results_path = name_path / "nuclear_analysis_results"
+        results_path.mkdir(exist_ok=True)
+
+        # Save movies, saving intermediate steps if requested
+        save_movies = {"reordered_nuclear_labels": self.reordered_labels}
+
+        if save_all:
+            save_movies["denoised_nuclear_channel"] = self.denoised
+            save_movies["binarized_nuclear_channel"] = self.mask
+            save_movies["nuclear_watershed_markers"] = self.markers
+
+        file_not_found = "".join(
+            [
+                " could not be found, check to make",
+                " sure the `evaluate` kwarg was used when running the",
+                " `track_nuclei` method so that the",
+                " intermediate steps are not deleted to save",
+                " memory.",
+            ]
+        )
+
+        if save_array_as == "zarr":
+            for movie in save_movies:
+                if save_movies[movie] is not None:
+                    save_name = "".join([movie, ".zarr"])
+                    save_path = results_path / save_name
+                    zarr.save_array(save_path, save_movies[movie])
+                else:
+                    warnings.warn("".join([movie, file_not_found]))
+
+        elif save_array_as == "tiff":
+            for movie in save_movies:
+                if save_movies[movie] is not None:
+                    save_name = "".join([movie, ".tiff"])
+                    save_path = results_path / save_name
+                    imsave(save_path, save_movies[movie], plugin="tifffile")
+                else:
+                    warnings.warn("".join([movie, file_not_found]))
+
+        # Save nuclear dataframes
+        mitosis_dataframe_path = results_path / "mitosis_dataframe.pkl"
+        self.mitosis_dataframe.to_pickle(mitosis_dataframe_path, compression=None)
+        if save_all:
+            segmentation_dataframe_path = results_path / "segmentation_dataframe.pkl"
+            self.segmentation_dataframe.to_pickle(
+                segmentation_dataframe_path, compression=None
+            )
+            tracked_dataframe_path = results_path / "tracked_dataframe.pkl"
+            self.tracked_dataframe.to_pickle(tracked_dataframe_path, compression=None)
+
+        # Keep a copy of the parameters used
+        nuclear_analysis_param_path = results_path / "nuclear_analysis_parameters.pkl"
+        with open(nuclear_analysis_param_path, "wb") as f:
+            pickle.dump(self.default_params, f)
+
+    def read_results(self, *, name_folder, import_all=False):
+        """
+        Imports results from a saved run of `track_nuclei` into the corresponding
+        class attributes.
+
+        :param str name_folder: Name of folder where `nuclear_analysis_results`
+            subdirectory resides.
+        :param bool import_all: If `True`, will attempt to also import results of
+            intermediate steps of nuclear analysis if they have been saved to disk,
+            showing a warning if a corresponding file cannot be found in the specified
+            directory.
+        """
+        name_path = Path(name_folder)
+        results_path = name_path / "nuclear_analysis_results"
+
+        # Import arrays
+        import_arrays = ["reordered_nuclear_labels"]
+        if import_all:
+            import_arrays.extend(
+                [
+                    "nuclear_watershed_markers",
+                    "denoised_nuclear_channel",
+                    "binarized_nuclear_channel",
+                ]
+            )
+
+        for array in import_arrays:
+            # Try importing as zarr first - if there is no zarr array, this will
+            # return `None`
+            zarr_path = results_path / "".join([array, ".zarr"])
+            setattr(self, array, zarr.load(zarr_path))
+
+            if getattr(self, array) is None:
+                tiff_path = results_path / "".join([array, ".tiff"])
+                try:
+                    setattr(self, array, imread(tiff_path, plugin="tifffile"))
+                except FileNotFoundError:
+                    warnings.warn("".join([array, " not found, keeping as `None`."]))
+
+        # Import dataframes
+        import_dataframes = ["mitosis_dataframe"]
+        if import_all:
+            import_dataframes.extend(["segmentation_dataframe", "tracked_dataframe"])
+        for dataframe in import_dataframes:
+            dataframe_path = results_path / "".join([dataframe, ".pkl"])
+            try:
+                setattr(
+                    self, dataframe, pd.read_pickle(dataframe_path, compression=None)
+                )
+            except FileNotFoundError:
+                setattr(self, dataframe, None)
+                warnings.warn("".join([dataframe, " not found, keeping as `None`."]))
+
+        # Import saved parameters
+        with open(results_path / "nuclear_analysis_parameters.pkl", "rb") as f:
+            self.default_params = pickle.load(f)
 
 
 def _solve_for_sigma(fwhm, sigma_ratio, ndim):
@@ -629,11 +760,11 @@ class Spot:
     def __init__(
         self,
         *,
-        data,
-        global_metadata,
-        frame_metadata,
-        labels,
-        client,
+        data=None,
+        global_metadata=None,
+        frame_metadata=None,
+        labels=None,
+        client=None,
         spot_sigmas=[0.43, 0.21, 0.21],
         spot_sigma_x_y_bounds=(0.052, 0.52),
         spot_sigma_z_bounds=(0.16, 1),
@@ -645,34 +776,35 @@ class Spot:
         keep_spot_mask=True,
     ):
         """
-        Constructor method.
+        Constructor method. Instantiates class with no attributes if `data=None`.
         """
-        self.data = data
-        self.global_metadata = global_metadata
-        self.frame_metadata = frame_metadata
-        self.client = client
-        self.spot_sigmas = spot_sigmas
-        self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
-        self.spot_sigma_z_bounds = spot_sigma_z_bounds
-        self.extract_sigma_multiple = extract_sigma_multiple
-        self.dog_sigma_ratio = dog_sigma_ratio
-        self.labels = labels
-        self.keep_bandpass = keep_bandpass
-        self.keep_spot_mask = keep_spot_mask
-
-        self.default_params = choose_spot_analysis_parameters(
-            self.global_metadata,
-            self.spot_sigmas,
-            self.spot_sigma_x_y_bounds,
-            self.spot_sigma_z_bounds,
-            self.extract_sigma_multiple,
-            self.dog_sigma_ratio,
-            self.keep_bandpass,
-            self.keep_spot_mask,
-        )
-
-        self.evaluate = evaluate
-        self.keep_futures = keep_futures
+        if data is not None:
+            self.data = data
+            self.global_metadata = global_metadata
+            self.frame_metadata = frame_metadata
+            self.client = client
+            self.spot_sigmas = spot_sigmas
+            self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
+            self.spot_sigma_z_bounds = spot_sigma_z_bounds
+            self.extract_sigma_multiple = extract_sigma_multiple
+            self.dog_sigma_ratio = dog_sigma_ratio
+            self.labels = labels
+            self.keep_bandpass = keep_bandpass
+            self.keep_spot_mask = keep_spot_mask
+    
+            self.default_params = choose_spot_analysis_parameters(
+                self.global_metadata,
+                self.spot_sigmas,
+                self.spot_sigma_x_y_bounds,
+                self.spot_sigma_z_bounds,
+                self.extract_sigma_multiple,
+                self.dog_sigma_ratio,
+                self.keep_bandpass,
+                self.keep_spot_mask,
+            )
+    
+            self.evaluate = evaluate
+            self.keep_futures = keep_futures
 
     def extract_spot_traces(self):
         """
@@ -727,16 +859,16 @@ class Spot:
 
         :param str file_name: Name to save reordered (post-tracking) labelled spot
             mask under.
-        :param str name_folder: Name of folder to create `analysis_results`
+        :param str name_folder: Name of folder to create `spot_analysis_results`
             subdirectory in, in which analysis results are stored.
         :param save_array_as: Format to save reordered spot labels in:
         :type save_array_as: {"zarr", "tiff"}
         :param bool save_all: If true, saves a tiff file for each intermediate step
             of the spot analysis pipeline
         """
-        # Make `analysis_results` directory if it doesn't exist
+        # Make `spot_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
-        results_path = name_path / "analysis_results"
+        results_path = name_path / "spot_analysis_results"
         results_path.mkdir(exist_ok=True)
 
         # Save movies, saving intermediate steps if requested
@@ -762,14 +894,11 @@ class Spot:
                 if save_movies[movie] is not None:
                     save_name = "".join([movie, ".zarr"])
                     save_path = results_path / save_name
-
-                    store = zarr.storage.DirectoryStore(save_path)
-                    analyzed_data = zarr.creation.array(save_movies[movie], store=store)
-                    store.close()
+                    zarr.save_array(save_path, save_movies[movie])
                 else:
                     warnings.warn("".join([movie, file_not_found]))
 
-        elif save_as_array == "tiff":
+        elif save_array_as == "tiff":
             for movie in save_movies:
                 if save_movies[movie] is not None:
                     save_name = "".join([movie, ".tiff"])
@@ -779,5 +908,60 @@ class Spot:
                     warnings.warn("".join([movie, file_not_found]))
 
         # Save spot dataframe
-        spot_dataframe_path = results_path / "spot_dataframe.h5"
-        self.spot_dataframe.to_hdf(spot_dataframe_path, key="spot_dataframe", mode="w")
+        spot_dataframe_path = results_path / "spot_dataframe.pkl"
+        self.spot_dataframe.to_pickle(spot_dataframe_path)
+
+        # Keep a copy of the parameters used
+        spot_analysis_param_path = results_path / "spot_analysis_parameters.pkl"
+        with open(spot_analysis_param_path, "wb") as f:
+            pickle.dump(self.default_params, f)
+
+    def read_results(self, *, name_folder, import_all=False):
+        """
+        Imports results from a saved run of `extract_spot_traces` into the corresponding
+        class attributes.
+
+        :param str name_folder: Name of folder where `spot_analysis_results`
+            subdirectory resides.
+        :param bool import_all: If `True`, will attempt to also import results of
+            intermediate steps of spot analysis if they have been saved to disk,
+            showing a warning if a corresponding file cannot be found in the specified
+            directory.
+        """
+        name_path = Path(name_folder)
+        results_path = name_path / "spot_analysis_results"
+
+        # Import arrays
+        import_arrays = ["reordered_spot_labels"]
+        if import_all:
+            import_arrays.extend(
+                [
+                    "spot_mask",
+                    "bandpassed_movie",
+                ]
+            )
+
+        for array in import_arrays:
+            # Try importing as zarr first - if there is no zarr array, this will
+            # return `None`
+            zarr_path = results_path / "".join([array, ".zarr"])
+            setattr(self, array, zarr.load(zarr_path))
+
+            if getattr(self, array) is None:
+                tiff_path = results_path / "".join([array, ".tiff"])
+                try:
+                    setattr(self, array, imread(tiff_path, plugin="tifffile"))
+                except FileNotFoundError:
+                    warnings.warn("".join([array, " not found, keeping as `None`."]))
+
+        # Import dataframe
+        dataframe_path = results_path / "spot_dataframe.pkl"
+        try:
+            self.spot_dataframe = pd.read_pickle(dataframe_path, compression=None)
+        except FileNotFoundError:
+            self.spot_dataframe = None
+            warnings.warn("`spot_dataframe` not found, keeping as `None`.")
+
+        # Import saved parameters
+        with open(results_path / "spot_analysis_parameters.pkl", "rb") as f:
+            self.default_params = pickle.load(f)

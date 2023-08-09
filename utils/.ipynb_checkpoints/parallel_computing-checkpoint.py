@@ -14,10 +14,7 @@ def _check_input_form(movies_list, client):
     for movie in movies_list:
         num_processes = len(client.scheduler_info()["workers"])
 
-        if isinstance(movie, np.ndarray):
-            scattered_data.append(client.scatter(np.array_split(movie, num_processes)))
-
-        elif isinstance(movie, list):
+        if isinstance(movie, list):
             # Check that any already chunked and scattered input matches the
             # number of processes on the cluster
             if not len(movie) == num_processes:
@@ -36,9 +33,7 @@ def _check_input_form(movies_list, client):
                 )
 
         else:
-            raise TypeError(
-                "Unsupported input movie type, must be ndarray or list of futures."
-            )
+            scattered_data.append(client.scatter(np.array_split(movie, num_processes)))
 
     return scattered_data
 
