@@ -1,6 +1,6 @@
 from skimage.segmentation import expand_labels
 from functools import partial
-from utils import parallel_computing
+from . import parallel_computing
 import numpy as np
 
 

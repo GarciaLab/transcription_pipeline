@@ -1,7 +1,7 @@
-from utils import label_manipulation
+from ..utils import label_manipulation
 import numpy as np
-from tracking import track_features
-from tracking.track_features import _reverse_segmentation_df
+from ..tracking import track_features
+from ..tracking.track_features import _reverse_segmentation_df
 
 
 def _transfer_nuclear_labels_row(spot_dataframe_row, nuclear_labels):

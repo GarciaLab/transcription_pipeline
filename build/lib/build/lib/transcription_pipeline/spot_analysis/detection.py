@@ -3,10 +3,10 @@ from skimage.measure import label
 from skimage.morphology import remove_small_objects
 import numpy as np
 from functools import partial
-from utils import parallel_computing
-from utils.image_histogram import histogram
-from tracking import track_features
-from utils import neighborhood_manipulation
+from ..utils import parallel_computing
+from ..utils.image_histogram import histogram
+from ..tracking import track_features
+from ..utils import neighborhood_manipulation
 
 
 def _make_histogram(movie, hist_range, nbins=256):
