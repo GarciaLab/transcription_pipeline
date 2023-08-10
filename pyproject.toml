@@ -7,11 +7,11 @@ name = "transcription_pipeline"
 version = "0.0.1"
 dependencies = [
     "matplotlib",
-    "napari",
+    "napari[all]",
     "trackpy",
     "numba",
     "jpype1",
-    "dask==2023.5.1",
+    "dask[complete]==2023.5.1",
     "deprecation==2.1.0",
     "numpy==1.24.4",
     "pandas==2.0.2",

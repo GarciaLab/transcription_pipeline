@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 from scipy.ndimage import uniform_filter1d
 import trackpy as tp
-from preprocessing import process_metadata
+from ..preprocessing import process_metadata
 from functools import partial
 import dask
-from utils import parallel_computing
+from ..utils import parallel_computing
 import scipy.signal as sig
 import warnings
 

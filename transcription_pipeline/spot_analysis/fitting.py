@@ -1,4 +1,4 @@
-from utils import neighborhood_manipulation
+from ..utils import neighborhood_manipulation
 from scipy.optimize import least_squares
 import numpy as np
 from functools import partial

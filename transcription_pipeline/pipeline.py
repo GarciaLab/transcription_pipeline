@@ -1,6 +1,6 @@
-from nuclear_analysis import segmentation
-from tracking import track_features, detect_mitosis
-from spot_analysis import detection, fitting, track_filtering
+from .nuclear_analysis import segmentation
+from .tracking import track_features, detect_mitosis
+from .spot_analysis import detection, fitting, track_filtering
 from scipy.optimize import fsolve
 import warnings
 import numpy as np
