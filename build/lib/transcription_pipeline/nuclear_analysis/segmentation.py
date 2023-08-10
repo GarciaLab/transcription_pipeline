@@ -19,7 +19,7 @@ from skimage.morphology import (
 from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
-from utils import parallel_computing
+from ..utils import parallel_computing
 
 
 def ellipsoid(diameter, height):
