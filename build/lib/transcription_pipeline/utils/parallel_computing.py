@@ -53,9 +53,11 @@ def _compute_futures(scattered_data, func, client, evaluate, futures_in, futures
         processed_movie = None
 
     if not futures_in:
+        del scattered_data
         scattered_data = None
 
     if not futures_out:
+        del processed_movie_futures
         processed_movie_futures = None
 
     return processed_movie, processed_movie_futures, scattered_data

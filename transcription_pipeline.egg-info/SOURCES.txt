@@ -2,6 +2,7 @@ LICENSE
 README.md
 pyproject.toml
 transcription_pipeline/__init__.py
+transcription_pipeline/loci_tools.jar
 transcription_pipeline/pipeline.py
 transcription_pipeline.egg-info/PKG-INFO
 transcription_pipeline.egg-info/SOURCES.txt

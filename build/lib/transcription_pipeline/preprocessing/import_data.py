@@ -1,3 +1,5 @@
+import os
+import sys
 import glob
 from datetime import datetime
 from itertools import groupby
@@ -8,6 +10,21 @@ from scipy.io import savemat
 from skimage.io import imsave
 import numbers
 import zarr
+import deprecation
+
+
+def _set_java_environment_path():
+    """
+    Sets the `JAVA_HOME` environment variable that points the javabridge
+    used by the PIMS Bioformats reader to the environment folder.
+    """
+    environment_path = Path(sys.prefix)
+    os.environ["JAVA_HOME"] = str(environment_path)
+
+    print("".join(["`JAVA_HOME` environment variable set to ", str(environment_path)]))
+
+
+_set_java_environment_path()
 
 
 def extract_global_metadata(metadata_object):
@@ -528,9 +545,10 @@ def import_dataset(name_folder, trim_series):
            corresponding to a channel.
     :rtype: Tuple of dicts
     """
-    dataset_name = name_folder.split("/")[-1]
-    file_path = "".join([name_folder, "/", dataset_name, "*"])
-    file_list = glob.glob(file_path)
+    name_folder_path = Path(name_folder)
+    dataset_name = name_folder_path.name
+    file_path = name_folder_path / "".join([dataset_name, "*"])
+    file_list = glob.glob(str(file_path))
     file_list.sort()
 
     # Metadata fields to ignore during consistency checks (these fields
@@ -668,7 +686,9 @@ def import_dataset(name_folder, trim_series):
         export_frame_metadata,
     )
 
-
+@deprecation.deprecated(
+    details="Deprecated in favor of `pipeline.DataImport` class wrapper".
+)
 def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
     """
     Imports and collates the data files in the name_directory, and generates

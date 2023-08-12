@@ -1,14 +1,205 @@
 from .nuclear_analysis import segmentation
 from .tracking import track_features, detect_mitosis
 from .spot_analysis import detection, fitting, track_filtering
+from .preprocessing import import_data
 from scipy.optimize import fsolve
 import warnings
 import numpy as np
 import pandas as pd
 import zarr
-from skimage.io import imsave
+from skimage.io import imsave, imread
 from pathlib import Path
 import pickle
+import glob
+
+
+class DataImport:
+    """
+    Uses the PIMS Bioformats reader to import each channel of a movie as an
+    array, extracting the relevant metadata into respective dictionaries as
+    per the documentation for :func:`~preprocessing.import_data.import_dataset`.
+
+    :param str name_folder: Path to name folder containing data files.
+    :param bool import_previous: If `True`, attemps to import already collated
+        data and preprocessed and pickled metadata dicts from `collated_dataset`
+        subdirectory instead of using the PIMS Bioformats reader to extract
+        from the original microscopy format.
+    :param bool trim_series: If True, deletes the last frame of each series.
+        This should be used when acquisition was stopped in the middle of a
+        z-stack.
+
+    :ivar channels_full_dataset: list of numpy arrays, with each element of the
+        list being a collated dataset for a given channel.
+    :ivar original_global_metadata: dictionary of global metadata
+        for all files and series in a dataset.
+    :ivar original_frame_metadata: dictionary of frame-by-frame metadata
+        for all files and series in a dataset.
+    :ivar export_global_metadata: list of dictionaries of global
+        metadata for the collated dataset, with each element of the list
+        corresponding to a channel.
+    :ivar export_frame_metadata: list of dictionaries of frame-by-frame
+        metadata for the collated dataset, with each element of the list
+        corresponding to a channel.
+    """
+
+    def __init__(
+        self,
+        *,
+        name_folder,
+        import_previous=False,
+        trim_series=False,
+    ):
+        """
+        Constructor method. Instantiates class with imported data as attributes as
+        per the notation in :func:`~preprocessing.import_data.import_dataset`.
+        Class is instantiated as empty if `name_folder=None`.
+        """
+        if import_previous:
+            self.read()
+        else:
+            self.name_folder = name_folder
+            self.trim_series = trim_series
+            (
+                self.channels_full_dataset,
+                self.original_global_metadata,
+                self.original_frame_metadata,
+                self.export_global_metadata,
+                self.export_frame_metadata,
+            ) = import_data.import_dataset(self.name_folder, self.trim_series)
+
+    def read(self):
+        """
+        Imports preprocessed and collated data along with metadata dictionaries extracted
+        from a movie and saved to disk in the `name_folder` directory, loading in into
+        respective class attributes.
+        """
+        self.name_folder = name_folder
+        name_path = Path(self.name_folder)
+        collated_path = name_path / "collated_dataset"
+
+        # Read original metadata dicts (single dictionary for global and single dictionary
+        # for frame-by-frame).
+        global_metadata_path = collated_path / "original_global_metadata.pkl"
+        with open(global_metadata_path, "rb") as f:
+            self.original_global_metadata = pickle.load(f)
+
+        frame_metadata_path = collated_path / "original_frame_metadata.pkl"
+        with open(frame_metadata_path, "rb") as f:
+            self.original_frame_metadata = pickle.load(f)
+
+        # Iterate over files with matching name patterns to find all channels
+        global_metadata_file_list = glob.glob(
+            str(collated_path / "collated_global_metadata_ch*.pkl")
+        )
+        global_metadata_file_list.sort()
+        self.export_global_metadata = []
+        for file in global_metadata_file_list:
+            with open(file, "rb") as f:
+                channel_global_metadata = pickle.load(f)
+            self.export_global_metadata.append(channel_global_metadata)
+
+        frame_metadata_file_list = glob.glob(
+            str(collated_path / "collated_frame_metadata_ch*.pkl")
+        )
+        frame_metadata_file_list.sort()
+        self.export_frame_metadata = []
+        for file in frame_metadata_file_list:
+            with open(file, "rb") as f:
+                frame_global_metadata = pickle.load(f)
+            self.export_frame_metadata.append(frame_global_metadata)
+
+        # Iterate over data files, and determine format before import
+        tiff_file_list = glob.glob(str(collated_path / "*.tiff"))
+        zarr_file_list = glob.glob(str(collated_path / "*.zarr"))
+
+        if len(zarr_file_list) > 0:
+            file_list = zarr_file_list
+            mode = "zarr"
+            if len(tiff_file_list) > 0:
+                warnings.warn(
+                    "".join(
+                        [
+                            "Multiple usable formats found in `collated_dataset` folder",
+                            " defaulting to `zarr`.",
+                        ]
+                    )
+                )
+        else:
+            file_list = tiff_file_list
+            mode = "tiff"
+
+        if len(file_list) == 0:
+            raise Exception("No usable files found in `collated_dataset` subdirectory.")
+
+        file_list.sort()
+
+        self.channels_full_dataset = []
+        for file in file_list:
+            if mode == "zarr":
+                self.channels_full_dataset.append(zarr.load(file))
+            elif mode == "tiff":
+                self.channels_full_dataset.append(imread(file, plugin="tifffile"))
+
+    def save(self, *, mode="zarr"):
+        """
+        Saves preprocessed and collated channel data in the `name_folder` directory
+        in the format requested, and saves the metadata dictionaries in the same
+        folder using `pickle`.
+
+        :param mode: Format to save the data arrays.
+        :type mode: {'tiff', 'zarr'}
+        """
+        # Make collated_dataset directory if it doesn't exist
+        name_path = Path(self.name_folder)
+        collated_path = name_path / "collated_dataset"
+        collated_path.mkdir(exist_ok=True)
+
+        global_metadata_path = collated_path / "original_global_metadata.pkl"
+        with open(global_metadata_path, "wb") as f:
+            pickle.dump(self.original_global_metadata, f)
+
+        frame_metadata_path = collated_path / "original_frame_metadata.pkl"
+        with open(frame_metadata_path, "wb") as f:
+            pickle.dump(self.original_frame_metadata)
+
+        for i, channel_data in enumerate(self.channels_full_dataset):
+            # Save metadata to file
+            collated_global_path = (
+                collated_path / "collated_global_metadata_ch{:02d}.pkl".format(i)
+            )
+            with open(collated_global_path, "wb") as f:
+                pickle.dump(self.export_global_metadata[i])
+
+            collated_frame_path = (
+                collated_path / "collated_frame_metadata_ch{:02d}.pkl".format(i)
+            )
+            with open(collated_frame_path, "wb") as f:
+                pickle.dump(self.export_frame_metadata[i])
+
+            if mode == "tiff":
+                # Save data to file for each channel
+                filename = "".join(
+                    [(self.export_global_metadata[i])["ImageName"], ".tiff"]
+                )
+                collated_data_path = collated_path / filename
+                imsave(collated_data_path, channel_data, plugin="tifffile")
+
+            elif mode == "zarr":
+                # Save data to file for each channel
+                filename = "".join(
+                    [(self.export_global_metadata[i])["ImageName"], ".zarr"]
+                )
+                collated_data_path = collated_path / filename
+
+                # Convert to zarr
+                store = zarr.storage.DirectoryStore(collated_data_path)
+                channel_data = zarr.creation.array(
+                    channel_data, chunks=chunks, store=store
+                )
+                store.close()
+
+            else:
+                raise Exception("Save mode not recognized.")
 
 
 def choose_nuclear_analysis_parameters(
@@ -552,7 +743,7 @@ def choose_spot_analysis_parameters(
     extract_sigma_multiple,
     dog_sigma_ratio,
     keep_bandpass,
-    keep_spot_mask,
+    keep_spot_labels,
 ):
     """
     Chooses reasonable default parameters based on provided physical scale in microns
@@ -587,8 +778,8 @@ def choose_spot_analysis_parameters(
         filter used to preprocess the data.
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory.
-    :param bool keep_spot_mask: If `True`, keeps a copy of the spot mask after thresholding
-        but before filtering in memory.
+    :param bool keep_spot_labels: If `True`, keeps a copy of the spot mask after thresholding
+        and labeling but before filtering in memory.
     :return: Dictionary of kwarg dicts corresponding to each function in the spot
         segmentation and tracking pipeline:
         *`detection.detect_and_gather_spots`
@@ -630,7 +821,7 @@ def choose_spot_analysis_parameters(
         "span": spot_sigmas_pixels * np.asarray(extract_sigma_multiple),
         "pos_columns": ["z", "y", "x"],
         "return_bandpass": keep_bandpass,
-        "return_spot_mask": keep_spot_mask,
+        "return_spot_labels": keep_spot_labels,
         "drop_reverse_time": True,
     }
 
@@ -773,7 +964,7 @@ class Spot:
         evaluate=True,
         keep_futures=True,
         keep_bandpass=True,
-        keep_spot_mask=True,
+        keep_spot_labels=True,
     ):
         """
         Constructor method. Instantiates class with no attributes if `data=None`.
@@ -790,7 +981,7 @@ class Spot:
             self.dog_sigma_ratio = dog_sigma_ratio
             self.labels = labels
             self.keep_bandpass = keep_bandpass
-            self.keep_spot_mask = keep_spot_mask
+            self.keep_spot_labels = keep_spot_labels
     
             self.default_params = choose_spot_analysis_parameters(
                 self.global_metadata,
@@ -800,7 +991,7 @@ class Spot:
                 self.extract_sigma_multiple,
                 self.dog_sigma_ratio,
                 self.keep_bandpass,
-                self.keep_spot_mask,
+                self.keep_spot_labels,
             )
     
             self.evaluate = evaluate
@@ -816,11 +1007,15 @@ class Spot:
         """
         (
             self.spot_dataframe,
-            self.spot_mask,
+            self.spot_labels,
+            self.spot_labels_futures,
             self.bandpassed_movie,
+            self.bandpassed_movie_futures,
         ) = detection.detect_and_gather_spots(
             self.data,
             frame_metadata=self.frame_metadata,
+            keep_futures_spot_labels=True,
+            keep_futures_bandpass=self.keep_futures,
             client=self.client,
             **(self.default_params["detect_and_gather_spots_params"]),
         )
@@ -841,16 +1036,19 @@ class Spot:
         (
             self.reordered_spot_labels,
             self.reordered_spot_labels_futures,
-            futures_in,
+            _,
         ) = track_features.reorder_labels_parallel(
-            self.spot_mask,
+            self.spot_labels_futures,
             self.spot_dataframe,
             client=self.client,
             futures_in=False,
             futures_out=self.keep_futures,
             evaluate=self.evaluate,
         )
-        del futures_in
+
+        if not self.keep_futures:
+            del self.spot_labels_futures
+            self.spot_labels_futures = None
 
     def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
         """

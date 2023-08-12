@@ -153,7 +153,7 @@ def _make_spot_labels_parallel(
         kwargs
     )
 
-    spot_labels, _, _ = parallel_computing.parallelize(
+    spot_labels, spot_labels_futures, _ = parallel_computing.parallelize(
         [movie],
         spot_labels_func,
         client,
@@ -162,7 +162,7 @@ def _make_spot_labels_parallel(
         futures_out=futures_out,
     )
 
-    return spot_labels
+    return spot_labels, spot_labels_futures
 
 
 def make_spot_mask(
@@ -175,6 +175,9 @@ def make_spot_mask(
     min_size=0,
     connectivity=None,
     return_bandpass=False,
+    keep_futures_bandpass=True,
+    return_spot_labels=True,
+    keep_futures_spot_labels=True,
     client=None,
 ):
     """
@@ -203,12 +206,19 @@ def make_spot_mask(
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
-    :param bool return_bandpass: If True, returns bandpass-filtered movie as
-        second element of output. Otherwise returns none as second output.
+    :param bool return_bandpass: If `True`, returns bandpass-filtered movie as
+        third element of output. Otherwise returns none as third output.
+    :param bool keep_futures_bandpass: If `True`, keeps generated bandpass-filtered movie
+        as a list of `Futures` in the Dask worker memories, returning as a list in fourth output.
+    :param bool return_spot_labels: If `True`, returns labelled spot mask as
+        first element of output. Otherwise returns none as first output.
+    :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
+        `Futures` in the Dask worker memories, returning as a list in second output.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Labelled mask of spots in `spot_movie`.
-    :rtype: Numpy array of integers.
+    :return: Tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
+        `Futures`, bandpass-filtered movie, bandpass-filtered movie as a list of `Futures`)
+    :rtype: Tuple of Numpy array of integers.
     """
     if client is None:
         bandpassed_movie = _bandpass_movie(spot_movie, low_sigma, high_sigma)
@@ -233,6 +243,7 @@ def make_spot_mask(
         )
 
         if threshold == "triangle":
+
             def range_func(x):
                 return [np.min(x), np.max(x)]
 
@@ -265,21 +276,22 @@ def make_spot_mask(
         else:
             spot_threshold = threshold
 
-        spot_labels = _make_spot_labels_parallel(
+        spot_labels, spot_labels_futures = _make_spot_labels_parallel(
             bandpassed_movie_futures,
             spot_threshold,
             min_size,
             connectivity,
             client,
-            evaluate=True,
+            evaluate=return_spot_labels,
             futures_in=False,
-            futures_out=False,
+            futures_out=keep_futures_spot_labels,
         )
 
-    if not return_bandpass:
-        bandpassed_movie = None
+    if not keep_futures_bandpass:
+        del bandpassed_movie_futures
+        bandpassed_movie_futures = None
 
-    return spot_labels, bandpassed_movie
+    return spot_labels, spot_labels_futures, bandpassed_movie, bandpassed_movie_futures
 
 
 def detect_spots(
@@ -293,7 +305,9 @@ def detect_spots(
     min_size=0,
     connectivity=None,
     return_bandpass=False,
-    return_spot_mask=False,
+    keep_futures_bandpass=False,
+    return_spot_labels=False,
+    keep_futures_spot_labels=True,
     extra_properties=tuple(),
     drop_reverse_time=True,
     client=None,
@@ -328,8 +342,12 @@ def detect_spots(
         during small object removal.
     :param bool return_bandpass: If True, returns bandpass-filtered movie as
         third element of output. Otherwise returns none as third output.
-    :param bool return_spot_mask: If True, returns labelled spot mask as
+    :param bool keep_futures_bandpass: If `True`, keeps generated bandpass-filtered movie
+        as a list of `Futures` in the Dask worker memories, returning as a list in fourth output.
+    :param bool return_spot_labels: If True, returns labelled spot mask as
         second element of output. Otherwise returns none as second output.
+    :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
+        `Futures` in the Dask worker memories, returning as a list in second output.
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
@@ -341,11 +359,21 @@ def detect_spots(
         need these columns).
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: trackpy-compatible pandas DataFrame of spot positions and extra requested
+    :return:
+        *trackpy-compatible pandas DataFrame of spot positions and extra requested
         properties.
-    :rtype: pandas DataFrame
+        *Labelled mask of spots in `spot_movie`
+        *labelled mask as list of `Futures`
+        *bandpass-filtered movie
+        *bandpass-filtered movie as a list of `Futures`
+    :rtype: Tuple
     """
-    spot_mask, bandpassed_movie = make_spot_mask(
+    (
+        spot_labels,
+        spot_labels_futures,
+        bandpassed_movie,
+        bandpassed_movie_futures,
+    ) = make_spot_mask(
         spot_movie,
         low_sigma=low_sigma,
         high_sigma=high_sigma,
@@ -353,12 +381,15 @@ def detect_spots(
         threshold=threshold,
         min_size=min_size,
         connectivity=connectivity,
+        return_spot_labels=True,
         return_bandpass=return_bandpass,
+        keep_futures_bandpass=keep_futures_bandpass,
+        keep_futures_spot_labels=keep_futures_spot_labels,
         client=client,
     )
 
     spot_dataframe, _, _ = track_features.segmentation_df(
-        spot_mask, spot_movie, frame_metadata, extra_properties=extra_properties
+        spot_labels, spot_movie, frame_metadata, extra_properties=extra_properties
     )
 
     if drop_reverse_time:
@@ -366,10 +397,17 @@ def detect_spots(
             labels=["frame_reverse", "t_frame_reverse"], axis=1, inplace=True
         )
 
-    if not return_spot_mask:
-        spot_mask = None
+    if not return_spot_labels:
+        del spot_labels
+        spot_labels = None
 
-    return spot_dataframe, spot_mask, bandpassed_movie
+    return (
+        spot_dataframe,
+        spot_labels,
+        spot_labels_futures,
+        bandpassed_movie,
+        bandpassed_movie_futures,
+    )
 
 
 def _add_neighborhood_row(
@@ -441,7 +479,9 @@ def detect_and_gather_spots(
     min_size=0,
     connectivity=None,
     return_bandpass=False,
-    return_spot_mask=False,
+    keep_futures_bandpass=False,
+    return_spot_labels=False,
+    keep_futures_spot_labels=False,
     extra_properties=tuple(),
     drop_reverse_time=True,
     client=None,
@@ -483,8 +523,12 @@ def detect_and_gather_spots(
         during small object removal.
     :param bool return_bandpass: If True, returns bandpass-filtered movie as
         third element of output. Otherwise returns none as third output.
-    :param bool return_spot_mask: If True, returns labelled spot mask as
+    :param bool keep_futures_bandpass: If `True`, keeps generated bandpass-filtered movie
+        as a list of `Futures` in the Dask worker memories, returning as a list in fourth output.
+    :param bool return_spot_labels: If True, returns labelled spot mask as
         second element of output. Otherwise returns none as second output.
+    :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
+        `Futures` in the Dask worker memories, returning as a list in second output.
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
@@ -496,24 +540,45 @@ def detect_and_gather_spots(
         need these columns).
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: trackpy-compatible pandas DataFrame of spot positions and extra requested
+    :return:
+        *trackpy-compatible pandas DataFrame of spot positions and extra requested
         properties.
-    :rtype: pandas DataFrame
+        *Labelled mask of spots in `spot_movie`
+        *labelled mask as list of `Futures`
+        *bandpass-filtered movie
+        *bandpass-filtered movie as a list of `Futures`
+    :rtype: Tuple
     """
-    spot_dataframe, spot_mask, bandpassed_movie = detect_spots(
+    (
+        spot_dataframe,
+        spot_labels,
+        spot_labels_futures,
+        bandpassed_movie,
+        bandpassed_movie_futures,
+    ) = detect_spots(
         spot_movie,
         frame_metadata=frame_metadata,
         low_sigma=low_sigma,
         high_sigma=high_sigma,
         threshold=threshold,
         min_size=min_size,
+        nbins=nbins,
         connectivity=connectivity,
         return_bandpass=return_bandpass,
-        return_spot_mask=return_spot_mask,
+        keep_futures_bandpass=keep_futures_bandpass,
+        return_spot_labels=return_spot_labels,
+        keep_futures_spot_labels=keep_futures_spot_labels,
+        extra_properties=extra_properties,
         drop_reverse_time=drop_reverse_time,
         client=client,
     )
 
     _add_neighborhoods_to_dataframe(spot_movie, span, spot_dataframe, pos_columns)
 
-    return spot_dataframe, spot_mask, bandpassed_movie
+    return (
+        spot_dataframe,
+        spot_labels,
+        spot_labels_futures,
+        bandpassed_movie,
+        bandpassed_movie_futures,
+    )
