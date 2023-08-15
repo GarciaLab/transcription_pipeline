@@ -3,7 +3,9 @@ README.md
 pyproject.toml
 transcription_pipeline/__init__.py
 transcription_pipeline/loci_tools.jar
-transcription_pipeline/pipeline.py
+transcription_pipeline/nuclear_pipeline.py
+transcription_pipeline/preprocessing_pipeline.py
+transcription_pipeline/spot_pipeline.py
 transcription_pipeline.egg-info/PKG-INFO
 transcription_pipeline.egg-info/SOURCES.txt
 transcription_pipeline.egg-info/dependency_links.txt

@@ -543,7 +543,7 @@ def import_dataset(name_folder, trim_series):
            * ``export_frame_metadata``: list of dictionaries of frame-by-frame
            metadata for the collated dataset, with each element of the list
            corresponding to a channel.
-    :rtype: Tuple of dicts
+    :rtype: Tuple
     """
     name_folder_path = Path(name_folder)
     dataset_name = name_folder_path.name
@@ -687,7 +687,7 @@ def import_dataset(name_folder, trim_series):
     )
 
 @deprecation.deprecated(
-    details="Deprecated in favor of `pipeline.DataImport` class wrapper".
+    details="Deprecated in favor of `pipeline.DataImport` class wrapper."
 )
 def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
     """
@@ -790,6 +790,152 @@ def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
 
     return (
         channels_full_dataset,
+        original_global_metadata,
+        original_frame_metadata,
+        export_global_metadata,
+        export_frame_metadata,
+    )
+
+
+def import_full_embryo(name_folder, name):
+    """
+    Imports the FullEmbryo data files in the name_directory used to assign position of
+    the imaging window along the embryo AP axis, and generates metadata dictionaries for
+    the origininal files metadata and new metadata corresponding to the respective
+    channels.
+
+    :param str name_folder: Path to name folder containing data files.
+    :param str name: Name of file pattern to look for inside the FullEmbryo folder
+        (e.g. `Mid*`).
+    :return: Tuple(channels_full_dataset, original_global_metadata,
+           original_frame_metadata, export_global_metadata,
+           export_frame_metadata)
+           * ``channels_dataset``: list of numpy arrays, with each
+           element of the list being a collated FullEmbryo dataset for a given channel.
+           * ``original_global_metadata``: dictionary of global metadata
+           for a FullEmbryo dataset.
+           * ``original_frame_metadata``: dictionary of frame-by-frame metadata
+           for all files and series in a dataset.
+           * ``export_global_metadata``: list of dictionaries of global
+           metadata for the collated dataset, with each element of the list
+           corresponding to a channel.
+           * ``export_frame_metadata``: list of dictionaries of frame-by-frame
+           metadata for the collated dataset, with each element of the list
+           corresponding to a channel.
+    :rtype: Tuple
+    """
+    name_folder_path = Path(name_folder)
+    file_path = name_folder_path / "FullEmbryo" / name
+    file_list = glob.glob(str(file_path))
+
+    if len(file_list) > 1:
+        raise Exception("Multiple Mid images found in folder.")
+    else:
+        file = file_list[0]
+
+    # Pull the data file as a pipeline object
+    file_image = pims.Bioformats(file)
+    try:
+        file_image.bundle_axes = "czyx"
+        multichannel = True
+    except ValueError:
+        file_image.bundle_axes = "zyx"
+        multichannel = False
+
+    file_metadata = file_image.metadata
+    original_global_metadata = extract_global_metadata(file_metadata)
+    for field in original_global_metadata:
+        if isinstance(original_global_metadata[field], list):
+            if len(original_global_metadata[field]) == 1:
+                original_global_metadata[field] = original_global_metadata[field][0]
+
+    image = np.asarray(file_image[0])
+    original_frame_metadata = file_image[0].metadata
+
+    num_channels = original_global_metadata["ChannelCount"]
+
+    if num_channels > 1:
+        # Split the data into a list indexed by channel
+        channels_dataset = [image[i] for i in range(num_channels)]
+
+        # Split the frame metadata into a list indexed by channel
+        channel_fields = [
+            "frame",
+            "colors",
+            "c",
+            "z",
+        ]
+
+        export_frame_metadata = []
+        for i in range(num_channels):
+            channel_frame_metadata = {}
+            for field in original_frame_metadata:
+                if field in channel_fields:
+                    channel_frame_metadata[field] = original_frame_metadata[field][i]
+                else:
+                    channel_frame_metadata[field] = original_frame_metadata[field]
+            channel_frame_metadata["axes"] = channel_frame_metadata["axes"][1:]
+            export_frame_metadata.append(channel_frame_metadata)
+
+        # Split the global metadata into a list indexed by channel
+        global_channel_fields = [
+            "ChannelID" "ChannelAnnotationRefCount",
+            "ChannelColor",
+            "ChannelName",
+            "ChannelPinholeSize",
+            "ChannelSamplesPerPixel",
+            "DetectorAmplificationGain",
+            "DetectorAnnotationRefCount",
+            "DetectorGain",
+            "DetectorID",
+            "DetectorSettingsID",
+            "DetectorType",
+            "DetectorZoom",
+            "DichroicAnnotationRefCount",
+            "DichroicID",
+            "DichroicModel",
+            "LaserID",
+            "LaserLaserMedium",
+            "LaserModel",
+            "LaserType",
+            "LaserWavelength",
+            "LightPathAnnotationRefCount",
+            "LightPathEmissionFilterRefCount",
+            "LightPathExcitationFilterRefCount",
+            "LightSourceAnnotationRefCount",
+            "LightSourceType",
+            "PlaneAnnotationRefCount",
+            "PlaneDeltaT",
+            "PlanePositionX",
+            "PlanePositionY",
+            "PlanePositionZ",
+            "PlaneTheC",
+            "PlaneTheT",
+            "PlaneTheZ",
+        ]
+
+        export_global_metadata = []
+        for i in range(num_channels):
+            channel_global_metadata = {}
+            for field in original_global_metadata:
+                if field in global_channel_fields:
+                    channel_global_metadata[field] = original_global_metadata[field][i]
+                else:
+                    channel_global_metadata[field] = original_global_metadata[field]
+            channel_global_metadata["PixelsDimensionOrder"] = "ZYX"
+            export_global_metadata.append(channel_global_metadata)
+
+    else:
+        # Wrapped in list to keep consistent formats and data types
+        channels_dataset = [image]
+        export_frame_metadata = [original_frame_metadata]
+        export_global_metadata = [original_global_metadata]
+
+    # Close PIMS Bioformats reader
+    file_image.close()
+
+    return (
+        channels_dataset,
         original_global_metadata,
         original_frame_metadata,
         export_global_metadata,
