@@ -4,23 +4,25 @@ from ..tracking import track_features
 from ..tracking.track_features import _reverse_segmentation_df
 
 
-def _transfer_nuclear_labels_row(spot_dataframe_row, nuclear_labels):
+def _transfer_nuclear_labels_row(spot_dataframe_row, nuclear_labels, pos_columns):
     """
     Uses a provided nuclear mask to transfer the nuclear label of the nucleus
     containing the detected spot in a row of the spot dataframe output by
     :func"`~spot_analysis.detection`.
     """
     t_coordinate = spot_dataframe_row["frame"] - 1
-    spatial_coordinates = (
-        spot_dataframe_row[["z", "y", "x"]].astype(float).round().values
-    )
+    spatial_coordinates = spot_dataframe_row[pos_columns].astype(float).round().values
     coordinates = np.array([t_coordinate, *spatial_coordinates], dtype=int)
     label = nuclear_labels[(*coordinates,)]
     return label
 
 
 def transfer_nuclear_labels(
-    spot_dataframe, nuclear_labels, expand_distance=1, client=None
+    spot_dataframe,
+    nuclear_labels,
+    expand_distance=1,
+    pos_columns=["z", "y", "x"],
+    client=None,
 ):
     """
     Uses a provided nuclear mask to transfer the nuclear label of the nucleus
@@ -38,6 +40,9 @@ def transfer_nuclear_labels(
     :type nuclear_labels: Numpy array of integers
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
+    :param pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
+        position coordinate to be used to map to the nuclear labels.
+    :type pos_columns: list of DataFrame column names
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: None
@@ -60,7 +65,12 @@ def transfer_nuclear_labels(
 
     # Transfer labels from expanded nuclear mask to each spot
     spot_dataframe["nuclear_label"] = spot_dataframe.apply(
-        _transfer_nuclear_labels_row, args=(expanded_labels,), axis=1
+        _transfer_nuclear_labels_row,
+        args=(
+            expanded_labels,
+            pos_columns,
+        ),
+        axis=1,
     )
 
     return None
@@ -284,11 +294,13 @@ def track_and_filter_spots(
     expand_distance=1,
     search_range=10,
     memory=2,
-    pos_columns=["y", "x"],
+    pos_columns=["z", "y", "x"],
+    nuclear_pos_columns=["z", "y", "x"],
     t_column="frame_reverse",
     velocity_predict=True,
     velocity_averaging=None,
     min_track_length=3,
+    filter_multiple=True,
     choose_by="amplitude",
     min_or_max="maximize",
     client=None,
@@ -323,12 +335,15 @@ def track_and_filter_spots(
     :type nuclear_labels: Numpy array of integers
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
-        :param float search_range: The maximum distance features can move between frames.
+    :param float search_range: The maximum distance features can move between frames.
     :param int memory: The maximum number of frames during which a feature can vanish,
         then reppear nearby, and be considered the same particle.
     :param pos_columns: Name of columns in `segmentation_df` containing a position
-        coordinate.
+        coordinate, used to track particles using `trackpy`.
     :type pos_columns: list of DataFrame column names
+    :param nuclear_pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
+        position coordinate to be used to map to the nuclear labels.
+    :type nuclear_pos_columns: list of DataFrame column names
     :param t_column: Name of column in `segmentation_df` containing the time coordinate
         for each feature.
     :type t_column: DataFrame column name,
@@ -341,6 +356,8 @@ def track_and_filter_spots(
     :param int averaging: Number of frames to average velocity over.
     :param int min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis.
+    :param bool filter_multiple: Decide whether or not to enforce a single-spot
+        limit for each nucleus.
     :param str choose_by: Name of column in `spot_dataframe` whose values to use
         as discriminating factor when choosing which of multiple spots in a nucleus
         to keep.
@@ -367,7 +384,11 @@ def track_and_filter_spots(
     # Transfer nuclear labels if provided
     if nuclear_labels is not None:
         transfer_nuclear_labels(
-            spot_df, nuclear_labels, expand_distance=expand_distance, client=client
+            spot_df,
+            nuclear_labels,
+            expand_distance=expand_distance,
+            pos_columns=nuclear_pos_columns,
+            client=client,
         )
 
         # Make subdataframe excluding extranuclear spots
@@ -392,7 +413,7 @@ def track_and_filter_spots(
     ].copy()
 
     # Handle remaining multiple spots in same nucleus
-    if nuclear_labels is not None:
+    if (nuclear_labels is not None) and filter_multiple:
         filter_multiple_spots(
             filtered_tracked_spots_df, choose_by=choose_by, min_or_max=min_or_max
         )

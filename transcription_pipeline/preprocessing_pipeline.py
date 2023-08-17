@@ -21,6 +21,15 @@ class DataImport:
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
+    :param int peak_window: Window around proposed peak index in normalized correlation
+        computed for different z-shifts to consider when computing the centroid of the
+        peak of the normalized correlation.
+    :param float min_prominence: Minimum prominence of a peak for it to be considered
+        a true maxima of the normalized correlation. See documentation for
+        `scipy.signal.peak_prominences`.
+    :param int registration_channel: Index of channel to use for registration of z-shift
+        between stacks - usually works better with channels with more structure. By default
+        uses last channel.
 
     :ivar channels_full_dataset: list of numpy arrays, with each element of the
         list being a collated dataset for a given channel.
@@ -34,6 +43,13 @@ class DataImport:
     :ivar export_frame_metadata: list of dictionaries of frame-by-frame
         metadata for the collated dataset, with each element of the list
         corresponding to a channel.
+    :ivar series_splits: List of first frame of each series. This is useful
+        when stitching together z-coordinates to improve tracking when the z-stack
+        has been shifted mid-imaging.
+    :ivar series_shifts: List of estimated shifts in pixels (sub-pixel
+        approximated using centroid of normalized correlation peak) between stacks
+        at interface between separate series - this quantifies the shift in the
+        z-stack.
     """
 
     def __init__(
@@ -42,6 +58,9 @@ class DataImport:
         name_folder,
         import_previous=False,
         trim_series=False,
+        peak_window=3,
+        min_prominence=0.2,
+        registration_channel=-1,
     ):
         """
         Constructor method. Instantiates class with imported data as attributes as
@@ -53,13 +72,24 @@ class DataImport:
         else:
             self.name_folder = name_folder
             self.trim_series = trim_series
+            self.peak_window = peak_window
+            self.min_prominence = min_prominence
+            self.registration_channel = registration_channel
             (
                 self.channels_full_dataset,
                 self.original_global_metadata,
                 self.original_frame_metadata,
                 self.export_global_metadata,
                 self.export_frame_metadata,
-            ) = import_data.import_dataset(self.name_folder, self.trim_series)
+                self.series_splits,
+                self.series_shifts,
+            ) = import_data.import_dataset(
+                self.name_folder,
+                self.trim_series,
+                self.peak_window,
+                self.min_prominence,
+                self.registration_channel,
+            )
 
     def read(self):
         """
@@ -80,6 +110,16 @@ class DataImport:
         frame_metadata_path = collated_path / "original_frame_metadata.pkl"
         with open(frame_metadata_path, "rb") as f:
             self.original_frame_metadata = pickle.load(f)
+
+        # Read lists of splits and z-shifts between series (e.g. for z-stack
+        # readjustment).
+        series_splits_shift_path = collated_path / "series_splits_shift.pkl"
+        with open(series_splits_shift_path, "rb") as f:
+            series_splits_shift = pickle.load(f)
+            
+        self.series_shifts = series_splits_shift["series_shifts"]
+        self.series_splits = series_splits_shift["series_splits"]
+        self.registration_channel = series_splits_shift["registration_channel"]
 
         # Iterate over files with matching name patterns to find all channels
         global_metadata_file_list = glob.glob(
@@ -155,6 +195,17 @@ class DataImport:
         frame_metadata_path = collated_path / "original_frame_metadata.pkl"
         with open(frame_metadata_path, "wb") as f:
             pickle.dump(self.original_frame_metadata, f)
+
+        # Write lists of splits and z-shifts between series (e.g. for z-stack
+        # readjustment).
+        series_splits_shift = {
+            "series_splits": self.series_splits,
+            "series_shifts": self.series_shifts,
+            "registration_channel": self.registration_channel,
+        }
+        series_splits_shift_path = collated_path / "series_splits_shift.pkl"
+        with open(series_splits_shift_path, "wb") as f:
+            pickle.dump(series_splits_shift_path, f)
 
         for i, channel_data in enumerate(self.channels_full_dataset):
             # Save metadata to file

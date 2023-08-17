@@ -36,12 +36,20 @@ def _solve_for_sigma(fwhm, sigma_ratio, ndim):
 
 
 def choose_spot_analysis_parameters(
+    *,
     channel_global_metadata,
+    dog_sigma_ratio,
     spot_sigmas,
-    spot_sigma_xy_bounds,
+    spot_sigma_x_y_bounds,
     spot_sigma_z_bounds,
     extract_sigma_multiple,
-    dog_sigma_ratio,
+    expand_distance,
+    search_range_um,
+    memory,
+    pos_columns,
+    velocity_averaging,
+    min_track_length,
+    filter_multiple,
     keep_bandpass,
     keep_spot_labels,
 ):
@@ -53,12 +61,14 @@ def choose_spot_analysis_parameters(
 
     :param dict channel_global_metadata: Dictionary of global metadata for the relevant
         channel, as output by `preprocessing.import_data.import_save_dataset`.
+    :param float dog_sigma_ratio: Ratio of standard deviations of Difference of Gaussians
+        filter used to preprocess the data.
     :param spot_sigmas: Standard deviations in each coordinate axis of diffraction-
         limited spots. This is best estimated from preliminary data (for instance,
         by choosing a ballpark estimate and running a first pass of the analysis and
         observing the resultant histograms for `sigma_x_y` and `sigma_z`).
     :type spot_sigmas: array-like
-    :param spot_sigma_xy_bounds: 2-iterable of lower- and upper-bound on acceptable
+    :param spot_sigma_x_y_bounds: 2-iterable of lower- and upper-bound on acceptable
         standard deviation in microsn in x- and y-axes in order for a spot to beconsidered
         in downstream analysis. Like `spot_sigmas`, this is best estimated experimentally
         but a ballpark can be estimates from the theoretical PSF of the microscope for a
@@ -74,8 +84,20 @@ def choose_spot_analysis_parameters(
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
     :type extract_sigma_multiple: Array-like
-    :param float dog_sigma_ratio: Ratio of standard deviations of Difference of Gaussians
-        filter used to preprocess the data.
+    :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
+        defaults to 1.
+    :param float search_range_um: The maximum distance features in microns can move between
+        frames.
+    :param int memory: The maximum number of frames during which a feature can vanish,
+        then reppear nearby, and be considered the same particle.
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
+    :param int averaging: Number of frames to average velocity over.
+    :param int min_track_length: Minimum number of timepoints a spot has to be
+        trackable for in order to be considered in the analysis.
+    :param bool filter_multiple: Decide whether or not to enforce a single-spot
+        limit for each nucleus.
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory.
     :param bool keep_spot_labels: If `True`, keeps a copy of the spot mask after thresholding
@@ -140,16 +162,17 @@ def choose_spot_analysis_parameters(
     # `memory` parameter of 4 with `trackpy` (nuclear tracking uses a value of 1)
     # since spots move out of focus more easily.
     track_and_filter_spots_params = {
-        "sigma_x_y_bounds": np.asarray(spot_sigma_xy_bounds) / mppY,
+        "sigma_x_y_bounds": np.asarray(spot_sigma_x_y_bounds) / mppY,
         "sigma_z_bounds": np.asarray(spot_sigma_z_bounds) / mppZ,
-        "expand_distance": 2,
-        "search_range": 4.2 / mppY,
-        "memory": 2,
-        "pos_columns": ["y", "x"],
+        "expand_distance": expand_distance,
+        "search_range": search_range_um,
+        "memory": memory,
+        "pos_columns": pos_columns,
         "t_column": "frame_reverse",
         "velocity_predict": True,
-        "velocity_averaging": None,
-        "min_track_length": 5,  # Lax minimum tracked timepoints to filter spurious tracks
+        "velocity_averaging": velocity_averaging,
+        "min_track_length": min_track_length,
+        "filter_multiple": filter_multiple,
         "choose_by": "amplitude",
         "min_or_max": "maximize",
     }
@@ -204,6 +227,27 @@ class Spot:
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
     :type extract_sigma_multiple: Array-like
+    :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
+        defaults to 1.
+    :param float search_range_um: The maximum distance features in microns can move between
+        frames.
+    :param int memory: The maximum number of frames during which a feature can vanish,
+        then reppear nearby, and be considered the same particle.
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
+    :param int averaging: Number of frames to average velocity over.
+    :param int min_track_length: Minimum number of timepoints a spot has to be
+        trackable for in order to be considered in the analysis.
+    :param bool filter_multiple: Decide whether or not to enforce a single-spot
+        limit for each nucleus.
+    :param list series_splits: list of first frame of each series. This is useful
+           when stitching together z-coordinates to improve tracking when the z-stack
+           has been shifted mid-imaging.
+    :param list series_shifts: list of estimated shifts in pixels (sub-pixel
+           approximated using centroid of normalized correlation peak) between stacks
+           at interface between separate series - this quantifies the shift in the
+           z-stack.
     :param float dog_sigma_ratio: Ratio of standard deviations of Difference of Gaussians
         filter used to preprocess the data.
     :param bool evaluate: If `True`, fully evaluates tracked and reordered spot labels
@@ -260,6 +304,15 @@ class Spot:
         spot_sigma_x_y_bounds=(0.052, 0.52),
         spot_sigma_z_bounds=(0.16, 1),
         extract_sigma_multiple=[6, 10, 10],
+        expand_distance=2,
+        search_range_um=4.2,
+        memory=2,
+        pos_columns=["z", "y", "x"],
+        velocity_averaging=None,
+        min_track_length=4,
+        filter_multiple=True,
+        series_splits=None,
+        series_shifts=None,
         dog_sigma_ratio=1.6,
         evaluate=True,
         keep_futures=True,
@@ -278,20 +331,36 @@ class Spot:
             self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
             self.spot_sigma_z_bounds = spot_sigma_z_bounds
             self.extract_sigma_multiple = extract_sigma_multiple
+            self.expand_distance = expand_distance
+            self.search_range_um = search_range_um
+            self.memory = memory
+            self.pos_columns = pos_columns
+            self.velocity_averaging = velocity_averaging
+            self.min_track_length = min_track_length
+            self.filter_multiple = filter_multiple
+            self.series_splits = series_splits
+            self.series_shifts = series_shifts
             self.dog_sigma_ratio = dog_sigma_ratio
             self.labels = labels
             self.keep_bandpass = keep_bandpass
             self.keep_spot_labels = keep_spot_labels
 
             self.default_params = choose_spot_analysis_parameters(
-                self.global_metadata,
-                self.spot_sigmas,
-                self.spot_sigma_x_y_bounds,
-                self.spot_sigma_z_bounds,
-                self.extract_sigma_multiple,
-                self.dog_sigma_ratio,
-                self.keep_bandpass,
-                self.keep_spot_labels,
+                channel_global_metadata=self.global_metadata,
+                dog_sigma_ratio=self.dog_sigma_ratio,
+                spot_sigmas=self.spot_sigmas,
+                spot_sigma_x_y_bounds=self.spot_sigma_x_y_bounds,
+                spot_sigma_z_bounds=self.spot_sigma_z_bounds,
+                extract_sigma_multiple=self.extract_sigma_multiple,
+                expand_distance=self.expand_distance,
+                search_range_um=self.search_range_um,
+                memory=self.memory,
+                pos_columns=self.pos_columns,
+                velocity_averaging=self.velocity_averaging,
+                min_track_length=self.min_track_length,
+                filter_multiple=self.filter_multiple,
+                keep_bandpass=self.keep_bandpass,
+                keep_spot_labels=self.keep_spot_labels,
             )
 
             self.evaluate = evaluate
@@ -326,12 +395,52 @@ class Spot:
             **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
         )
 
+        # Back up pixel-space positions
+        pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
+        for i, _ in enumerate(pixels_column_names):
+            self.spot_dataframe[pixels_column_names[i]] = self.spot_dataframe[
+                self.pos_columns[i]
+            ].copy()
+
+        # Account for z-stack shift between series
+        if (self.series_splits is not None) and ("z" in self.pos_columns):
+            for i, shift_frame in enumerate(self.series_splits):
+                self.spot_dataframe.loc[
+                    self.spot_dataframe["frame"] > shift_frame, "z"
+                ] = (
+                    self.spot_dataframe.loc[
+                        self.spot_dataframe["frame"] > shift_frame, "z"
+                    ]
+                    - self.series_shifts[i]
+                )
+
+        # Rescale pixel-space position columns to match real space
+        if self.global_metadata is not None:
+            mpp_pos_fields = [
+                "".join(["PixelsPhysicalSize", pos.capitalize()])
+                for pos in self.pos_columns
+            ]
+            mpp_pos = [self.global_metadata[field] for field in mpp_pos_fields]
+
+            for i, _ in enumerate(self.pos_columns):
+                self.spot_dataframe[self.pos_columns[i]] = (
+                    self.spot_dataframe[self.pos_columns[i]] * mpp_pos[i]
+                )
+
         track_filtering.track_and_filter_spots(
             self.spot_dataframe,
             nuclear_labels=self.labels,
+            nuclear_pos_columns=pixels_column_names,
             client=self.client,
             **(self.default_params["track_and_filter_spots_params"]),
         )
+
+        # Restore dataframe to pixel-space
+        for i, _ in enumerate(self.pos_columns):
+            self.spot_dataframe[self.pos_columns[i]] = self.spot_dataframe[
+                pixels_column_names[i]
+            ]
+            self.spot_dataframe.drop(pixels_column_names[i], axis=1)
 
         (
             self.reordered_spot_labels,

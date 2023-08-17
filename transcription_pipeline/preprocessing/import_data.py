@@ -11,6 +11,8 @@ from skimage.io import imsave
 import numbers
 import zarr
 import deprecation
+from scipy.signal import peak_prominences
+import warnings
 
 
 def _set_java_environment_path():
@@ -314,12 +316,11 @@ def collate_frame_metadata(
         try:
             if num_channels > 1:
                 z_list = [
-                    (z_original[:end])[:, i, :] for z_original in input_frame_metadata["z"]
+                    (z_original[:end])[:, i, :]
+                    for z_original in input_frame_metadata["z"]
                 ]
             else:
-                z_list = [
-                    z_original[:end] for z_original in input_frame_metadata["z"]
-                ]
+                z_list = [z_original[:end] for z_original in input_frame_metadata["z"]]
             z = np.concatenate(z_list)
             channel_frame_metadata["z"] = z
         except ValueError:
@@ -328,7 +329,8 @@ def collate_frame_metadata(
         try:
             if num_channels > 1:
                 t_list = [
-                    (t_original[:end])[:, i, :] for t_original in input_frame_metadata["t"]
+                    (t_original[:end])[:, i, :]
+                    for t_original in input_frame_metadata["t"]
                 ]
             else:
                 t_list = [
@@ -350,8 +352,7 @@ def collate_frame_metadata(
                 ]
             else:
                 t_s_list = [
-                    (t_s_original[:end])
-                    for t_s_original in input_frame_metadata["t_s"]
+                    (t_s_original[:end]) for t_s_original in input_frame_metadata["t_s"]
                 ]
             t_s_list_offset = [np.copy(t_s_series) for t_s_series in t_s_list]
             t_s_is_number = issubclass(t_s_list_offset[0].dtype.type, numbers.Number)
@@ -518,7 +519,70 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     return (output_global_metadata, output_frame_metadata)
 
 
-def import_dataset(name_folder, trim_series):
+def z_cross_correlation_shift(stack1, stack2, peak_window=3, min_prominence=0.2):
+    """
+    Used the normalized cross-correlation in the z-axis to find the shift in z between
+    two z-stacks.
+
+    :param stack1: Z-stack overlapping with `stack2` such that the normalized correlation
+        peak can be used to estimate the shift in z between `stack1` and `stack2`.
+    :type stack1: Numpy array.
+    :param stack2: Z-stack overlapping with `stack1` such that the normalized correlation
+        peak can be used to estimate the shift in z between `stack1` and `stack2`.
+    :type stack2: Numpy array
+    :param int peak_window: Window around proposed peak index in normalized correlation
+        computed for different z-shifts to consider when computing the centroid of the
+        peak of the normalized correlation.
+    :param float min_prominence: Minimum prominence of a peak for it to be considered
+        a true maxima of the normalized correlation. See documentation for
+        `scipy.signal.peak_prominences`.
+    :return: Estimated shift in pixels (sub-pixel approximated using centroid of
+        normalized correlation peak) between `stack1` and `stack2`.
+    :rtype: float
+    """
+    # Check stack dimensions
+    if stack1.shape != stack2.shape:
+        raise ValueError("Stacks need to be the same shape.")
+
+    # Normalize images
+    stack1 = (stack1 - stack1.mean()) / stack1.std()
+    stack2 = (stack2 - stack2.mean()) / stack2.std()
+
+    # Calculate correlation function for all possible overlaps along z
+    num_z_slices = stack1.shape[0]
+    offsets = np.zeros(2 * num_z_slices - 1)
+    for i in range(num_z_slices):
+        offsets[i] = (stack1[-(i + 1) :] * stack2[: (i + 1)]).mean()
+        offsets[-(i + 1)] = (stack2[-(i + 1) :] * stack1[: (i + 1)]).mean()
+
+    proposed_peak = offsets.argmax()
+
+    # Check prominence of peak
+    prominence = peak_prominences(offsets, [proposed_peak])[0]
+
+    if prominence > min_prominence:
+        # Restrict attention to points near proposed peak
+        considered_indices = np.arange(
+            proposed_peak - peak_window, proposed_peak + peak_window + 1
+        )
+        considered_offsets = offsets[considered_indices]
+
+        # Find centroid of considered peak
+        centroid = (
+            considered_indices * considered_offsets
+        ).sum() / considered_offsets.sum()
+
+        # Compute shift in images
+        shift_pixels = centroid - num_z_slices + 1
+
+    else:
+        shift_pixels = np.nan
+    return shift_pixels
+
+
+def import_dataset(
+    name_folder, trim_series, peak_window=3, min_prominence=0.2, registration_channel=-1
+):
     """
     Imports and collates the data files in the name_directory, and generates
     metadata dictionaries for the origininal files metadata and new metadata
@@ -528,6 +592,15 @@ def import_dataset(name_folder, trim_series):
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
+    :param int peak_window: Window around proposed peak index in normalized correlation
+        computed for different z-shifts to consider when computing the centroid of the
+        peak of the normalized correlation.
+    :param float min_prominence: Minimum prominence of a peak for it to be considered
+        a true maxima of the normalized correlation. See documentation for
+        `scipy.signal.peak_prominences`.
+    :param int registration_channel: Index of channel to use for registration of z-shift
+        between stacks - usually works better with channels with more structure. By default
+        uses last channel.
     :return: Tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
@@ -543,6 +616,13 @@ def import_dataset(name_folder, trim_series):
            * ``export_frame_metadata``: list of dictionaries of frame-by-frame
            metadata for the collated dataset, with each element of the list
            corresponding to a channel.
+           * ``series_splits``: list of first frame of each series. This is useful
+           when stitching together z-coordinates to improve tracking when the z-stack
+           has been shifted mid-imaging.
+           *``series_shifts``: list of estimated shifts in pixels (sub-pixel
+           approximated using centroid of normalized correlation peak) between stacks
+           at interface between separate series - this quantifies the shift in the
+           z-stack.
     :rtype: Tuple
     """
     name_folder_path = Path(name_folder)
@@ -578,7 +658,7 @@ def import_dataset(name_folder, trim_series):
 
     for file in file_list:
         # Open a reader for the first series of the file
-        series = pims.Bioformats(file, series=0)
+        series = pims.Bioformats(file, read_mode="jpype", series=0)
         try:
             series.bundle_axes = "tczyx"
             multichannel = True
@@ -597,7 +677,7 @@ def import_dataset(name_folder, trim_series):
         # Open subsequent readers for each series within the file
         num_series = checked_file_metadata["ImageCount"]
         for i in range(1, num_series):
-            series = pims.Bioformats(file, series=i)
+            series = pims.Bioformats(file, read_mode="jpype", series=i)
             if multichannel:
                 series.bundle_axes = "tczyx"
             else:
@@ -645,6 +725,7 @@ def import_dataset(name_folder, trim_series):
 
     # Collate the dataset and pull frame-by-frame metadata
     series_start = 0
+    series_splits = []
     for i, _ in enumerate(data):
         series_end = series_start + num_frames_series[i]
         full_dataset[series_start:series_end] = data[i][0][:end]
@@ -659,6 +740,30 @@ def import_dataset(name_folder, trim_series):
                 original_frame_metadata[frame_key] = [series_frame_metadata[frame_key]]
 
         series_start = series_end
+        series_splits.append(series_start)
+
+    series_splits = series_splits[:-1] # Remove end of last series
+
+    # Estimate shift in z-stacks
+    series_shifts = []
+    for i, series_start in enumerate(series_splits):
+        if multichannel:
+            post_shift = full_dataset[series_start][registration_channel]
+            pre_shift = full_dataset[series_start - 1][registration_channel]
+        else:
+            post_shift = full_dataset[series_start]
+            pre_shift = full_dataset[series_start - 1]
+        shift = z_cross_correlation_shift(
+            pre_shift,
+            post_shift,
+            peak_window=peak_window,
+            min_prominence=min_prominence,
+        )
+        if np.isnan(shift):
+            series_shifts.append(0)
+            warnings.warn("".join(["Could not align z-stack after series ", str(i), "."]))
+        else:
+            series_shifts.append(shift)
 
     # Create metadata dicts for the collated data
     export_global_metadata, export_frame_metadata = collate_metadata(
@@ -684,7 +789,10 @@ def import_dataset(name_folder, trim_series):
         original_frame_metadata,
         export_global_metadata,
         export_frame_metadata,
+        series_splits,
+        series_shifts,
     )
+
 
 @deprecation.deprecated(
     details="Deprecated in favor of `pipeline.DataImport` class wrapper."
@@ -834,7 +942,7 @@ def import_full_embryo(name_folder, name):
         file = file_list[0]
 
     # Pull the data file as a pipeline object
-    file_image = pims.Bioformats(file)
+    file_image = pims.Bioformats(file, read_mode="jpype")
     try:
         file_image.bundle_axes = "czyx"
         multichannel = True
