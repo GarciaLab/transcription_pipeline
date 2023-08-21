@@ -361,10 +361,6 @@ class Nuclear:
             **(self.default_params["segmentation_df_params"]),
         )
 
-        if not self.evaluate:
-            del self.labels
-            self.labels = None
-
         self.tracked_dataframe = track_features.link_df(
             self.segmentation_dataframe,
             **(self.default_params["link_df_params"]),
@@ -375,21 +371,32 @@ class Nuclear:
             **(self.default_params["construct_lineage_params"]),
         )
 
-        (
-            self.reordered_labels,
-            self.reordered_labels_futures,
-            _,
-        ) = track_features.reorder_labels_parallel(
-            self.labels_futures,
-            self.mitosis_dataframe,
-            client=self.client,
-            evaluate=True,
-            futures_in=False,
-            futures_out=True,
-        )
-        if not self.keep_futures:
-            del self.labels_futures
-            self.labels_futures = None
+        if self.client is not None:
+            (
+                self.reordered_labels,
+                self.reordered_labels_futures,
+                _,
+            ) = track_features.reorder_labels_parallel(
+                self.labels_futures,
+                self.mitosis_dataframe,
+                client=self.client,
+                evaluate=True,
+                futures_in=False,
+                futures_out=True,
+            )
+            if not self.keep_futures:
+                del self.labels_futures
+                self.labels_futures = None
+
+        else:
+            self.reordered_labels = track_features.reorder_labels(
+                self.labels, self.mitosis_dataframe
+            )
+            self.reordered_labels_futures = None
+
+        if not self.evaluate:
+            del self.labels
+            self.labels = None
 
     def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
         """

@@ -959,22 +959,28 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
         **kwargs,
     )
 
-    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
-        kwargs
-    )
+    if client is not None:
+        evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+            kwargs
+        )
 
-    (
-        denoised_movie,
-        denoised_movie_futures,
-        scattered_movie,
-    ) = parallel_computing.parallelize(
-        [movie],
-        denoise_movie_func,
-        client,
-        evaluate=evaluate,
-        futures_in=futures_in,
-        futures_out=futures_out,
-    )
+        (
+            denoised_movie,
+            denoised_movie_futures,
+            scattered_movie,
+        ) = parallel_computing.parallelize(
+            [movie],
+            denoise_movie_func,
+            client,
+            evaluate=evaluate,
+            futures_in=futures_in,
+            futures_out=futures_out,
+        )
+
+    else:
+        denoised_movie = denoise_movie_func(movie)
+        denoised_movie_futures = None
+        scattered_movie = None
 
     return denoised_movie, denoised_movie_futures, scattered_movie
 
@@ -1069,22 +1075,28 @@ def binarize_movie_parallel(
         **kwargs,
     )
 
-    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
-        kwargs
-    )
+    if client is not None:
+        evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+            kwargs
+        )
 
-    (
-        binarized_movie,
-        binarized_movie_futures,
-        scattered_movie,
-    ) = parallel_computing.parallelize(
-        [movie],
-        binarize_movie_func,
-        client,
-        evaluate=evaluate,
-        futures_in=futures_in,
-        futures_out=futures_out,
-    )
+        (
+            binarized_movie,
+            binarized_movie_futures,
+            scattered_movie,
+        ) = parallel_computing.parallelize(
+            [movie],
+            binarize_movie_func,
+            client,
+            evaluate=evaluate,
+            futures_in=futures_in,
+            futures_out=futures_out,
+        )
+
+    else:
+        binarized_movie = binarize_movie_func(movie)
+        binarized_movie_futures = None
+        scattered_movie = None
 
     return binarized_movie, binarized_movie_futures, scattered_movie
 
@@ -1151,22 +1163,28 @@ def mark_movie_parallel(
         **kwargs,
     )
 
-    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
-        kwargs
-    )
+    if client is not None:
+        evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+            kwargs
+        )
 
-    (
-        marked_movie,
-        marked_movie_futures,
-        scattered_movies,
-    ) = parallel_computing.parallelize(
-        [movie, mask],
-        mark_movie_func,
-        client,
-        evaluate=evaluate,
-        futures_in=futures_in,
-        futures_out=futures_out,
-    )
+        (
+            marked_movie,
+            marked_movie_futures,
+            scattered_movies,
+        ) = parallel_computing.parallelize(
+            [movie, mask],
+            mark_movie_func,
+            client,
+            evaluate=evaluate,
+            futures_in=futures_in,
+            futures_out=futures_out,
+        )
+
+    else:
+        marked_movie = mark_movie_func(movie, mask)
+        marked_movie_futures = None
+        scattered_movies = None
 
     return marked_movie, marked_movie_futures, scattered_movies
 
@@ -1217,21 +1235,27 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
         segment_movie, watershed_method=watershed_method, **kwargs
     )
 
-    evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
-        kwargs
-    )
+    if client is not None:
+        evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
+            kwargs
+        )
 
-    (
-        segmented_movie,
-        segmented_movie_futures,
-        scattered_movies,
-    ) = parallel_computing.parallelize(
-        [movie, markers, mask],
-        segment_movie_func,
-        client,
-        evaluate=evaluate,
-        futures_in=futures_in,
-        futures_out=futures_out,
-    )
+        (
+            segmented_movie,
+            segmented_movie_futures,
+            scattered_movies,
+        ) = parallel_computing.parallelize(
+            [movie, markers, mask],
+            segment_movie_func,
+            client,
+            evaluate=evaluate,
+            futures_in=futures_in,
+            futures_out=futures_out,
+        )
+
+    else:
+        segmented_movie = segment_movie_func(movie, markers, mask)
+        segmented_movie_futures = None
+        scattered_movie = None
 
     return segmented_movie, segmented_movie_futures, scattered_movies

@@ -9,6 +9,7 @@ from skimage.io import imsave, imread
 from pathlib import Path
 import pickle
 import glob
+from functools import partial
 
 
 def _solve_for_sigma(fwhm, sigma_ratio, ndim):
@@ -153,7 +154,7 @@ def choose_spot_analysis_parameters(
         "amplitude_guess": None,
         "offset_guess": None,
         "method": "trf",
-        "inplace": True,
+        "inplace": False,
     }
 
     # A search range of ~4.2 um seems to work very well for tracking nuclei in the XY
@@ -253,7 +254,8 @@ class Spot:
     :param bool evaluate: If `True`, fully evaluates tracked and reordered spot labels
         as a Numpy array after gathering Futures from worker memories.
     :param bool keep_futures: If `True`, keeps a pointer to Futures objects in worker
-        memories corresponding to tracked and reordered spot labels.
+        memories corresponding to tracked and reordered spot labels, as well as the input
+        data.
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory. This is kept as `dtype=np.float64`, and on machines lacking in memory
         can cause the Python kernel to crash for larger datasets.
@@ -376,24 +378,52 @@ class Spot:
         """
         (
             self.spot_dataframe,
+            self.spot_dataframe_futures,
             self.spot_labels,
             self.spot_labels_futures,
             self.bandpassed_movie,
             self.bandpassed_movie_futures,
+            self.spot_movie_futures,
         ) = detection.detect_and_gather_spots(
             self.data,
             frame_metadata=self.frame_metadata,
             keep_futures_spot_labels=True,
+            keep_futures_spots_movie=self.keep_futures,
+            keep_futures_spot_dataframe=True,
             keep_futures_bandpass=self.keep_futures,
+            return_spot_dataframe=False,
             client=self.client,
             **(self.default_params["detect_and_gather_spots_params"]),
         )
 
-        fitting.add_fits_spots_dataframe_parallel(
-            self.spot_dataframe,
-            client=self.client,
-            **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
-        )
+        if self.client is not None:
+            add_fits_func = partial(
+                fitting.add_fits_spots_dataframe,
+                **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+            )
+
+            self.spot_dataframe_futures = self.client.map(
+                add_fits_func, self.spot_dataframe_futures
+            )
+            spot_dataframe = pd.concat(
+                self.client.gather(self.spot_dataframe_futures),
+                ignore_index=True,
+            )
+            # If the dataframes characterizing spots in each chunk (`Future`) of the
+            # movie are constructed independently in each worker, we use the field
+            # `original_frame` to keep track of the frame number in the full movie
+            # and `frame` to keep track of the frame number within each chunk. This
+            # is swapped out and `original_frame` is dropped when the chunked
+            # dataframes are gathered back to the local process.
+            spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
+            spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
+            self.spot_dataframe = spot_dataframe
+
+        else:
+            self.spot_dataframe = fitting.add_fits_spots_dataframe(
+                self.spot_dataframe,
+                **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+            )
 
         # Back up pixel-space positions
         pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
@@ -442,22 +472,29 @@ class Spot:
             ]
             self.spot_dataframe.drop(pixels_column_names[i], axis=1)
 
-        (
-            self.reordered_spot_labels,
-            self.reordered_spot_labels_futures,
-            _,
-        ) = track_features.reorder_labels_parallel(
-            self.spot_labels_futures,
-            self.spot_dataframe,
-            client=self.client,
-            futures_in=False,
-            futures_out=self.keep_futures,
-            evaluate=self.evaluate,
-        )
+        if self.client is not None:
+            (
+                self.reordered_spot_labels,
+                self.reordered_spot_labels_futures,
+                _,
+            ) = track_features.reorder_labels_parallel(
+                self.spot_labels_futures,
+                self.spot_dataframe,
+                client=self.client,
+                futures_in=False,
+                futures_out=self.keep_futures,
+                evaluate=self.evaluate,
+            )
 
-        if not self.keep_futures:
-            del self.spot_labels_futures
-            self.spot_labels_futures = None
+            if not self.keep_futures:
+                del self.spot_labels_futures
+                self.spot_labels_futures = None
+
+        else:
+            self.reordered_spot_labels = track_features.reorder_labels(
+                self.spot_labels, self.spot_dataframe
+            )
+            self.reordered_spot_labels_futures = None
 
     def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
         """

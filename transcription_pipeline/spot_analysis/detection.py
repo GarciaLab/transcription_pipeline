@@ -2,6 +2,7 @@ from skimage.filters import difference_of_gaussians, threshold_triangle
 from skimage.measure import label
 from skimage.morphology import remove_small_objects
 import numpy as np
+import pandas as pd
 from functools import partial
 from ..utils import parallel_computing
 from ..utils.image_histogram import histogram
@@ -123,7 +124,11 @@ def _bandpass_movie_parallel(movie, low_sigma, high_sigma, client, **kwargs):
         kwargs
     )
 
-    bandpassed_movie, bandpassed_movie_futures, _ = parallel_computing.parallelize(
+    (
+        bandpassed_movie,
+        bandpassed_movie_futures,
+        movie_futures,
+    ) = parallel_computing.parallelize(
         [movie],
         dog_func,
         client,
@@ -131,7 +136,7 @@ def _bandpass_movie_parallel(movie, low_sigma, high_sigma, client, **kwargs):
         futures_in=futures_in,
         futures_out=futures_out,
     )
-    return bandpassed_movie, bandpassed_movie_futures
+    return bandpassed_movie, bandpassed_movie_futures, movie_futures[0]
 
 
 def _make_spot_labels_parallel(
@@ -178,6 +183,7 @@ def make_spot_mask(
     keep_futures_bandpass=True,
     return_spot_labels=True,
     keep_futures_spot_labels=True,
+    keep_futures_spots_movie=True,
     client=None,
 ):
     """
@@ -214,10 +220,13 @@ def make_spot_mask(
         first element of output. Otherwise returns none as first output.
     :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
         `Futures` in the Dask worker memories, returning as a list in second output.
+    :param bool keep_futures_spots_movie: If `True`, keeps input `spot_movie` as a list of
+        `Futures` in the Dask worker memories, returning as a list in fifth output.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
-        `Futures`, bandpass-filtered movie, bandpass-filtered movie as a list of `Futures`)
+        `Futures`, bandpass-filtered movie, bandpass-filtered movie as a list of `Futures`,
+        input `spot_movie` as list of `Futures`)
     :rtype: Tuple of Numpy array of integers.
     """
     if client is None:
@@ -231,14 +240,23 @@ def make_spot_mask(
         spot_labels = _make_spot_labels(
             bandpassed_movie, spot_threshold, min_size, connectivity
         )
+
+        spot_movie_futures = None
+        bandpassed_movie_futures = None
+        spot_labels_futures = None
+
     else:
-        bandpassed_movie, bandpassed_movie_futures = _bandpass_movie_parallel(
+        (
+            bandpassed_movie,
+            bandpassed_movie_futures,
+            spot_movie_futures,
+        ) = _bandpass_movie_parallel(
             spot_movie,
             low_sigma,
             high_sigma,
             client,
             evaluate=return_bandpass,
-            futures_in=False,
+            futures_in=keep_futures_spots_movie,
             futures_out=True,
         )
 
@@ -291,7 +309,13 @@ def make_spot_mask(
         del bandpassed_movie_futures
         bandpassed_movie_futures = None
 
-    return spot_labels, spot_labels_futures, bandpassed_movie, bandpassed_movie_futures
+    return (
+        spot_labels,
+        spot_labels_futures,
+        bandpassed_movie,
+        bandpassed_movie_futures,
+        spot_movie_futures,
+    )
 
 
 def detect_spots(
@@ -308,6 +332,9 @@ def detect_spots(
     keep_futures_bandpass=False,
     return_spot_labels=False,
     keep_futures_spot_labels=True,
+    return_spot_dataframe=True,
+    keep_futures_spot_dataframe=False,
+    keep_futures_spots_movie=False,
     extra_properties=tuple(),
     drop_reverse_time=True,
     client=None,
@@ -348,6 +375,12 @@ def detect_spots(
         second element of output. Otherwise returns none as second output.
     :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
         `Futures` in the Dask worker memories, returning as a list in second output.
+    :param bool return_spot_dataframe: If True, returns fully evaluated dataframe of
+        labelled spots as first output (otherwise returns `None`).
+    :param bool keep_futures_spots_dataframe: If `True`, keeps dataframe of labelled
+        spots as a list of `Futures` in the Dask worker memories.
+    :param bool keep_futures_spots_movie: If `True`, keeps dataframe of input `spot_movie`
+        as a list of `Futures` in the Dask worker memories.
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
@@ -362,17 +395,29 @@ def detect_spots(
     :return:
         *trackpy-compatible pandas DataFrame of spot positions and extra requested
         properties.
+        *trackpy-compatible pandas DataFrame of spot positions and extra requested
+        properties, chunked up as list of `Futures` corresponding to labelled mask and
+        bandpassed-filtered movie `Futures` (see below).
         *Labelled mask of spots in `spot_movie`
         *labelled mask as list of `Futures`
         *bandpass-filtered movie
         *bandpass-filtered movie as a list of `Futures`
+        *input `spot_movie` as list of `Futures`
     :rtype: Tuple
     """
+    if client is not None:
+        keep_futures_make_spot_mask = True
+        evaluate_make_spot_mask = return_spot_labels
+    else:
+        keep_futures_make_spot_mask = False
+        evaluate_make_spot_mask = True
+
     (
         spot_labels,
         spot_labels_futures,
         bandpassed_movie,
         bandpassed_movie_futures,
+        spot_movie_futures,
     ) = make_spot_mask(
         spot_movie,
         low_sigma=low_sigma,
@@ -381,21 +426,78 @@ def detect_spots(
         threshold=threshold,
         min_size=min_size,
         connectivity=connectivity,
-        return_spot_labels=True,
+        return_spot_labels=evaluate_make_spot_mask,
         return_bandpass=return_bandpass,
-        keep_futures_bandpass=keep_futures_bandpass,
+        keep_futures_bandpass=keep_futures_make_spot_mask,
         keep_futures_spot_labels=keep_futures_spot_labels,
+        keep_futures_spots_movie=keep_futures_make_spot_mask,
         client=client,
     )
 
-    spot_dataframe, _, _ = track_features.segmentation_df(
-        spot_labels, spot_movie, frame_metadata, extra_properties=extra_properties
-    )
+    if client is not None:
 
-    if drop_reverse_time:
-        spot_dataframe.drop(
-            labels=["frame_reverse", "t_frame_reverse"], axis=1, inplace=True
+        def segmentation_df_func(
+            spot_labels_chunk, spot_movie_chunk, initial_frame_index
+        ):
+            """
+            Utility function to parallelize generation of dataframe of segmented
+            spots.
+            """
+            spot_df, _, _ = track_features.segmentation_df(
+                spot_labels_chunk,
+                spot_movie_chunk,
+                frame_metadata,
+                extra_properties=extra_properties,
+            )
+            spot_df["original_frame"] = spot_df["frame"].copy() + initial_frame_index
+
+            if drop_reverse_time:
+                spot_df.drop(
+                    labels=["frame_reverse", "t_frame_reverse"], axis=1, inplace=True
+                )
+
+            return spot_df
+
+        num_frames_chunks = client.map(lambda x: x.shape[0], spot_labels_futures)
+        num_frames_chunks = client.gather(num_frames_chunks)
+
+        initial_frame_chunks = np.asarray([0] + num_frames_chunks[1:]).cumsum().tolist()
+        spot_dataframe_futures = client.map(
+            segmentation_df_func,
+            spot_labels_futures,
+            spot_movie_futures,
+            initial_frame_chunks,
         )
+
+        if return_spot_dataframe:
+            spot_dataframe = pd.concat(client.gather(spot_dataframe_futures))
+            spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
+            spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
+        else:
+            spot_dataframe = None
+
+        if not keep_futures_spot_dataframe:
+            del spot_dataframe_futures
+            spot_dataframe_futures = None
+
+        if not keep_futures_spots_movie:
+            del spot_movie_futures
+            spot_movie_futures = None
+
+    else:
+        spot_dataframe, _, _ = track_features.segmentation_df(
+            spot_labels, spot_movie, frame_metadata, extra_properties=extra_properties
+        )
+
+        if drop_reverse_time:
+            spot_dataframe.drop(
+                labels=["frame_reverse", "t_frame_reverse"], axis=1, inplace=True
+            )
+
+        spot_dataframe_futures = None
+        spot_labels_futures = None
+        bandpassed_movie_futures = None
+        spot_movie_futures = None
 
     if not return_spot_labels:
         del spot_labels
@@ -403,10 +505,12 @@ def detect_spots(
 
     return (
         spot_dataframe,
+        spot_dataframe_futures,
         spot_labels,
         spot_labels_futures,
         bandpassed_movie,
         bandpassed_movie_futures,
+        spot_movie_futures,
     )
 
 
@@ -445,9 +549,10 @@ def _add_neighborhoods_to_dataframe(
 ):
     """
     Extracts neighborhood specified by each row in dataframe generated by
-    :func:`~detect_spots`, adding the neighborhood in-place to the dataframe in a
+    :func:`~detect_spots`, adding the neighborhood to the dataframe in a
     "raw_spot" column.
     """
+    spot_dataframe = spot_dataframe.copy()
     spot_dataframe["raw_spot"] = None
     spot_dataframe["raw_spot"] = spot_dataframe["raw_spot"].astype(object)
 
@@ -463,7 +568,7 @@ def _add_neighborhoods_to_dataframe(
         result_type="expand",
     )
 
-    return None
+    return spot_dataframe
 
 
 def detect_and_gather_spots(
@@ -482,6 +587,9 @@ def detect_and_gather_spots(
     keep_futures_bandpass=False,
     return_spot_labels=False,
     keep_futures_spot_labels=False,
+    return_spot_dataframe=True,
+    keep_futures_spot_dataframe=False,
+    keep_futures_spots_movie=False,
     extra_properties=tuple(),
     drop_reverse_time=True,
     client=None,
@@ -529,6 +637,12 @@ def detect_and_gather_spots(
         second element of output. Otherwise returns none as second output.
     :param bool keep_futures_spot_labels: If `True`, keeps generated labelled mask as a list of
         `Futures` in the Dask worker memories, returning as a list in second output.
+    :param bool return_spot_dataframe: If True, returns fully evaluated dataframe of
+        labelled spots as first output (otherwise returns `None`).
+    :param bool keep_futures_spots_dataframe: If `True`, keeps dataframe of labelled
+        spots as a list of `Futures` in the Dask worker memories.
+    :param bool keep_futures_spots_movie: If `True`, keeps dataframe of input `spot_movie`
+        as a list of `Futures` in the Dask worker memories.
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
@@ -543,18 +657,31 @@ def detect_and_gather_spots(
     :return:
         *trackpy-compatible pandas DataFrame of spot positions and extra requested
         properties.
+        *trackpy-compatible pandas DataFrame of spot positions and extra requested
+        properties, chunked up as list of `Futures` corresponding to labelled mask and
+        bandpassed-filtered movie `Futures` (see below).
         *Labelled mask of spots in `spot_movie`
         *labelled mask as list of `Futures`
         *bandpass-filtered movie
         *bandpass-filtered movie as a list of `Futures`
+        *input `spot_movie` as list of `Futures`
     :rtype: Tuple
     """
+    if client is not None:
+        detect_spots_return_spot_dataframe = False
+        detect_spots_keep_futures = True
+    else:
+        detect_spots_return_spot_dataframe = True
+        detect_spots_keep_futures = False
+
     (
         spot_dataframe,
+        spot_dataframe_futures,
         spot_labels,
         spot_labels_futures,
         bandpassed_movie,
         bandpassed_movie_futures,
+        spot_movie_futures,
     ) = detect_spots(
         spot_movie,
         frame_metadata=frame_metadata,
@@ -568,17 +695,51 @@ def detect_and_gather_spots(
         keep_futures_bandpass=keep_futures_bandpass,
         return_spot_labels=return_spot_labels,
         keep_futures_spot_labels=keep_futures_spot_labels,
+        return_spot_dataframe=detect_spots_return_spot_dataframe,
+        keep_futures_spot_dataframe=keep_futures_spot_dataframe,
+        keep_futures_spots_movie=detect_spots_keep_futures,
         extra_properties=extra_properties,
         drop_reverse_time=drop_reverse_time,
         client=client,
     )
 
-    _add_neighborhoods_to_dataframe(spot_movie, span, spot_dataframe, pos_columns)
+    if (spot_dataframe_futures is not None) and (spot_movie_futures is not None):
+
+        def add_neighborhoods_func(spot_movie_chunk, spot_dataframe_chunk):
+            neighborhoods_df = _add_neighborhoods_to_dataframe(
+                spot_movie_chunk, span, spot_dataframe_chunk, pos_columns
+            )
+            return neighborhoods_df
+
+        spot_dataframe_futures = client.map(
+            add_neighborhoods_func, spot_movie_futures, spot_dataframe_futures
+        )
+
+        if return_spot_dataframe:
+            spot_dataframe = pd.concat(client.gather(spot_dataframe_futures))
+            spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
+            spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
+        else:
+            spot_dataframe = None
+
+        if not keep_futures_spots_movie:
+            del spot_movie_futures
+            spot_movie_futures = None
+
+    else:
+        spot_dataframe = _add_neighborhoods_to_dataframe(
+            spot_movie,
+            span,
+            spot_dataframe,
+            pos_columns
+        )
 
     return (
         spot_dataframe,
+        spot_dataframe_futures,
         spot_labels,
         spot_labels_futures,
         bandpassed_movie,
         bandpassed_movie_futures,
+        spot_movie_futures,
     )

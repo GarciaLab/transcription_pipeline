@@ -68,7 +68,7 @@ class DataImport:
         Class is instantiated as empty if `name_folder=None`.
         """
         if import_previous:
-            self.read()
+            self.read(name_folder)
         else:
             self.name_folder = name_folder
             self.trim_series = trim_series
@@ -91,7 +91,7 @@ class DataImport:
                 self.registration_channel,
             )
 
-    def read(self):
+    def read(self, name_folder):
         """
         Imports preprocessed and collated data along with metadata dictionaries extracted
         from a movie and saved to disk in the `name_folder` directory, loading it into
@@ -205,7 +205,7 @@ class DataImport:
         }
         series_splits_shift_path = collated_path / "series_splits_shift.pkl"
         with open(series_splits_shift_path, "wb") as f:
-            pickle.dump(series_splits_shift_path, f)
+            pickle.dump(series_splits_shift, f)
 
         for i, channel_data in enumerate(self.channels_full_dataset):
             # Save metadata to file
@@ -237,10 +237,7 @@ class DataImport:
                 collated_data_path = collated_path / filename
 
                 # Convert to zarr
-                store = zarr.storage.DirectoryStore(collated_data_path)
-                zarr.creation.array(channel_data, store=store)
-                store.close()
-
+                zarr.save(collated_data_path, channel_data)
             else:
                 raise Exception("Save mode not recognized.")
 
@@ -300,7 +297,7 @@ class FullEmbryoImport:
         Class is instantiated as empty if `name_folder=None`.
         """
         if import_previous:
-            self.read()
+            self.read(name_folder)
         else:
             self.name_folder = name_folder
 
@@ -320,7 +317,7 @@ class FullEmbryoImport:
                 self.export_frame_metadata_surf,
             ) = import_data.import_full_embryo(self.name_folder, "Surf*")
 
-    def read(self):
+    def read(self, name_folder):
         """
         Imports preprocessed and collated FullEmbryo data along with metadata dictionaries
         extracted and saved to disk in the `name_folder` directory, loading it into
