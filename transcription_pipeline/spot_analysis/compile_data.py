@@ -3,21 +3,32 @@ import warnings
 import numpy as np
 
 
-def _compile_property(compiled_dataframe_row, original_dataframe, property):
+def _compile_property(compiled_dataframe_row, original_dataframe, property, sort=True):
     """
     Returns the values of a specified column `property` in `original_dataframe`
     corresponding to a particle specified by the `particle` column of
     `compiled_dataframe_row`.
     """
-    compiled_property = original_dataframe.loc[
-        original_dataframe["particle"] == compiled_dataframe_row["particle"], property
-    ].values
+    particle_df = original_dataframe[
+        original_dataframe["particle"] == compiled_dataframe_row["particle"]
+    ]
+
+    if sort:
+        particle_df = particle_df.sort_values("t_s")
+
+    compiled_property = particle_df[property].values
+    
     return compiled_property
 
 
 def compile_traces(
     spot_tracking_dataframe,
-    compile_columns_spot=["frame", "t_s", "intensity_from_fit"],
+    compile_columns_spot=[
+        "frame",
+        "t_s",
+        "intensity_from_neighborhood",
+        "intensity_std_error_from_neighborhood",
+    ],
     nuclear_tracking_dataframe=None,
     compile_columns_nuclear=["nuclear_cycle"],
     max_frames_outside_division=4,

@@ -169,6 +169,7 @@ def segmentation_df(
     intensity_image,
     frame_metadata,
     *,
+    initial_frame_index=0,
     num_nuclei_per_fov=None,
     division_peak_height=0.1,
     min_time_between_divisions=10,
@@ -184,6 +185,9 @@ def segmentation_df(
     :type segmentation_mask: Numpy array of integers.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
+    :param int initial_frame_index: Index of first frame, used to offset the recorded
+        frame numbers. This is useful if execution is being parallelized by mapping onto
+        chunks of a movie.
     :param intensity_image: Intensity (i.e., input) image with same size as
         labeled image.
     :type intensity_image: Numpy array.
@@ -234,6 +238,9 @@ def segmentation_df(
             )
             num_labels = np.unique(frame_properties["label"]).size
             frame_properties["frame"] = np.full(num_labels, i + 1)
+            frame_properties["original_frame"] = (
+                frame_properties["frame"] + initial_frame_index
+            )
 
             frame_properties = pd.DataFrame.from_dict(frame_properties)
             movie_properties.append(frame_properties)
@@ -254,12 +261,12 @@ def segmentation_df(
 
     # Add imaging time for each particle
     time = process_metadata.extract_time(frame_metadata)[0]
-    time_apply = lambda row: time(int(row["frame"]), row["z"])
+    time_apply = lambda row: time(int(row["original_frame"]), row["z"])
     movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
 
     # Add imaging time in number of frames for each particles
     time_frame = process_metadata.extract_renormalized_frame(frame_metadata)
-    time_frame_apply = lambda row: time_frame(int(row["frame"]), row["z"])
+    time_frame_apply = lambda row: time_frame(int(row["original_frame"]), row["z"])
     movie_properties["t_frame"] = movie_properties.apply(time_frame_apply, axis=1)
 
     # Add columns with reversed frame and t_frame to enable reverse tracking

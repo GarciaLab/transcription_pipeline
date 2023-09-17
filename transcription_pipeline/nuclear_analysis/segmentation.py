@@ -20,49 +20,7 @@ from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
 from ..utils import parallel_computing
-
-
-def ellipsoid(diameter, height):
-    """
-    Constructs an ellipsoid footprint for morphological operations - this is usually
-    better than built-in skimage.morphology footprints because the voxel dimensions
-    in our images are typically anisotropic.
-
-    :param int diameter: Diameter in xy-plane of ellipsoid footprint.
-    :param int heigh: Height in z-axis of ellipsoid footprint.
-    :return: Ellipsoid footprint.
-    :rtype: bool
-    """
-    # Coerce diameter and height to odd integers (skimage requires footprints to be
-    # odd in size).
-    if diameter < 3 or height < 3:
-        raise Exception(
-            " ".join(
-                [
-                    "Setting diameter or height below 3 results in an",
-                    "empty or improperly dimensioned footprint.",
-                ]
-            )
-        )
-
-    round_odd = lambda x: int(((x + 1) // 2) * 2 - 1)
-    diameter = round_odd(diameter)
-    height = round_odd(height)
-
-    # Generate coordinate arrays
-    x = np.arange(-diameter // 2 + 1, diameter // 2 + 1)
-    y = np.copy(x)
-    z = np.arange(-height // 2 + 1, height // 2 + 1)
-
-    zz, yy, xx = np.meshgrid(z, y, x, indexing="ij")
-    ellipsoid_eqn = (
-        (xx / (diameter / 2)) ** 2
-        + (yy / (diameter / 2)) ** 2
-        + (zz / (height / 2)) ** 2
-    )
-    ellipsoid_footprint = ellipsoid_eqn < 1
-
-    return ellipsoid_footprint
+from ..utils.neighborhood_manipulation import ellipsoid
 
 
 def _determine_num_iter(footprint):

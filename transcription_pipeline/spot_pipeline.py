@@ -51,6 +51,8 @@ def choose_spot_analysis_parameters(
     velocity_averaging,
     min_track_length,
     filter_multiple,
+    num_bootstraps,
+    integrate_sigma_multiple,
     keep_bandpass,
     keep_spot_labels,
 ):
@@ -99,6 +101,11 @@ def choose_spot_analysis_parameters(
         trackable for in order to be considered in the analysis.
     :param bool filter_multiple: Decide whether or not to enforce a single-spot
         limit for each nucleus.
+    :param int num_bootstraps: Number of bootstrap samples of the same shape as the
+        extracted pixel values to generate for intensity estimation.
+    :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
+        used to set the dimensions of the ellipsoid that gets integrated over for spot
+        quantification.
     :param bool keep_bandpass: If `True`, keeps a copy of the bandpass-filtered image
         in memory.
     :param bool keep_spot_labels: If `True`, keeps a copy of the spot mask after thresholding
@@ -157,6 +164,16 @@ def choose_spot_analysis_parameters(
         "inplace": False,
     }
 
+    add_neighborhood_intensity_spot_dataframe_parallel_params = {
+        "mppZ": mppZ,
+        "mppYX": mppY,
+        "ball_diameter_um": spot_sigmas[1] * integrate_sigma_multiple,
+        "shell_width_um": mppY * 1.1,  # Ensures that a continuous ring is extracted
+        "aspect_ratio": spot_sigmas[1] / spot_sigmas[0],
+        "num_bootstraps": num_bootstraps,
+        "inplace": False,
+    }
+
     # A search range of ~4.2 um seems to work very well for tracking nuclei in the XY
     # plane. 3D tracking is not as of now handled in the defaults and has to be
     # explicitly passes along with an appropriate search range. We also use a default
@@ -181,6 +198,7 @@ def choose_spot_analysis_parameters(
     default_params = {
         "detect_and_gather_spots_params": detect_and_gather_spots_params,
         "add_fits_spots_dataframe_parallel_params": add_fits_spots_dataframe_parallel_params,
+        "add_neighborhood_intensity_spot_dataframe_parallel_params": add_neighborhood_intensity_spot_dataframe_parallel_params,
         "track_and_filter_spots_params": track_and_filter_spots_params,
     }
 
@@ -213,7 +231,7 @@ class Spot:
         observing the resultant histograms for `sigma_x_y` and `sigma_z`).
     :type spot_sigmas: array-like
     :param spot_sigma_xy_bounds: 2-iterable of lower- and upper-bound on acceptable
-        standard deviation in microsn in x- and y-axes in order for a spot to beconsidered
+        standard deviation in microns in x- and y-axes in order for a spot to be considered
         in downstream analysis. Like `spot_sigmas`, this is best estimated experimentally
         but a ballpark can be estimates from the theoretical PSF of the microscope for a
         first pass.
@@ -228,6 +246,11 @@ class Spot:
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
     :type extract_sigma_multiple: Array-like
+    :param int num_bootstraps: Number of bootstrap samples of the same shape as the
+        extracted pixel values to generate for intensity estimation.
+    :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
+        used to set the dimensions of the ellipsoid that gets integrated over for spot
+        quantification.
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
     :param float search_range_um: The maximum distance features in microns can move between
@@ -306,6 +329,8 @@ class Spot:
         spot_sigma_x_y_bounds=(0.052, 0.52),
         spot_sigma_z_bounds=(0.16, 1),
         extract_sigma_multiple=[6, 10, 10],
+        num_bootstraps=1000,
+        integrate_sigma_multiple=9,
         expand_distance=2,
         search_range_um=4.2,
         memory=2,
@@ -333,6 +358,8 @@ class Spot:
             self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
             self.spot_sigma_z_bounds = spot_sigma_z_bounds
             self.extract_sigma_multiple = extract_sigma_multiple
+            self.num_bootstraps = num_bootstraps
+            self.integrate_sigma_multiple = integrate_sigma_multiple
             self.expand_distance = expand_distance
             self.search_range_um = search_range_um
             self.memory = memory
@@ -346,6 +373,7 @@ class Spot:
             self.labels = labels
             self.keep_bandpass = keep_bandpass
             self.keep_spot_labels = keep_spot_labels
+            self.image_size = data.shape[1:]
 
             self.default_params = choose_spot_analysis_parameters(
                 channel_global_metadata=self.global_metadata,
@@ -361,6 +389,8 @@ class Spot:
                 velocity_averaging=self.velocity_averaging,
                 min_track_length=self.min_track_length,
                 filter_multiple=self.filter_multiple,
+                num_bootstraps=self.num_bootstraps,
+                integrate_sigma_multiple=self.integrate_sigma_multiple,
                 keep_bandpass=self.keep_bandpass,
                 keep_spot_labels=self.keep_spot_labels,
             )
@@ -368,94 +398,123 @@ class Spot:
             self.evaluate = evaluate
             self.keep_futures = keep_futures
 
-    def extract_spot_traces(self):
+    def extract_spot_traces(self, retrack=False, rescale=True):
         """
         Runs through the spot segmentation, tracking, fitting and quantification
         pipeline using the parameters instantiated in the constructor method (or any
         modifications applied to the corresponding class attributes), instantiating a
         class attribute for the output (evaluated and Dask Futures objects) at each
         step if requested.
+        :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
+        :param bool rescale: If `True`, rescales particle positions to correspond
+            to real space.
         """
-        (
-            self.spot_dataframe,
-            self.spot_dataframe_futures,
-            self.spot_labels,
-            self.spot_labels_futures,
-            self.bandpassed_movie,
-            self.bandpassed_movie_futures,
-            self.spot_movie_futures,
-        ) = detection.detect_and_gather_spots(
-            self.data,
-            frame_metadata=self.frame_metadata,
-            keep_futures_spot_labels=True,
-            keep_futures_spots_movie=self.keep_futures,
-            keep_futures_spot_dataframe=True,
-            keep_futures_bandpass=self.keep_futures,
-            return_spot_dataframe=False,
-            client=self.client,
-            **(self.default_params["detect_and_gather_spots_params"]),
-        )
-
-        if self.client is not None:
-            add_fits_func = partial(
-                fitting.add_fits_spots_dataframe,
-                **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
-            )
-
-            self.spot_dataframe_futures = self.client.map(
-                add_fits_func, self.spot_dataframe_futures
-            )
-            spot_dataframe = pd.concat(
-                self.client.gather(self.spot_dataframe_futures),
-                ignore_index=True,
-            )
-            # If the dataframes characterizing spots in each chunk (`Future`) of the
-            # movie are constructed independently in each worker, we use the field
-            # `original_frame` to keep track of the frame number in the full movie
-            # and `frame` to keep track of the frame number within each chunk. This
-            # is swapped out and `original_frame` is dropped when the chunked
-            # dataframes are gathered back to the local process.
-            spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
-            spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
-            self.spot_dataframe = spot_dataframe
-
-        else:
-            self.spot_dataframe = fitting.add_fits_spots_dataframe(
+        if not retrack:
+            (
                 self.spot_dataframe,
-                **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+                self.spot_dataframe_futures,
+                self.spot_labels,
+                self.spot_labels_futures,
+                self.bandpassed_movie,
+                self.bandpassed_movie_futures,
+                self.spot_movie_futures,
+            ) = detection.detect_and_gather_spots(
+                self.data,
+                frame_metadata=self.frame_metadata,
+                keep_futures_spot_labels=True,
+                keep_futures_spots_movie=self.keep_futures,
+                keep_futures_spot_dataframe=True,
+                keep_futures_bandpass=self.keep_futures,
+                return_spot_dataframe=False,
+                client=self.client,
+                **(self.default_params["detect_and_gather_spots_params"]),
             )
 
-        # Back up pixel-space positions
-        pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
-        for i, _ in enumerate(pixels_column_names):
-            self.spot_dataframe[pixels_column_names[i]] = self.spot_dataframe[
-                self.pos_columns[i]
-            ].copy()
+            if self.client is not None:
+                add_fits_func = partial(
+                    fitting.add_fits_spots_dataframe,
+                    image_size=self.image_size,
+                    **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+                )
 
-        # Account for z-stack shift between series
-        if (self.series_splits is not None) and ("z" in self.pos_columns):
-            for i, shift_frame in enumerate(self.series_splits):
-                self.spot_dataframe.loc[
-                    self.spot_dataframe["frame"] > shift_frame, "z"
-                ] = (
+                self.spot_dataframe_futures = self.client.map(
+                    add_fits_func, self.spot_dataframe_futures
+                )
+
+                add_neighborhood_intensity_func = partial(
+                    fitting.add_neighborhood_intensity_spot_dataframe,
+                    **(
+                        self.default_params[
+                            "add_neighborhood_intensity_spot_dataframe_parallel_params"
+                        ]
+                    ),
+                )
+
+                self.spot_dataframe_futures = self.client.map(
+                    add_neighborhood_intensity_func, self.spot_dataframe_futures
+                )
+
+                spot_dataframe = pd.concat(
+                    self.client.gather(self.spot_dataframe_futures),
+                    ignore_index=True,
+                )
+                # If the dataframes characterizing spots in each chunk (`Future`) of the
+                # movie are constructed independently in each worker, we use the field
+                # `original_frame` to keep track of the frame number in the full movie
+                # and `frame` to keep track of the frame number within each chunk. This
+                # is swapped out and `original_frame` is dropped when the chunked
+                # dataframes are gathered back to the local process.
+                spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
+                spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
+                self.spot_dataframe = spot_dataframe
+
+            else:
+                self.spot_dataframe = fitting.add_fits_spots_dataframe(
+                    self.spot_dataframe,
+                    **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+                )
+
+                self.spot_dataframe = fitting.add_neighborhood_intensity_spot_dataframe(
+                    self.spot_dataframe,
+                    **(
+                        self.default_params[
+                            "add_neighborhood_intensity_spot_dataframe_parallel_params"
+                        ]
+                    ),
+                )
+
+        if rescale:
+            # Back up pixel-space positions
+            pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
+            for i, _ in enumerate(pixels_column_names):
+                self.spot_dataframe[pixels_column_names[i]] = self.spot_dataframe[
+                    self.pos_columns[i]
+                ].copy()
+
+            # Account for z-stack shift between series
+            if (self.series_splits is not None) and ("z" in self.pos_columns):
+                for i, shift_frame in enumerate(self.series_splits):
                     self.spot_dataframe.loc[
                         self.spot_dataframe["frame"] > shift_frame, "z"
-                    ]
-                    - self.series_shifts[i]
-                )
+                    ] = (
+                        self.spot_dataframe.loc[
+                            self.spot_dataframe["frame"] > shift_frame, "z"
+                        ]
+                        - self.series_shifts[i]
+                    )
 
-        # Rescale pixel-space position columns to match real space
-        if self.global_metadata is not None:
-            mpp_pos_fields = [
-                "".join(["PixelsPhysicalSize", pos.capitalize()])
-                for pos in self.pos_columns
-            ]
-            mpp_pos = [self.global_metadata[field] for field in mpp_pos_fields]
+            # Rescale pixel-space position columns to match real space
+            if self.global_metadata is not None:
+                mpp_pos_fields = [
+                    "".join(["PixelsPhysicalSize", pos.capitalize()])
+                    for pos in self.pos_columns
+                ]
+                mpp_pos = [self.global_metadata[field] for field in mpp_pos_fields]
 
-            for i, _ in enumerate(self.pos_columns):
-                self.spot_dataframe[self.pos_columns[i]] = (
-                    self.spot_dataframe[self.pos_columns[i]] * mpp_pos[i]
-                )
+                for i, _ in enumerate(self.pos_columns):
+                    self.spot_dataframe[self.pos_columns[i]] = (
+                        self.spot_dataframe[self.pos_columns[i]] * mpp_pos[i]
+                    )
 
         track_filtering.track_and_filter_spots(
             self.spot_dataframe,
@@ -465,12 +524,15 @@ class Spot:
             **(self.default_params["track_and_filter_spots_params"]),
         )
 
-        # Restore dataframe to pixel-space
-        for i, _ in enumerate(self.pos_columns):
-            self.spot_dataframe[self.pos_columns[i]] = self.spot_dataframe[
-                pixels_column_names[i]
-            ]
-            self.spot_dataframe.drop(pixels_column_names[i], axis=1)
+        if rescale:
+            # Restore dataframe to pixel-space
+            for i, _ in enumerate(self.pos_columns):
+                self.spot_dataframe[self.pos_columns[i]] = self.spot_dataframe[
+                    pixels_column_names[i]
+                ]
+                self.spot_dataframe = self.spot_dataframe.drop(
+                    pixels_column_names[i], axis=1
+                )
 
         if self.client is not None:
             (
@@ -513,7 +575,7 @@ class Spot:
         # Make `spot_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
         results_path = name_path / "spot_analysis_results"
-        results_path.mkdir(exist_ok=True)
+        results_path.mkdir(exist_ok=True, parents=True)
 
         # Save movies, saving intermediate steps if requested
         save_movies = {"reordered_spot_labels": self.reordered_spot_labels}

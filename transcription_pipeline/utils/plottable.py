@@ -1,18 +1,34 @@
+import warnings
+import numpy as np
+
+
 def _generate_trace_plot(particle_index, compiled_dataframe):
     """
     Generates a tuple of the time and intensity vectors for a given particle, and the
     particle ID and assigned nuclear cycle of the trace.
     """
-    time = (
-        compiled_dataframe.loc[particle_index, "t_s"]
-        - compiled_dataframe.at[particle_index, "division_time"]
-    )
-    intensity = compiled_dataframe.loc[particle_index, "intensity_from_fit"]
+    try:
+        time = (
+            compiled_dataframe.loc[particle_index, "t_s"]
+            - compiled_dataframe.at[particle_index, "division_time"]
+        )
+    except KeyError:
+        time = compiled_dataframe.loc[particle_index, "t_s"]
+        warnings.warn("Could not determine division time, using absolute time.")
+        
+    intensity = compiled_dataframe.loc[particle_index, "intensity_from_neighborhood"]
+    intensity_error = compiled_dataframe.loc[
+        particle_index, "intensity_std_error_from_neighborhood"
+    ]
 
-    nc = compiled_dataframe.at[particle_index, "nuclear_cycle"]
+    try:
+        nc = compiled_dataframe.at[particle_index, "nuclear_cycle"]
+    except KeyError:
+        nc = np.nan
+        
     particle = compiled_dataframe.at[particle_index, "particle"]
 
-    return (time, intensity, particle, nc)
+    return (time, intensity, intensity_error, particle, nc)
 
 
 def generate_trace_plot_list(compiled_dataframe):

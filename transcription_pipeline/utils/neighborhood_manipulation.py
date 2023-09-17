@@ -2,6 +2,49 @@ import warnings
 import numpy as np
 
 
+def ellipsoid(diameter, height):
+    """
+    Constructs an ellipsoid footprint for morphological operations - this is usually
+    better than built-in skimage.morphology footprints because the voxel dimensions
+    in our images are typically anisotropic.
+
+    :param int diameter: Diameter in xy-plane of ellipsoid footprint.
+    :param int heigh: Height in z-axis of ellipsoid footprint.
+    :return: Ellipsoid footprint.
+    :rtype: bool
+    """
+    # Coerce diameter and height to odd integers (skimage requires footprints to be
+    # odd in size).
+    if diameter < 3 or height < 3:
+        raise Exception(
+            " ".join(
+                [
+                    "Setting diameter or height below 3 results in an",
+                    "empty or improperly dimensioned footprint.",
+                ]
+            )
+        )
+
+    round_odd = lambda x: int(((x + 1) // 2) * 2 - 1)
+    diameter = round_odd(diameter)
+    height = round_odd(height)
+
+    # Generate coordinate arrays
+    x = np.arange(-diameter // 2 + 1, diameter // 2 + 1)
+    y = np.copy(x)
+    z = np.arange(-height // 2 + 1, height // 2 + 1)
+
+    zz, yy, xx = np.meshgrid(z, y, x, indexing="ij")
+    ellipsoid_eqn = (
+        (xx / (diameter / 2)) ** 2
+        + (yy / (diameter / 2)) ** 2
+        + (zz / (height / 2)) ** 2
+    )
+    ellipsoid_footprint = ellipsoid_eqn < 1
+
+    return ellipsoid_footprint
+
+
 def extract_neighborhood(image, coordinates, span):
     """
     Extracts a view of a neighborhood of size `span` (or the largest odd number under
@@ -25,12 +68,16 @@ def extract_neighborhood(image, coordinates, span):
     pixel_coordinates = np.floor(np.asarray(coordinates)).astype(int)
     pixel_span = np.floor(np.asarray(span) / 2).astype(int)
     coordinates_start = pixel_coordinates - pixel_span
-    box_dimensions = pixel_span * 2 + 1
-    box_indices = tuple((np.indices(box_dimensions).T + coordinates_start).T)
 
-    try:
-        neighborhood = image[box_indices]
-    except IndexError:
+    if np.all(coordinates_start > 0):
+        box_dimensions = pixel_span * 2 + 1
+        box_indices = tuple((np.indices(box_dimensions).T + coordinates_start).T)
+    
+        try:
+            neighborhood = image[box_indices]
+        except IndexError:
+            neighborhood = None
+    else:
         neighborhood = None
 
     return neighborhood, coordinates_start

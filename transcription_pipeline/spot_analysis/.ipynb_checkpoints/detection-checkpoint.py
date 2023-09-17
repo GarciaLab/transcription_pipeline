@@ -447,9 +447,9 @@ def detect_spots(
                 spot_labels_chunk,
                 spot_movie_chunk,
                 frame_metadata,
+                initial_frame_index = initial_frame_index,
                 extra_properties=extra_properties,
             )
-            spot_df["original_frame"] = spot_df["frame"].copy() + initial_frame_index
 
             if drop_reverse_time:
                 spot_df.drop(
@@ -461,7 +461,7 @@ def detect_spots(
         num_frames_chunks = client.map(lambda x: x.shape[0], spot_labels_futures)
         num_frames_chunks = client.gather(num_frames_chunks)
 
-        initial_frame_chunks = np.asarray([0] + num_frames_chunks[1:]).cumsum().tolist()
+        initial_frame_chunks = np.asarray([0] + num_frames_chunks[:-1]).cumsum().tolist()
         spot_dataframe_futures = client.map(
             segmentation_df_func,
             spot_labels_futures,
