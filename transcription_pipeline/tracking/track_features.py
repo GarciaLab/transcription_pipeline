@@ -174,6 +174,7 @@ def segmentation_df(
     division_peak_height=0.1,
     min_time_between_divisions=10,
     extra_properties=tuple(),
+    extra_properties_callable=None,
     spacing=None,
 ):
     """
@@ -205,6 +206,10 @@ def segmentation_df(
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
     :type extra_properties: Tuple of strings, optional.
+    :param extra_properties_callable: Properties of each labelled region in the segmentation
+        mask to measure and add to the DataFrame, using an iterable of callables for properties
+        not included with skimage.
+    :type extra_properties_callable: Iterable of callables, optional.
     :param spacing: The pixel spacing along each axis of the image. `None` defaults to
         isotropic.
     :type spacing: tuple of float
@@ -234,6 +239,7 @@ def segmentation_df(
                 segmentation_mask[i],
                 intensity_image=intensity_image[i],
                 properties=("label", "centroid_weighted") + extra_properties,
+                extra_properties=extra_properties_callable,
                 spacing=spacing,
             )
             num_labels = np.unique(frame_properties["label"]).size

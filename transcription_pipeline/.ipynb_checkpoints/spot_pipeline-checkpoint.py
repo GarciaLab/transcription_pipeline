@@ -51,6 +51,9 @@ def choose_spot_analysis_parameters(
     velocity_averaging,
     min_track_length,
     filter_multiple,
+    retrack_search_range_um,
+    retrack_memory,
+    retrack_min_track_length,
     num_bootstraps,
     integrate_sigma_multiple,
     keep_bandpass,
@@ -101,6 +104,14 @@ def choose_spot_analysis_parameters(
         trackable for in order to be considered in the analysis.
     :param bool filter_multiple: Decide whether or not to enforce a single-spot
         limit for each nucleus.
+    :param float retrack_search_range_um: The maximum distance features in microns can move
+        between frames during the second tracking (after filtering by track length).
+    :param int retrack_memory: The maximum number of frames during which a feature can vanish,
+        then reppear nearby, and be considered the same particle during the second tracking
+        (after filtering by track length
+    :param int retrack_min_track_length: Minimum number of timepoints a spot has to be
+        trackable for in order to be considered in the analysis during the second tracking
+        (after filtering by track length
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
     :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
@@ -195,11 +206,28 @@ def choose_spot_analysis_parameters(
         "min_or_max": "maximize",
     }
 
+    retrack_spots_params = {
+        "sigma_x_y_bounds": np.asarray(spot_sigma_x_y_bounds) / mppY,
+        "sigma_z_bounds": np.asarray(spot_sigma_z_bounds) / mppZ,
+        "expand_distance": expand_distance,
+        "search_range": retrack_search_range_um,
+        "memory": retrack_memory,
+        "pos_columns": pos_columns,
+        "t_column": "frame_reverse",
+        "velocity_predict": True,
+        "velocity_averaging": velocity_averaging,
+        "min_track_length": retrack_min_track_length,
+        "filter_multiple": filter_multiple,
+        "choose_by": "amplitude",
+        "min_or_max": "maximize",
+    }
+
     default_params = {
         "detect_and_gather_spots_params": detect_and_gather_spots_params,
         "add_fits_spots_dataframe_parallel_params": add_fits_spots_dataframe_parallel_params,
         "add_neighborhood_intensity_spot_dataframe_parallel_params": add_neighborhood_intensity_spot_dataframe_parallel_params,
         "track_and_filter_spots_params": track_and_filter_spots_params,
+        "retrack_spots_params": retrack_spots_params,
     }
 
     return default_params
@@ -337,6 +365,10 @@ class Spot:
         pos_columns=["z", "y", "x"],
         velocity_averaging=None,
         min_track_length=4,
+        retrack_after_filter=True,
+        retrack_search_range_um=4.2,
+        retrack_memory=6,
+        retrack_min_track_length=4,
         filter_multiple=True,
         series_splits=None,
         series_shifts=None,
@@ -366,7 +398,11 @@ class Spot:
             self.pos_columns = pos_columns
             self.velocity_averaging = velocity_averaging
             self.min_track_length = min_track_length
+            self.retrack_after_filter = retrack_after_filter
             self.filter_multiple = filter_multiple
+            self.retrack_search_range_um = retrack_search_range_um
+            self.retrack_memory = retrack_memory
+            self.retrack_min_track_length = retrack_min_track_length
             self.series_splits = series_splits
             self.series_shifts = series_shifts
             self.dog_sigma_ratio = dog_sigma_ratio
@@ -389,6 +425,9 @@ class Spot:
                 velocity_averaging=self.velocity_averaging,
                 min_track_length=self.min_track_length,
                 filter_multiple=self.filter_multiple,
+                retrack_search_range_um=self.retrack_search_range_um,
+                retrack_memory=self.retrack_memory,
+                retrack_min_track_length=self.retrack_min_track_length,
                 num_bootstraps=self.num_bootstraps,
                 integrate_sigma_multiple=self.integrate_sigma_multiple,
                 keep_bandpass=self.keep_bandpass,
@@ -523,6 +562,24 @@ class Spot:
             client=self.client,
             **(self.default_params["track_and_filter_spots_params"]),
         )
+
+        # A second tracking allows tracking to occur without distraction from spurious
+        # particles that end up getting culled anyway - this allows for use of a larger
+        # search radius and memory parameter if desired.
+        if self.retrack_after_filter:
+            filtered_dataframe = self.spot_dataframe[self.spot_dataframe["particle"] != 0].copy()
+            
+            track_filtering.track_and_filter_spots(
+                filtered_dataframe,
+                nuclear_labels=self.labels,
+                nuclear_pos_columns=pixels_column_names,
+                client=self.client,
+                **(self.default_params["retrack_spots_params"]),
+            )
+
+            self.spot_dataframe.loc[
+                filtered_dataframe.index, "particle"
+            ] = filtered_dataframe["particle"]
 
         if rescale:
             # Restore dataframe to pixel-space

@@ -421,27 +421,33 @@ def add_fits_spots_dataframe(
     # algebraic form for the gradient, but we readjust it to keep consistent with the
     # L2 norm definition).
     attempted_fit_mask = ~spot_dataframe["cost"].apply(np.isnan)
-    dataset_size = spot_dataframe.loc[attempted_fit_mask, "raw_spot"].apply(
-        lambda x: x.size
-    )
-    amplitude = spot_dataframe.loc[attempted_fit_mask, "amplitude"]
+
+    # Initialize columns and check if we have any usable spots
     spot_dataframe["norm_cost"] = np.nan
-    spot_dataframe.loc[attempted_fit_mask, "norm_cost"] = (
-        (2 * spot_dataframe.loc[attempted_fit_mask, "cost"])
-        .apply(np.sqrt)
-        .divide(dataset_size * amplitude)
-    )
-
-    # Add intensity estimates from fit parameters
     spot_dataframe["intensity_from_fit"] = np.nan
-    spot_dataframe.loc[attempted_fit_mask, "intensity_from_fit"] = spot_dataframe[
-        attempted_fit_mask
-    ].apply(intensity_from_fit_row, axis=1)
-
-    # Add intensity error estimates from fit parameters
-    spot_dataframe["intensity_std_error_from_fit"] = spot_dataframe[
-        attempted_fit_mask
-    ].apply(intensity_error_from_fit_row, axis=1)
+    spot_dataframe["intensity_std_error_from_fit"] = np.nan
+    
+    if attempted_fit_mask.sum() > 0:
+        dataset_size = spot_dataframe.loc[attempted_fit_mask, "raw_spot"].apply(
+            lambda x: x.size
+        )
+        amplitude = spot_dataframe.loc[attempted_fit_mask, "amplitude"]
+        
+        spot_dataframe.loc[attempted_fit_mask, "norm_cost"] = (
+            (2 * spot_dataframe.loc[attempted_fit_mask, "cost"])
+            .apply(np.sqrt)
+            .divide(dataset_size * amplitude)
+        )
+    
+        # Add intensity estimates from fit parameters
+        spot_dataframe.loc[attempted_fit_mask, "intensity_from_fit"] = spot_dataframe[
+            attempted_fit_mask
+        ].apply(intensity_from_fit_row, axis=1)
+    
+        # Add intensity error estimates from fit parameters
+        spot_dataframe["intensity_std_error_from_fit"] = spot_dataframe[
+            attempted_fit_mask
+        ].apply(intensity_error_from_fit_row, axis=1)
 
     return out
 

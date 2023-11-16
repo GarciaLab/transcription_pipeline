@@ -66,15 +66,15 @@ def choose_nuclear_analysis_parameters(
     denoise_params = {"denoising": "gaussian", "denoising_sigma": denoising_sigma}
 
     opening_footprint_dimensions = np.floor(
-        np.maximum(nuclear_size_pixels / 2, 3)
-    ).astype(int)
-    opening_footprint = segmentation.ellipsoid(3, opening_footprint_dimensions[0])
-    closing_footprint_dimensions = np.floor(
         np.maximum(nuclear_size_pixels / 10, 3)
     ).astype(int)
-    closing_footprint = segmentation.ellipsoid(
-        (closing_footprint_dimensions[1:]).max(), closing_footprint_dimensions[0]
-    )
+    opening_closing_footprint = segmentation.ellipsoid(3, opening_footprint_dimensions[0])
+    # closing_footprint_dimensions = np.floor(
+    #     np.maximum(nuclear_size_pixels / 10, 3)
+    # ).astype(int)
+    # closing_footprint = segmentation.ellipsoid(
+    #     (closing_footprint_dimensions[1:]).max(), closing_footprint_dimensions[0]
+    # )
     cc_min_span = nuclear_size_pixels * 2
     # We only check the size in xy of connected components to identify surface noise
     cc_min_span[0] = 0
@@ -85,8 +85,8 @@ def choose_nuclear_analysis_parameters(
     background_dilation_footprint = segmentation.ellipsoid(nuclear_size[1], 3)
     binarize_params = {
         "thresholding": "global_otsu",
-        "opening_footprint": opening_footprint,
-        "closing_footprint": closing_footprint,
+        "opening_footprint": opening_closing_footprint,
+        "closing_footprint": opening_closing_footprint,
         "cc_min_span": cc_min_span,
         "background_max_span": background_max_span,
         "background_sigma": background_sigma,
