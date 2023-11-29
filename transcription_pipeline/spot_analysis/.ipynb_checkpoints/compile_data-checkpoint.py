@@ -17,7 +17,7 @@ def _compile_property(compiled_dataframe_row, original_dataframe, property, sort
         particle_df = particle_df.sort_values("t_s")
 
     compiled_property = particle_df[property].values
-    
+
     return compiled_property
 
 
@@ -32,6 +32,7 @@ def compile_traces(
     nuclear_tracking_dataframe=None,
     compile_columns_nuclear=["nuclear_cycle"],
     max_frames_outside_division=4,
+    ignore_negative_spots=True,
 ):
     """
     Compiles spot tracking data (and nuclear tracking data if provided) by particles,
@@ -44,7 +45,10 @@ def compile_traces(
     :type spot_tracking_dataframe: pandas DataFrame
     :param compile_columns_spot: List of properties to extract and compile from
         `spot_tracking_dataframe`.
-    :type compile_columns_spot: List of column names.
+    :type compile_columns_spot: List of column names. Entries can be strings pointing
+        to column names, or single-entry dictionaries with the key pointing to the
+        column name to compile from, and the value pointing to the new column name
+        to give the compiled property in the compiled dictionary.
     :param nuclear_tracking_dataframe: DataFrame containing information about detected
         and tracked nuclei.
     :type nuclear_tracking_dataframe: pandas DataFrame
@@ -54,9 +58,20 @@ def compile_traces(
     :param int max_frames_outside_division: The maximum number of timepoints a track
         can have outside of a nuclear cycle and still be considered exlusively part
         of that nuclear cycle.
+    :param bool ignore_negative_spots: Ignores datapoints where the spot quantification
+        goes negative - as long as we are looking at background-subtracted intensity,
+        negative values are clear mistrackings/misquantifications.
     :return: DataFrame of compiled data indexed by particle.
     :rtype: pandas DataFrame
     """
+    if ignore_negative_spots:
+        try:
+            spot_tracking_dataframe = spot_tracking_dataframe[
+                spot_tracking_dataframe["intensity_from_neighborhood"] > 0
+            ].copy()
+        except KeyError:
+            pass
+
     particles = np.sort(np.trim_zeros(spot_tracking_dataframe["particle"].unique()))
 
     compiled_dataframe = pd.DataFrame(data=particles, columns=["particle"])
@@ -85,14 +100,22 @@ def compile_traces(
 
     if nuclear_tracking_dataframe is not None:
         for property in compile_columns_nuclear:
+            if isinstance(property, dict):
+                property_key = list(property.keys())[0]
+                property_value = property[property_key]
+                property = property_key
+                column_name = property_value
+            else:
+                column_name = property
+
             if property != "division_time":
                 # Preallocate and convert to dtype object to allow storage of arrays
-                compiled_dataframe[property] = np.nan
-                compiled_dataframe[property] = compiled_dataframe[property].astype(
-                    object
-                )
+                compiled_dataframe[column_name] = np.nan
+                compiled_dataframe[column_name] = compiled_dataframe[
+                    column_name
+                ].astype(object)
 
-                compiled_dataframe[property] = compiled_dataframe.apply(
+                compiled_dataframe[column_name] = compiled_dataframe.apply(
                     _compile_property,
                     args=(nuclear_tracking_dataframe, property),
                     axis=1,

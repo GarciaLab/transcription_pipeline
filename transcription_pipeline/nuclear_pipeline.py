@@ -12,7 +12,10 @@ import glob
 
 
 def choose_nuclear_analysis_parameters(
-    nuclear_size, sigma_ratio, channel_global_metadata
+    nuclear_size,
+    sigma_ratio,
+    channel_global_metadata,
+    division_trigger,
 ):
     """
     Chooses reasonable default parameters based on the physical size in each axis of
@@ -21,10 +24,12 @@ def choose_nuclear_analysis_parameters(
 
     :param nuclear_size: Size of features being segmented in each axis, in microns.
     :type nuclear_size: array-like
-    :param float sigma_ratio: Ratio of stndard deviations used in bandpass filtering
+    :param float sigma_ratio: Ratio of standard deviations used in bandpass filtering
         using difference of gaussians. Larger ratios widen the bandwidth of the filter.
     :param dict channel_global_metadata: Dictionary of global metadata for the relevant
         channel, as output by `preprocessing.import_data.import_save_dataset`.
+    :param division_trigger: Image feature to use to determine the division frames.
+    :type division_trigger: {'num_objects', 'nuclear_fluorescence'}
     :return: Dictionary of kwarg dicts corresponding to each function in the nuclear
         segmentation and tracking pipeline:
         *`nuclear_analysis.segmentation.denoise_movie`
@@ -68,7 +73,9 @@ def choose_nuclear_analysis_parameters(
     opening_footprint_dimensions = np.floor(
         np.maximum(nuclear_size_pixels / 10, 3)
     ).astype(int)
-    opening_closing_footprint = segmentation.ellipsoid(3, opening_footprint_dimensions[0])
+    opening_closing_footprint = segmentation.ellipsoid(
+        3, opening_footprint_dimensions[0]
+    )
     # closing_footprint_dimensions = np.floor(
     #     np.maximum(nuclear_size_pixels / 10, 3)
     # ).astype(int)
@@ -124,21 +131,39 @@ def choose_nuclear_analysis_parameters(
 
     # We use the number of nuclei per FOV to determine the nuclear cycle we're in.
     # This requires an estimate of the number of nuclei per square microns:
-    num_nuclei_per_um2 = {12: (0.005, 0.009), 13: (0.012, 0.018), 14: (0.024, 0.040)}
+    num_nuclei_per_um2 = {
+        11: (0.0035, 0.0055),
+        12: (0.0060, 0.0090),
+        13: (0.0100, 0.0175),
+        14: (0.0180, 0.0300),
+    }
     fov_area = np.prod(image_dimensions[1:]) * mppY * mppX
     num_nuclei_per_fov = {
         key: np.asarray(num_nuclei_per_um2[key]) * fov_area
         for key in num_nuclei_per_um2
     }
-    segmentation_df_params = {
-        "num_nuclei_per_fov": num_nuclei_per_fov,
-        "division_peak_height": 0.1,
-        "min_time_between_divisions": 10,
-    }
+    if division_trigger == "num_objects":
+        segmentation_df_params = {
+            "num_nuclei_per_fov": num_nuclei_per_fov,
+            "trigger_property": "num_objects",
+            "height": 0.1,
+            "distance": 10,
+        }
+    elif division_trigger == "nuclear_fluorescence":
+        # Assume we are going off of loss of nuclear fluorescence during divisions.
+        # If we wish to trigger off of loss of exlusion instead (e.g. with MCP-mCherry)
+        # this can be edited manually.
+        segmentation_df_params = {
+            "num_nuclei_per_fov": num_nuclei_per_fov,
+            "trigger_property": "nuclear_fluorescence",
+            "fluorescence_field": "intensity_mean",
+            "invert": True,
+            "prominence": 0.5,
+        }
 
     # A search range of ~3.5 um seems to work very well for tracking nuclei in the XY
     # plane. 3D tracking is not as of now handled in the defaults and has to be
-    # explicitly passes along with an appropriate search range
+    # explicitly passed along with an appropriate search range
     search_range = 3.5 / mppY
     pos_columns = ["y", "x"]  # Tracking only in XY in case z-stack was adjusted
     t_column = "frame_reverse"  # Track reversed time to help with large accelerations
@@ -181,6 +206,13 @@ def choose_nuclear_analysis_parameters(
     return default_params
 
 
+# Used for quantification of nuclear protein - this is defined here in global scope
+# to help pickling of calculated properties (local objects cannot be pickled).
+def intensity_stdev(region, intensities):
+    # note the ddof arg to get the sample var if you so desire!
+    return np.std(intensities[region], ddof=1)
+
+
 class Nuclear:
     """
     Runs through the nuclear segmentation and tracking pipeline, using nuclear size
@@ -194,8 +226,13 @@ class Nuclear:
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param nuclear_size: Size of features being segmented in each axis, in microns.
     :type nuclear_size: array-like
+    :param division_trigger: Image feature to use to determine the division frames.
+    :type division_trigger: {'num_objects', 'nuclear_fluorescence'}
     :param float sigma_ratio: Ratio of stndard deviations used in bandpass filtering
         using difference of gaussians. Larger ratios widen the bandwidth of the filter.
+    :param bool quantify_nuclear: If `True`, mean and standard deviation over nuclear
+        pixels is quantifies for each nucleus and added to the dataframe. Defaults to
+        `False`. Note that no background subtraction is done as of this implementation.
     :param bool evaluate: If `True`, each step of the pipeline is fully evaluated
         to produce a Numpy array that gets added as an attribute. Otherwise that
         attribute is set to `None`. The final labelled and tracked array `reordered_labels`
@@ -267,7 +304,9 @@ class Nuclear:
         frame_metadata=None,
         client=None,
         nuclear_size=[8.0, 4.2, 4.2],
+        division_trigger="num_objects",
         sigma_ratio=5,
+        quantify_nuclear=False,
         evaluate=False,
         keep_futures=False,
     ):
@@ -278,15 +317,21 @@ class Nuclear:
             self.global_metadata = global_metadata
             self.frame_metadata = frame_metadata
             self.nuclear_size = nuclear_size
+            self.division_trigger = division_trigger
             self.sigma_ratio = sigma_ratio
             self.data = data
             self.client = client
 
             self.default_params = choose_nuclear_analysis_parameters(
-                self.nuclear_size, self.sigma_ratio, self.global_metadata
+                self.nuclear_size,
+                self.sigma_ratio,
+                self.global_metadata,
+                self.division_trigger,
             )
             self.evaluate = evaluate
             self.keep_futures = keep_futures
+
+        self.quantify_nuclear = quantify_nuclear
 
     def track_nuclei(self):
         """
@@ -295,6 +340,16 @@ class Nuclear:
         corresponding class attributes), instantiating a class attribute for the output
         (evaluated and Dask Futures objects) at each step if requested.
         """
+        # Quantification of nuclear protein if requested
+        if self.quantify_nuclear:
+            self.default_params["segmentation_df_params"]["extra_properties"] = (
+                "intensity_mean",
+            )
+
+            self.default_params["segmentation_df_params"][
+                "extra_properties_callable"
+            ] = (intensity_stdev,)
+
         (
             self.denoised,
             self.denoised_futures,
@@ -369,6 +424,15 @@ class Nuclear:
         self.mitosis_dataframe = detect_mitosis.construct_lineage(
             self.tracked_dataframe,
             **(self.default_params["construct_lineage_params"]),
+        )
+
+        # Rename nuclear quantification columns
+        self.mitosis_dataframe.rename(
+            columns={
+                "intensity_mean": "nuclear_intensity_mean",
+                "intensity_stdev": "nuclear_intensity_stdev",
+            },
+            inplace=True,
         )
 
         if self.client is not None:

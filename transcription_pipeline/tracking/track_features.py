@@ -22,33 +22,87 @@ def _number_detected_objects(feature_dataframe):
     return frames, num_objects
 
 
-def determine_nuclear_cycle_frames(frame_array, num_objects, height=0.15, distance=10):
+def _norm_mean_nuclear_fluorescence(
+    feature_dataframe, fluorescence_field="nuclear_intensity_mean"
+):
     """
-    Looks for maxima of the discrete time-derivative of the log of the number of detected
-    nuclei to assign frames to nuclear divisions. The log is used so that the same peak
-    threshold parameters can be used for every nuclear cycle and any zoom dataset (doubling
-    of the number of detected objects corresponding to a constant additive increase in log-
-    space).
+    Construct an array of the min-max normalized mean nuclear fluorescence in each
+    frame.
+    """
+    frames = np.sort(feature_dataframe["frame"].unique())
+    fluo = np.array(
+        [
+            feature_dataframe.loc[
+                feature_dataframe["frame"] == frame, fluorescence_field
+            ].mean()
+            for frame in frames
+        ]
+    )
+    norm_fluo = (fluo - fluo.min()) / (fluo.max() - fluo.min())
+    return frames, norm_fluo
 
-    :param frame_array: Sorted rray corresponding to the frame numbers.
+
+def determine_nuclear_cycle_frames(
+    frame_array,
+    property_array,
+    *,
+    trigger_property="num_objects",
+    invert=False,
+    **kwargs,
+):
+    """
+    Assigns frames to nuclear divisions. Additional kwargs are passed through to the peak
+    detection function `scipy.signal.find_peaks`.
+    ..note::
+        *If `trigger_property` is set to `num_objects`, the function looks for maxima of
+        the discrete time-derivative of the log of the number of detected nuclei to assign
+        frames to nuclear divisions. The log is used so that the same peak threshold
+        parameters can be used for every nuclear cycle and any zoom dataset (doubling
+        of the number of detected objects corresponding to a constant additive increase in
+        log-space).
+        *If `trigger_property` is set to `nuclear_fluorescence`, then the function
+        goes off of increase (e.g. histone compaction) or decrease (loss of nuclear
+        transcription factor) in nuclear fluorescence to estimate division frames, depending
+        on the setting for `invert`.
+
+    :param frame_array: Sorted array corresponding to the frame numbers.
     :type frame_array: Numpy array
-    :param num_objects: Array corresponding to the number of detected features in each frame
-        of `frame_array`.
-    :type num_objects: Numpy array.
-    :param float height: Required height of peaks.
-    :param int distance: Required minimal horizontal distance (>= 1) in samples between
-        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
-        for all remaining peaks.
+    :param property_array: Array corresponding to the image feature being used to determine
+        the division frames - as of this version, this can number of detected features in
+        each frame of `frame_array` (e.g. with a histone marker) or nuclear-localized
+        fluorescence (e.g. with a fluorescently-tagged transcription factor).
+    :type property_array: Numpy array.
+    :param trigger_property: Image feature to use to determine the division frames.
+    :type trigger_property: {'num_objects', 'nuclear_fluorescence'}
+    :param bool invert: Invert `property_array` before using peak detection to mark
+        division frames. This is useful e.g. if we're triggering off of loss of nuclear
+        fluorescence during divisions. As of now this is only used if triggering off
+        of nuclear fluorescence.
     :return: Array of the frames with detected division waves.
     :rtype: Numpy array
     """
-    # Using chain rule to take derivative of log of number of detected objects - this
-    # makes the default parameters more generalizable to different zooms since
-    # doubling of the number of objects corresponds to the same order-of-magnitude
-    # peak in the derivative
-    derivative_log = np.gradient(num_objects) / num_objects
-    division_index, _ = sig.find_peaks(derivative_log, height=height, distance=distance)
+    property_array = np.copy(property_array)
+    if trigger_property == "num_objects":
+        # Using chain rule to take derivative of log of number of detected objects - this
+        # makes the default parameters more generalizable to different zooms since
+        # doubling of the number of objects corresponds to the same order-of-magnitude
+        # peak in the derivative
+        property_array = np.gradient(property_array) / property_array
+
+    elif trigger_property == "nuclear_fluorescence":
+        # Uses loss of nuclear fluorescence during nuclear divisions to estimate the
+        # nuclear cycle frames
+        if invert:
+            property_array *= -1
+            property_array -= property_array.min()
+
+    else:
+        raise Exception("`trigger_property` not recognized.")
+
+    division_index, _ = sig.find_peaks(property_array, **kwargs)
+
     frames = frame_array[division_index]
+
     return frames
 
 
@@ -83,14 +137,27 @@ def _nuclear_cycle_by_number_objects(num_objects, num_nuclei_per_fov):
 
 
 def assign_nuclear_cycle(
-    feature_dataframe, num_nuclei_per_fov, height=0.15, distance=10
+    feature_dataframe,
+    num_nuclei_per_fov,
+    trigger_property="num_objects",
+    invert=False,
+    fluorescence_field="nuclear_intensity_mean",
+    ignore_fluo_threshold=0.2,
+    **kwargs,
 ):
     """
     Traverses input `feature_dataframe` (usually corresponding to a nuclear marker)
     of segmented features and uses the number of features per field-of-view to assign
     a nuclear cycle to the particle as per the specifications of a dictionary
     `num_nuclei_per_fov`. `feature_dataframe` is modified in-place to add a
-    "nuclear_cycle" column.
+    "nuclear_cycle" column. Additional kwargs are passed through to the peak
+    detection function used to estimate division frames (see documentation for
+    `determine_nuclear_cycle_frames`).
+    ..note::
+        Unless specified, a default parameter of `height` = 0.1, `distance` = 10 is
+        passed through to `determine_nuclear_cycle_frames` if triggering off of the number
+        of objects in the FOV. If triggering off of nuclear fluorescence, a default
+        parameter of `prominence` = 0.5 is used instead for peak detection.
 
     :param feature_dataframe: Dataframe with each row corresponding to a detected and
         segmented feature, and a column `frame` containing the corresponding frame.
@@ -99,10 +166,18 @@ def assign_nuclear_cycle(
         number of detected objects per FOV for a contiguous series of frames bounded
         by detected division waves. The ranges are specified in the form
         {nuclear_cycle: (lower bound, upper bound)}.
-    :param float height: Required height of peaks.
-    :param int distance: Required minimal horizontal distance (>= 1) in samples between
-        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
-        for all remaining peaks.
+    :param trigger_property: Image feature to use to determine the division frames. For
+        more extensive description, see documentation for `determine_nuclear_cycle_frames`.
+    :type trigger_property: {'num_objects', 'nuclear_fluorescence'}
+    :param bool invert: Invert `property_array` before using peak detection to mark
+        division frames. This is useful e.g. if we're triggering off of loss of nuclear
+        fluorescence during divisions. As of now this is only used if triggering off
+        of nuclear fluorescence.
+    :param str fluorescence_field: Name of field used to quantify fluorescence for division
+        frame assignment. Only used if `trigger_property` is set to "nuclear_fluorescence".
+    :param float ignore_fluo_threhold: Fraction of peak nuclear fluorescence below
+        which to ignore frames counting objects to avoid including spurious segmentation
+        during nuclear divisions. Setting to 1 is equivalent to no threshold.
     :return: Tuple(division_frames, nuclear_cycle)
         *`division_frames`: Numpy array of frame number (not index - the frames are
         1-indexed as per `trackpy`'s convention) of the detected division windows.
@@ -112,8 +187,35 @@ def assign_nuclear_cycle(
     :rtype: Tuple of Numpy arrays.
     """
     frames, num_objects = _number_detected_objects(feature_dataframe)
+
+    # Handle defaults for peak detection function
+    if trigger_property == "num_objects":
+        if "height" not in kwargs:
+            kwargs["height"] = 0.1
+        if "distance" not in kwargs:
+            kwargs["distance"] = 10
+        property_array = num_objects
+
+    elif trigger_property == "nuclear_fluorescence":
+        if "prominence" not in kwargs:
+            kwargs["prominence"] = 0.5
+        _, property_array = _norm_mean_nuclear_fluorescence(
+            feature_dataframe, fluorescence_field
+        )
+
+        # If triggering off of nuclear fluorescence, we can only trust the
+        # segmentation as long as frames with loss of fluorescence are excluded
+        # when taking the object count.
+        num_objects = num_objects.astype(float)
+        ignore_frames = property_array < ignore_fluo_threshold * (property_array.max())
+        num_objects[ignore_frames] = np.nan
+
     division_frames = determine_nuclear_cycle_frames(
-        frames, num_objects, height=height, distance=distance
+        frames,
+        property_array,
+        trigger_property=trigger_property,
+        invert=invert,
+        **kwargs,
     )
 
     division_indices = np.arange(frames.size)[np.isin(frames, division_frames)]
@@ -121,7 +223,7 @@ def assign_nuclear_cycle(
     division_split_indices = np.split(np.arange(frames.size), division_indices)
 
     median_num_objects_cycle = [
-        np.median(num_objects[cycle_indices])
+        np.nanmedian(num_objects[cycle_indices])
         for cycle_indices in division_split_indices
     ]
     nuclear_cycle = [
@@ -171,15 +273,16 @@ def segmentation_df(
     *,
     initial_frame_index=0,
     num_nuclei_per_fov=None,
-    division_peak_height=0.1,
-    min_time_between_divisions=10,
+    fluorescence_field="nuclear_intensity_mean",
     extra_properties=tuple(),
     extra_properties_callable=None,
     spacing=None,
+    **kwargs,
 ):
     """
     Constructs a trackpy-compatible pandas DataFrame for tracking from a
-    frame-indexed array of segmentation masks.
+    frame-indexed array of segmentation masks. Additional kwargs are passed through
+    to `assign_nuclear_cycle`.
 
     :param segmentation_mask: Integer-labelled segmentation, as returned by
         `scikit.segmentation.watershed`.
@@ -197,10 +300,8 @@ def segmentation_df(
         by detected division waves. The ranges are specified in the form
         {nuclear_cycle: (lower bound, upper bound)}. This can be passed as `None` (Default)
         to skip assigning nuclear cycles.
-    :param float height: Required height of peaks.
-    :param int distance: Required minimal horizontal distance (>= 1) in samples between
-        neighbouring peaks. Smaller peaks are removed first until the condition is fulfilled
-        for all remaining peaks.
+    :param str fluorescence_field: Name of field used to quantify fluorescence for division
+        frame assignment. Only used if `trigger_property` is set to "nuclear_fluorescence".
     :param extra_properties: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
@@ -283,8 +384,8 @@ def segmentation_df(
         division_frames, nuclear_cycle = assign_nuclear_cycle(
             movie_properties,
             num_nuclei_per_fov,
-            height=division_peak_height,
-            distance=min_time_between_divisions,
+            fluorescence_field=fluorescence_field,
+            **kwargs,
         )
     else:
         division_frames = None

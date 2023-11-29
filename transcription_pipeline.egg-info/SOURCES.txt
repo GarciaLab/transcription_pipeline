@@ -23,6 +23,7 @@ transcription_pipeline/spot_analysis/compile_data.py
 transcription_pipeline/spot_analysis/detection.py
 transcription_pipeline/spot_analysis/fitting.py
 transcription_pipeline/spot_analysis/track_filtering.py
+transcription_pipeline/step_detection/potts_l1.py
 transcription_pipeline/tracking/__init__.py
 transcription_pipeline/tracking/detect_mitosis.py
 transcription_pipeline/tracking/track_features.py

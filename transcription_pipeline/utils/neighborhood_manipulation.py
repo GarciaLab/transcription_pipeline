@@ -69,7 +69,7 @@ def extract_neighborhood(image, coordinates, span):
     pixel_span = np.floor(np.asarray(span) / 2).astype(int)
     coordinates_start = pixel_coordinates - pixel_span
 
-    if np.all(coordinates_start > 0):
+    if np.all(coordinates_start >= 0):
         box_dimensions = pixel_span * 2 + 1
         box_indices = tuple((np.indices(box_dimensions).T + coordinates_start).T)
     

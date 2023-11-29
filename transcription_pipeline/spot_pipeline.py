@@ -565,8 +565,10 @@ class Spot:
 
         # A second tracking allows tracking to occur without distraction from spurious
         # particles that end up getting culled anyway - this allows for use of a larger
-        # search radius and memory parameter if desired.
-        if self.retrack_after_filter:
+        # search radius and memory parameter if desired. This is only used if nuclear
+        # labels are not provided, otherwise the spot tracking is not actually used to
+        # assign particle IDs.
+        if self.retrack_after_filter and (self.labels is not None):
             filtered_dataframe = self.spot_dataframe[self.spot_dataframe["particle"] != 0].copy()
             
             track_filtering.track_and_filter_spots(
