@@ -51,6 +51,7 @@ def choose_spot_analysis_parameters(
     velocity_averaging,
     min_track_length,
     filter_multiple,
+    retrack_pos_columns,
     retrack_search_range_um,
     retrack_memory,
     retrack_min_track_length,
@@ -106,6 +107,9 @@ def choose_spot_analysis_parameters(
         trackable for in order to be considered in the analysis.
     :param bool filter_multiple: Decide whether or not to enforce a single-spot
         limit for each nucleus.
+    :param retrack_pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type retrack_pos_columns: list of DataFrame column names
     :param float retrack_search_range_um: The maximum distance features in microns can move
         between frames during the second tracking (after filtering by track length).
     :param int retrack_memory: The maximum number of frames during which a feature can vanish,
@@ -230,7 +234,7 @@ def choose_spot_analysis_parameters(
         "expand_distance": expand_distance,
         "search_range": retrack_search_range_um,
         "memory": retrack_memory,
-        "pos_columns": pos_columns,
+        "pos_columns": retrack_pos_columns,
         "t_column": "frame_reverse",
         "velocity_predict": True,
         "velocity_averaging": velocity_averaging,
@@ -313,6 +317,9 @@ class Spot:
         trackable for in order to be considered in the analysis.
     :param bool retrack_after_filter: Performs a second tracking after initial filtering
         to avoid tracking getting "distracted" by spurious spots.
+    :param retrack_pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type retrack_pos_columns: list of DataFrame column names
     :param float retrack_search_range_um: The maximum distance features in microns can move
         between frames during second tracking.
     :param int retrack_memory: The maximum number of frames during which a feature can vanish,
@@ -406,6 +413,7 @@ class Spot:
         velocity_averaging=None,
         min_track_length=4,
         retrack_after_filter=True,
+        retrack_pos_columns=["y", "x"],
         retrack_search_range_um=4.2,
         retrack_memory=6,
         retrack_min_track_length=4,
@@ -441,6 +449,7 @@ class Spot:
             self.velocity_averaging = velocity_averaging
             self.min_track_length = min_track_length
             self.retrack_after_filter = retrack_after_filter
+            self.retrack_pos_columns = retrack_pos_columns
             self.filter_multiple = filter_multiple
             self.retrack_search_range_um = retrack_search_range_um
             self.retrack_memory = retrack_memory
@@ -471,6 +480,7 @@ class Spot:
                 velocity_averaging=self.velocity_averaging,
                 min_track_length=self.min_track_length,
                 filter_multiple=self.filter_multiple,
+                retrack_pos_columns=self.retrack_pos_columns,
                 retrack_search_range_um=self.retrack_search_range_um,
                 retrack_memory=self.retrack_memory,
                 retrack_min_track_length=self.retrack_min_track_length,
