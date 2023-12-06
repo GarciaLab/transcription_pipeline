@@ -1,5 +1,6 @@
 from ..utils import label_manipulation
 import numpy as np
+from scipy import stats
 from ..tracking import track_features
 from ..tracking.track_features import _reverse_segmentation_df
 
@@ -285,6 +286,137 @@ def filter_multiple_spots(spot_dataframe, *, choose_by, min_or_max):
     return None
 
 
+def _compile_trace(
+    tracked_dataframe,
+    particle,
+    min_points=5,
+    quantification="intensity_from_neighborhood",
+):
+    """Returns an array of successive differences in intensity traces."""
+    # Compile trace
+    trace_dataframe = tracked_dataframe[
+        tracked_dataframe["particle"] == particle
+    ].copy()
+    trace_dataframe = trace_dataframe.sort_values("t_s")
+
+    # Filter stubs
+    if trace_dataframe.index.size < min_points:
+        return np.array([])
+
+    # Calculate successive differences across trace
+    intensity_series = trace_dataframe[quantification]
+    differences = np.ediff1d(intensity_series.values)
+
+    return differences
+
+
+def compile_successive_differences(
+    tracked_dataframe, min_points=5, quantification="intensity_from_neighborhood"
+):
+    """
+    Compiles as a single array all successive differences in quantitation
+    values of tracked traces.
+    :param tracked_dataframe: DataFrame containing information about detected,
+        filtered and tracked spots.
+    :type tracked_dataframe: pandas DataFrame
+    :param int min_points: Minimum number of data points for a trace to be
+        considered when compiling successive differences.
+    :param str quantification: Name of dataframe column containing quantification to use
+        when compiling successive differences along a trace. Defaults to
+        `intensity_from_neighborhood`.
+    :return: Pooled array of all successive differences along all traces.
+    :rtype: Numpy array.
+    """
+    # Find all unique particles
+    particles = np.sort(np.trim_zeros(tracked_dataframe["particle"].unique()))
+
+    # Compile all successive differences
+    differences = np.array([])
+    for particle in particles:
+        differences = np.append(
+            differences,
+            _compile_trace(
+                tracked_dataframe,
+                particle,
+                min_points=min_points,
+                quantification=quantification,
+            ),
+        )
+
+    return differences
+
+
+def successive_differences_quartile(
+    tracked_dataframe, min_points=5, quantification="intensity_from_neighborhood"
+):
+    """
+    Estimates the .84-quantile of successive differences in intensity across
+    all tracked traces. We pick .84 arbitrarily as a robust estimator of
+    the standard deviation - this can be used downstream to set an "exchange
+    rate" between spatial proximity and similarity in intensity when tracking
+    spots.
+
+    :param tracked_dataframe: DataFrame containing information about detected,
+        filtered and tracked spots.
+    :type tracked_dataframe: pandas DataFrame
+    :param int min_points: Minimum number of data points for a trace to be
+        considered when compiling successive differences.
+    :param str quantification: Name of dataframe column containing quantification to use
+        when compiling successive differences along a trace. Defaults to
+        `intensity_from_neighborhood`.
+    :return: Pooled array of all successive differences along all traces.
+    :rtype: Numpy array
+    """
+    all_differences = compile_successive_differences(
+        tracked_dataframe, min_points=min_points, quantification=quantification
+    )
+    quantile = np.quantile(all_differences, 0.84)
+    return quantile
+
+
+def normalized_variation_intensity(
+    tracked_dataframe,
+    normalize_quantile_to=1,
+    min_points=5,
+    quantification="intensity_from_neighborhood",
+):
+    """
+    Given a preliminary spot tracking, this normalizes the intensity quantification of
+    the spots so that the .84-quantile  of the successive difference in intensity
+    across all tracked traces is `normalize_quantile_to`. This can be used to set the
+    weight assigned to intensity when re-tracking (i.e. intensity is added as an extra
+    spatial dimension so that spots with wild jumps in intensity are less likely to be
+    linked). Note that the .84-quantile is chosen arbitrarily as a robust estimator
+    of the standard deviation of a normal distribution.
+
+    :param tracked_dataframe: DataFrame containing information about detected,
+        filtered and tracked spots.
+    :type tracked_dataframe: pandas DataFrame
+    :param float normalize_quantile_to_1: Target value of .84-quantile of successive
+        differences in intensity across traces after normalization. This can essentially
+        be used to set the "exchange rate" between spatial proximity and similarity in
+        intensity (i.e. when tracking, differing in intensity by the .84-quantile
+        is penalized as much as being separated by `normalize_quantile_to` from a
+        candidate point in the next frame).
+    :param int min_points: Minimum number of data points for a trace to be
+        considered when compiling successive differences.
+    :param str quantification: Name of dataframe column containing quantification to use
+        when compiling successive differences along a trace. Defaults to
+        `intensity_from_neighborhood`.
+    :return: Normalized intensity as per function description above.
+    :rtype: pandas Series
+    """
+    quantile = successive_differences_quartile(
+        tracked_dataframe, min_points=min_points, quantification=quantification
+    )
+
+    normalized_intensity = (
+        tracked_dataframe[quantification] / quantile
+    ) * normalize_quantile_to
+
+    return normalized_intensity
+
+
 def track_and_filter_spots(
     spot_dataframe,
     *,
@@ -301,8 +433,13 @@ def track_and_filter_spots(
     velocity_averaging=None,
     min_track_length=3,
     filter_multiple=True,
-    choose_by="amplitude",
+    choose_by="intensity_from_neighborhood",
     min_or_max="maximize",
+    filter_negative=True,
+    quantification="intensity_from_neighborhood",
+    track_by_intensity=False,
+    normalize_quantile_to=1,
+    min_track_length_intensity=5,
     client=None,
     **kwargs,
 ):
@@ -364,6 +501,26 @@ def track_and_filter_spots(
     :param min_or_max: Sets whether the spots are chosen so as to maximize or minimize
         the value in the column prescribed by `choose_by`.
     :type min_or_max: {"minimize", "maximize"}
+    :param bool filter_negative: Ignores datapoints where the spot quantification
+        goes negative - as long as we are looking at background-subtracted intensity,
+        negative values are clear mistrackings/misquantifications.
+    :param str quantification: Name of dataframe column containing quantification to use
+        if filtering by negatives or filtering multiple nuclear spots by intensity.
+        Defaults to `intensity_from_neighborhood`.
+    :param bool track_by_intensity: If `True`, this will attempt to use a preliminary
+        spot tracking to use the variation of intensity across traces to help spot
+        tracking (i.e. spots with wild jumps in intensity are less likely to be linked
+        across frames). See documentation for `normalized_variation_intensity` for
+        details.
+    :param float normalize_quantile_to: Target value of .84-quantile of successive
+        differences in intensity across traces after normalization. This can essentially
+        be used to set the "exchange rate" between spatial proximity and similarity in
+        intensity (i.e. when tracking, differing in intensity by the .84-quantile
+        is penalized as much as being separated by `normalize_quantile_to` from a
+        candidate point in the next frame) - the higher the value use, the less tolerant
+        tracking is of large variations in intensity.
+    :param int min_track_length_intensity: Minimum number of data points for a trace to be
+        considered when compiling successive differences for intensity-based retracking.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: None
@@ -381,6 +538,22 @@ def track_and_filter_spots(
     )
     spot_df = spot_df[spot_df["include_spot_by_sigma"]]
 
+    # If quantification is available, we can filter out spots that have a negative
+    # intensity since those are mistrackings/misquantifications.
+    if filter_negative:
+        try:
+            positive_filter = spot_df[quantification] > 0
+            spot_df = spot_df[positive_filter]
+        except KeyError:
+            warnings.warn(
+                "".join(
+                    [
+                        "Could not find requested quantification column, ",
+                        "skipping filtering negative-intensity spots.",
+                    ]
+                )
+            )
+
     # Transfer nuclear labels if provided
     if nuclear_labels is not None:
         transfer_nuclear_labels(
@@ -394,12 +567,36 @@ def track_and_filter_spots(
         # Make subdataframe excluding extranuclear spots
         spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
 
+    # Add normalized intensity if intensity-based tracking is requested
+    retrack_pos_columns = pos_columns.copy()
+    if track_by_intensity:
+        try:
+            normalized_intensity = normalized_variation_intensity(
+                spot_df,
+                normalize_quantile_to=normalize_quantile_to,
+                min_points=min_track_length_intensity,
+                quantification=quantification,
+            )
+
+            spot_df["normalized_intensity"] = normalized_intensity
+            retrack_pos_columns.append("normalized_intensity")
+
+        except KeyError:
+            warnings.warn(
+                "".join(
+                    [
+                        "Could not normalize intensity for retracking, ",
+                        "check previous tracking and intensity quantification.",
+                    ]
+                )
+            )
+
     # Track remaining spots
     tracked_spots_df = track_spots(
         spot_df.copy(),
         search_range=search_range,
         memory=memory,
-        pos_columns=pos_columns,
+        pos_columns=retrack_pos_columns,
         t_column=t_column,
         velocity_predict=velocity_predict,
         velocity_averaging=velocity_averaging,

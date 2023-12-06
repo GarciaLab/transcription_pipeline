@@ -54,6 +54,8 @@ def choose_spot_analysis_parameters(
     retrack_search_range_um,
     retrack_memory,
     retrack_min_track_length,
+    retrack_by_intensity,
+    retrack_intensity_normalize_quantile,
     num_bootstraps,
     integrate_sigma_multiple,
     keep_bandpass,
@@ -112,6 +114,18 @@ def choose_spot_analysis_parameters(
     :param int retrack_min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis during the second tracking
         (after filtering by track length
+    :param bool retrack_by_intensity: If `True`, this will attempt to use a preliminary
+        spot tracking to use the variation of intensity across traces to help spot
+        tracking (i.e. spots with wild jumps in intensity are less likely to be linked
+        across frames). See documentation for `normalized_variation_intensity` for
+        details.
+    :param float retrack_intensity_normalize_quantile: Target value of .84-quantile of
+        successive differences in intensity across traces after normalization. This can
+        essentially be used to set the "exchange rate" between spatial proximity and
+        similarity in intensity (i.e. when tracking, differing in intensity by the
+        .84-quantile is penalized as much as being separated by `normalize_quantile_to` from
+        a candidate point in the next frame) - the higher the value use, the less tolerant
+        tracking is of large variations in intensity.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
     :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
@@ -190,6 +204,7 @@ def choose_spot_analysis_parameters(
     # explicitly passes along with an appropriate search range. We also use a default
     # `memory` parameter of 4 with `trackpy` (nuclear tracking uses a value of 1)
     # since spots move out of focus more easily.
+
     track_and_filter_spots_params = {
         "sigma_x_y_bounds": np.asarray(spot_sigma_x_y_bounds) / mppY,
         "sigma_z_bounds": np.asarray(spot_sigma_z_bounds) / mppZ,
@@ -202,8 +217,11 @@ def choose_spot_analysis_parameters(
         "velocity_averaging": velocity_averaging,
         "min_track_length": min_track_length,
         "filter_multiple": filter_multiple,
-        "choose_by": "amplitude",
+        "choose_by": "intensity_from_neighborhood",
         "min_or_max": "maximize",
+        "filter_negative": True,
+        "quantification": "intensity_from_neighborhood",
+        "track_by_intensity": False,
     }
 
     retrack_spots_params = {
@@ -217,9 +235,11 @@ def choose_spot_analysis_parameters(
         "velocity_predict": True,
         "velocity_averaging": velocity_averaging,
         "min_track_length": retrack_min_track_length,
-        "filter_multiple": filter_multiple,
-        "choose_by": "amplitude",
-        "min_or_max": "maximize",
+        "filter_multiple": False,
+        "filter_negative": False,
+        "track_by_intensity": retrack_by_intensity,
+        "normalize_quantile_to": retrack_intensity_normalize_quantile,
+        "min_track_length_intensity": retrack_min_track_length,
     }
 
     default_params = {
@@ -291,6 +311,26 @@ class Spot:
     :param int averaging: Number of frames to average velocity over.
     :param int min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis.
+    :param bool retrack_after_filter: Performs a second tracking after initial filtering
+        to avoid tracking getting "distracted" by spurious spots.
+    :param float retrack_search_range_um: The maximum distance features in microns can move
+        between frames during second tracking.
+    :param int retrack_memory: The maximum number of frames during which a feature can vanish,
+        then reppear nearby, and be considered the same particle during second tracking.
+    :param int retrack_min_track_length: Minimum number of timepoints a spot has to be
+        trackable for in order to be considered in the analysis during second tracking.
+    :param bool retrack_by_intensity: If `True`, this will attempt to use a preliminary
+        spot tracking to use the variation of intensity across traces to help spot
+        tracking (i.e. spots with wild jumps in intensity are less likely to be linked
+        across frames). See documentation for `normalized_variation_intensity` for
+        details.
+    :param float retrack_intensity_normalize_quantile: Target value of .84-quantile of
+        successive differences in intensity across traces after normalization. This can
+        essentially be used to set the "exchange rate" between spatial proximity and
+        similarity in intensity (i.e. when tracking, differing in intensity by the
+        .84-quantile is penalized as much as being separated by `normalize_quantile_to` from
+        a candidate point in the next frame) - the higher the value use, the less tolerant
+        tracking is of large variations in intensity.
     :param bool filter_multiple: Decide whether or not to enforce a single-spot
         limit for each nucleus.
     :param list series_splits: list of first frame of each series. This is useful
@@ -369,6 +409,8 @@ class Spot:
         retrack_search_range_um=4.2,
         retrack_memory=6,
         retrack_min_track_length=4,
+        retrack_by_intensity=False,
+        retrack_intensity_normalize_quantile=0.35,
         filter_multiple=True,
         series_splits=None,
         series_shifts=None,
@@ -403,6 +445,10 @@ class Spot:
             self.retrack_search_range_um = retrack_search_range_um
             self.retrack_memory = retrack_memory
             self.retrack_min_track_length = retrack_min_track_length
+            self.retrack_by_intensity = retrack_by_intensity
+            self.retrack_intensity_normalize_quantile = (
+                retrack_intensity_normalize_quantile
+            )
             self.series_splits = series_splits
             self.series_shifts = series_shifts
             self.dog_sigma_ratio = dog_sigma_ratio
@@ -428,6 +474,8 @@ class Spot:
                 retrack_search_range_um=self.retrack_search_range_um,
                 retrack_memory=self.retrack_memory,
                 retrack_min_track_length=self.retrack_min_track_length,
+                retrack_by_intensity=self.retrack_by_intensity,
+                retrack_intensity_normalize_quantile=self.retrack_intensity_normalize_quantile,
                 num_bootstraps=self.num_bootstraps,
                 integrate_sigma_multiple=self.integrate_sigma_multiple,
                 keep_bandpass=self.keep_bandpass,
@@ -568,9 +616,11 @@ class Spot:
         # search radius and memory parameter if desired. This is only used if nuclear
         # labels are not provided, otherwise the spot tracking is not actually used to
         # assign particle IDs.
-        if self.retrack_after_filter and (self.labels is not None):
-            filtered_dataframe = self.spot_dataframe[self.spot_dataframe["particle"] != 0].copy()
-            
+        if self.retrack_after_filter and (self.labels is None):
+            filtered_dataframe = self.spot_dataframe[
+                self.spot_dataframe["particle"] != 0
+            ].copy()
+
             track_filtering.track_and_filter_spots(
                 filtered_dataframe,
                 nuclear_labels=self.labels,

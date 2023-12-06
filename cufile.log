@@ -1,0 +1,8 @@
+ 11-08-2023 14:55:25:433 [pid=1951039 tid=1951039] ERROR  cufio:439 cuInit Failed, error CUDA_ERROR_UNKNOWN
+ 11-08-2023 14:55:25:433 [pid=1951039 tid=1951039] ERROR  cufio:538 cuFile initialization failed
+ 24-08-2023 16:41:43:345 [pid=514902 tid=514902] NOTICE  cufio-drv:636 running in compatible mode
+ 05-09-2023 12:30:54:423 [pid=1539653 tid=1539653] NOTICE  cufio-drv:636 running in compatible mode
+ 05-09-2023 12:31:20:523 [pid=1539763 tid=1539763] NOTICE  cufio-drv:636 running in compatible mode
+ 05-09-2023 17:25:13:477 [pid=1548838 tid=1548838] NOTICE  cufio-drv:636 running in compatible mode
+ 05-09-2023 17:26:34:223 [pid=1548990 tid=1548990] NOTICE  cufio-drv:636 running in compatible mode
+ 05-09-2023 18:01:40:95 [pid=1552490 tid=1552490] NOTICE  cufio-drv:636 running in compatible mode
