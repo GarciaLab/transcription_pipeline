@@ -347,6 +347,8 @@ class Spot:
         0.5*`retrack_search_range_um` is used.
     :param int stitch_max_frame_distance: Maximum number of frames between tracks with no
         points from either tracks that still allows for stitching to occur.
+    :param int frames_mean: Number of frames to average over when estimating the mean
+        position of the start and end of candidate tracks to stitch together.
     :param list series_splits: list of first frame of each series. This is useful
            when stitching together z-coordinates to improve tracking when the z-stack
            has been shifted mid-imaging.
@@ -430,6 +432,7 @@ class Spot:
         stitch=True,
         stitch_max_distance=None,
         stitch_max_frame_distance=3,
+        stitch_frames_mean=4,
         series_splits=None,
         series_shifts=None,
         dog_sigma_ratio=1.6,
@@ -461,9 +464,10 @@ class Spot:
             self.retrack_after_filter = retrack_after_filter
             self.retrack_pos_columns = retrack_pos_columns
             self.filter_multiple = filter_multiple
-            self.stitch = (stitch,)
+            self.stitch = stitch
             self.stitch_max_distance = stitch_max_distance
-            self.stich_max_frame_distance = stitch_frame_distance
+            self.stitch_max_frame_distance = stitch_max_frame_distance
+            self.stitch_frames_mean = stitch_frames_mean
             self.retrack_search_range_um = retrack_search_range_um
             self.retrack_memory = retrack_memory
             self.retrack_min_track_length = retrack_min_track_length
@@ -657,14 +661,16 @@ class Spot:
             ] = filtered_dataframe["particle"]
 
         if self.stitch:
+            print("Stitching tracks.")
             if self.stitch_max_distance is None:
                 self.stitch_max_distance = 0.5*self.search_range_um
                 
-            stitch_tracks(
+            stitch_tracks.stitch_tracks(
                 self.spot_dataframe,
-                self.pos_columns,
+                self.retrack_pos_columns,
                 self.stitch_max_distance,
-                self.max_frame_distance,
+                self.stitch_max_frame_distance,
+                self.stitch_frames_mean,
                 quantification=self.default_params["track_and_filter_spots_params"][
                     "quantification"
                 ],

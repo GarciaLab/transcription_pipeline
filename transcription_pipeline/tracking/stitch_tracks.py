@@ -53,7 +53,11 @@ def remove_duplicates(tracked_dataframe, quantification="intensity_from_neighbor
 
 
 def construct_stitch_dataframe(
-    tracked_dataframe, pos_columns, max_distance, max_frame_distance
+    tracked_dataframe,
+    pos_columns,
+    max_distance,
+    max_frame_distance,
+    frames_mean=4,
 ):
     """
     :param tracked_dataframe: DataFrame containing information about detected,
@@ -66,6 +70,8 @@ def construct_stitch_dataframe(
         that still allows for stitching to occur.
     :param int max_frame_distance: Maximum number of frames between tracks with no
         points from either tracks that still allows for stitching to occur.
+    :param int frames_mean: Number of frames to average over when estimating the mean
+        position of the start and end of candidate tracks to stitch together.
     :return: DataFrame with columns {`preliminary_particles`, `nearest_neighbor`,
         `distance`, `frame_overlap`, `frame_distance`}.
         *`preliminary_particles`: Particle ID of tracked particles in `tracked_dataframe`.
@@ -84,112 +90,115 @@ def construct_stitch_dataframe(
     particles = np.sort(np.trim_zeros(tracked_dataframe["particle"].unique()))
     stitch_dataframe["preliminary_particles"] = particles
 
-    # Calculate the mean position for each trace across all timepoints.
-    def _mean_trace_position(particle_row, pos):
+    # Calculate the mean position for start and end of each trace.
+    def _mean_trace_position(particle_row, pos, frames_mean, section):
         """
-        Calculates mean position across all timepoints in a trace for a given
-        particle.
+        Calculates mean position over `frames_mean` frames at the start or
+        end of a track depending on whether `section` is set to "start" or
+        "end" respectively.
         """
         particle_sub_df = tracked_dataframe[
             tracked_dataframe["particle"] == particle_row["preliminary_particles"]
-        ]
-        return particle_sub_df[pos].mean()
+        ].sort_values("t_s")
+        track_pos = particle_sub_df[pos]
+
+        if track_pos.size > frames_mean:
+            mean_pos = track_pos.mean()
+        else:
+            if section == "end":
+                mean_pos = track_pos[-frames_mean:].mean()
+            elif section == "start":
+                mean_pos = track_pos[:frames_mean].mean()
+            else:
+                raise ValueError("Could not recognize `section` parameter.")
+
+        return mean_pos
 
     for pos in pos_columns:
-        column = "".join(["mean_", pos])
+        column = "".join(["start_", pos])
         stitch_dataframe[column] = stitch_dataframe.apply(
-            _mean_trace_position, args=(pos,), axis=1
+            _mean_trace_position, args=(pos, frames_mean, "start"), axis=1
         )
 
-    # Now we can start to decide whether to link traces or not. We can set this
-    # up as a simple series of steps:
-    ##  1. Find the nearest neighbor of a particle, and check whether it is
-    ## within an appropriate radius is mean position.
-    ## 2. If within an appropriate radius, check the overlapping number of frames.
-    ## We expect this to be at most 1 for mistrackings due to spurious particle
-    ## assignments.
-    ## 3. If overlap is 1, we are done. If the overlap is >1, the linking is
-    ## rejected. If there is no overlap, check whether the distance in time
-    ## is acceptable (earlier traces ends within a few frames of start of first
-    ## frame).
+        column = "".join(["end_", pos])
+        stitch_dataframe[column] = stitch_dataframe.apply(
+            _mean_trace_position, args=(pos, frames_mean, "end"), axis=1
+        )
 
-    def _nearest_neighbor(particle):
+    # Pull first and last frame of each particle
+    def _first_last_frames(particle_row):
+        """Pulls the first and last frame."""
+        particle_sub_df = tracked_dataframe[
+            tracked_dataframe["particle"] == particle_row["preliminary_particles"]
+        ]
+        first_frame = particle_sub_df["frame"].min()
+        last_frame = particle_sub_df["frame"].max()
+
+        return first_frame, last_frame
+
+    stitch_dataframe[["first_frame", "last_frame"]] = stitch_dataframe.apply(
+        _first_last_frames, axis=1, result_type="expand"
+    )
+
+    # Find the nearest-neighbor that starts within a few frames of the
+    # current particle.
+    def _nearest_neighbor(particle_row):
         """
         Finds and computes the distance to the nearest neighbor.
         """
-        mean_pos_columns = ["".join(["mean_", pos]) for pos in pos_columns]
+        particle = particle_row["preliminary_particles"]
+
+        # Pull end position of current track
+        end_pos_columns = ["".join(["end_", pos]) for pos in pos_columns]
         particle_pos = stitch_dataframe.loc[
-            stitch_dataframe["preliminary_particles"] == particle, mean_pos_columns
+            stitch_dataframe["preliminary_particles"] == particle, end_pos_columns
         ]
 
-        displacement = stitch_dataframe[mean_pos_columns] - particle_pos.values
+        # Look at distance of start point of other tracks from end point of
+        # current track.
+        start_pos_columns = ["".join(["start_", pos]) for pos in pos_columns]
+        displacement = stitch_dataframe[start_pos_columns] - particle_pos.values
 
         distance = ((displacement**2).sum(axis=1)) ** 0.5
 
-        nearest_neighbor_idx = distance[
-            stitch_dataframe["preliminary_particles"] != particle
-        ].idxmin()
-        nearest_neighbor = stitch_dataframe["preliminary_particles"].iloc[
-            nearest_neighbor_idx
-        ]
-        nearest_neighbor_distance = distance.iloc[nearest_neighbor_idx]
-        return nearest_neighbor, nearest_neighbor_distance
-
-    def _frame_overlap_nearest_neighbor(particle_row):
-        """
-        Computes the number of overlapping frames with the mean-position
-        nearest-neighbor. If there is no overlap, computes the number
-        of frames separating the two traces (defined as the difference
-        between the frame in which the earlier trace disappears and the
-        frame in which the later trace first appears).
-        """
-        particle = particle_row["preliminary_particles"]
-
-        nearest_neighbor, nearest_neighbor_distance = _nearest_neighbor(particle)
-        time_vector_particle = tracked_dataframe.loc[
-            tracked_dataframe["particle"] == particle, "frame"
-        ].values
-        time_vector_nn = tracked_dataframe.loc[
-            tracked_dataframe["particle"] == nearest_neighbor, "frame"
-        ].values
-
-        frame_overlap = np.isin(time_vector_particle, time_vector_nn).sum()
-
-        if frame_overlap == 0:
-            if time_vector_particle.min() < time_vector_nn.min():
-                frame_distance = time_vector_nn.min() - time_vector_particle.max()
-            else:
-                frame_distance = time_vector_particle.min() - time_vector_nn.max()
-
-        else:
-            frame_distance = 0
-
-        return (
-            nearest_neighbor,
-            nearest_neighbor_distance,
-            frame_overlap,
-            frame_distance,
+        # Mask all tracks that have consistent start times with the end of
+        # the current track.
+        start_end_difference = (
+            stitch_dataframe["first_frame"]
+            - stitch_dataframe.loc[
+                stitch_dataframe["preliminary_particles"] == particle, "last_frame"
+            ].values
+        )
+        start_end_mask = (start_end_difference >= 0) & (
+            start_end_difference <= max_frame_distance
         )
 
-    stitch_dataframe[
-        ["nearest_neighbor", "distance", "frame_overlap", "frame_distance"]
-    ] = stitch_dataframe.apply(
-        _frame_overlap_nearest_neighbor, axis=1, result_type="expand"
+        distance_df = distance[
+            (stitch_dataframe["preliminary_particles"] != particle) & start_end_mask
+        ]
+        if distance_df.size > 0:
+            nearest_neighbor_idx = distance_df.idxmin()
+
+            nearest_neighbor = stitch_dataframe["preliminary_particles"].iloc[
+                nearest_neighbor_idx
+            ]
+            nearest_neighbor_distance = distance.iloc[nearest_neighbor_idx]
+
+        else:
+            nearest_neighbor = 0
+            nearest_neighbor_distance = np.inf
+
+        return nearest_neighbor, nearest_neighbor_distance
+
+    stitch_dataframe[["nearest_neighbor", "distance"]] = stitch_dataframe.apply(
+        _nearest_neighbor, axis=1, result_type="expand"
     )
 
     stitch_dataframe["nearest_neighbor"] = stitch_dataframe["nearest_neighbor"].astype(
         int
     )
 
-    # We can now decide whether to link traces to their nearest neighbor.
-    distance, frame_overlap, frame_distance = stitch_dataframe[
-        ["distance", "frame_overlap", "frame_distance"]
-    ].T.to_numpy()
-
-    link_mask = (distance < max_distance) & (
-        (frame_overlap == 1)
-        | ((frame_overlap == 0) & (frame_distance < max_frame_distance))
-    )
+    link_mask = stitch_dataframe["distance"] < max_distance
 
     stitch_dataframe["link"] = link_mask
 
@@ -201,10 +210,15 @@ def stitch_tracks(
     pos_columns,
     max_distance,
     max_frame_distance,
+    frames_mean=4,
     quantification="intensity_from_neighborhood",
     inplace=False,
 ):
     """
+    Stitches together tracks depending on proximity in time (start time of candidate
+    track to stich relative to end time of a given track) and space (position averaged
+    over a few frames at the end of given track relative to start of candidate track).
+    
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots.
     :type tracked_dataframe: pandas DataFrame
@@ -215,6 +229,8 @@ def stitch_tracks(
         that still allows for stitching to occur.
     :param int max_frame_distance: Maximum number of frames between tracks with no
         points from either tracks that still allows for stitching to occur.
+    :param int frames_mean: Number of frames to average over when estimating the mean
+        position of the start and end of candidate tracks to stitch together.
     :param str quantification: Name of dataframe column containing quantification to use
         when compiling successive differences along a trace. Defaults to
         `intensity_from_neighborhood`.
@@ -232,7 +248,7 @@ def stitch_tracks(
 
     # Construct stitching dataframe
     stitch_dataframe = construct_stitch_dataframe(
-        tracked_df, pos_columns, max_distance, max_frame_distance
+        tracked_df, pos_columns, max_distance, max_frame_distance, frames_mean
     )
 
     linking_sub_df = stitch_dataframe[stitch_dataframe["link"]]
