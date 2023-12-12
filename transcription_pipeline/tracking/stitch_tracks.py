@@ -83,11 +83,15 @@ def construct_stitch_dataframe(
         and the beginning of the later track if there is no overlapping frame.
     :rtype: pandas DataFrame
     """
+    # Only consider filtered particles
+    filtered_mask = tracked_dataframe["particle"] != 0
+    filtered_dataframe = tracked_dataframe[filtered_mask].copy()
+
     # We keep stitching information in a pandas DataFrame
     stitch_dataframe = pd.DataFrame()
 
     # Find all unique particles
-    particles = np.sort(np.trim_zeros(tracked_dataframe["particle"].unique()))
+    particles = np.sort(np.trim_zeros(filtered_dataframe["particle"].unique()))
     stitch_dataframe["preliminary_particles"] = particles
 
     # Calculate the mean position for start and end of each trace.
@@ -97,8 +101,8 @@ def construct_stitch_dataframe(
         end of a track depending on whether `section` is set to "start" or
         "end" respectively.
         """
-        particle_sub_df = tracked_dataframe[
-            tracked_dataframe["particle"] == particle_row["preliminary_particles"]
+        particle_sub_df = filtered_dataframe[
+            filtered_dataframe["particle"] == particle_row["preliminary_particles"]
         ].sort_values("t_s")
         track_pos = particle_sub_df[pos]
 
@@ -128,8 +132,8 @@ def construct_stitch_dataframe(
     # Pull first and last frame of each particle
     def _first_last_frames(particle_row):
         """Pulls the first and last frame."""
-        particle_sub_df = tracked_dataframe[
-            tracked_dataframe["particle"] == particle_row["preliminary_particles"]
+        particle_sub_df = filtered_dataframe[
+            filtered_dataframe["particle"] == particle_row["preliminary_particles"]
         ]
         first_frame = particle_sub_df["frame"].min()
         last_frame = particle_sub_df["frame"].max()
@@ -142,12 +146,11 @@ def construct_stitch_dataframe(
 
     # Find the nearest-neighbor that starts within a few frames of the
     # current particle.
-    def _nearest_neighbor(particle_row):
+    def _nearest_neighbor_iter(particle, max_frame_distance_iter):
         """
-        Finds and computes the distance to the nearest neighbor.
+        Finds and computes the distance to the nearest neighbor that starts at most
+        `max_frame_distance_iter` from the end of the current particle.
         """
-        particle = particle_row["preliminary_particles"]
-
         # Pull end position of current track
         end_pos_columns = ["".join(["end_", pos]) for pos in pos_columns]
         particle_pos = stitch_dataframe.loc[
@@ -170,7 +173,7 @@ def construct_stitch_dataframe(
             ].values
         )
         start_end_mask = (start_end_difference >= 0) & (
-            start_end_difference <= max_frame_distance
+            start_end_difference <= max_frame_distance_iter
         )
 
         distance_df = distance[
@@ -187,6 +190,26 @@ def construct_stitch_dataframe(
         else:
             nearest_neighbor = 0
             nearest_neighbor_distance = np.inf
+
+        return nearest_neighbor, nearest_neighbor_distance
+
+    def _nearest_neighbor(particle_row):
+        """
+        Finds and computes the distance to the closest particle in time that is within
+        some radius of the current particle.
+        """
+        particle = particle_row["preliminary_particles"]
+
+        nearest_neighbor = 0
+        nearest_neighbor_distance = np.inf
+
+        for frame_distance in range(max_frame_distance):
+            nearest_neighbor, nearest_neighbor_distance = _nearest_neighbor_iter(
+                particle, frame_distance
+            )
+
+            if nearest_neighbor_distance < max_distance:
+                break
 
         return nearest_neighbor, nearest_neighbor_distance
 
@@ -218,7 +241,7 @@ def stitch_tracks(
     Stitches together tracks depending on proximity in time (start time of candidate
     track to stich relative to end time of a given track) and space (position averaged
     over a few frames at the end of given track relative to start of candidate track).
-    
+
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots.
     :type tracked_dataframe: pandas DataFrame
@@ -281,7 +304,7 @@ def stitch_tracks(
                 "preliminary_particles",
             ] = particle
 
-    stitch_dataframe.apply(_stitch_particle_track, axis=1)
+    linking_sub_df.apply(_stitch_particle_track, axis=1)
 
     remove_duplicates(tracked_df, quantification=quantification)
 
