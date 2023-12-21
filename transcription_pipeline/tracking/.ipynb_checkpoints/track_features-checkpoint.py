@@ -259,8 +259,13 @@ def _reverse_segmentation_df(segmentation_df):
     )
 
     max_t_frame = segmentation_df["t_frame"].max()
+    reverse_t_frame = (
+        lambda row: np.nan
+        if np.isnan(row["t_frame"])
+        else int(max_t_frame - row["t_frame"])
+    )
     segmentation_df["t_frame_reverse"] = segmentation_df.apply(
-        lambda row: int(max_t_frame - row["t_frame"]),
+        reverse_t_frame,
         axis=1,
     )
     return None
@@ -366,14 +371,23 @@ def segmentation_df(
 
     movie_properties.rename(rename_columns, axis=1, inplace=True)
 
-    # Add imaging time for each particle
+    # Add imaging time for each particle. The if-else statment is required to avoid
+    # errors due to single-pixel labels that throw np.nan when the centroid is requested.
     time = process_metadata.extract_time(frame_metadata)[0]
-    time_apply = lambda row: time(int(row["original_frame"]), row["z"])
+    time_apply = (
+        lambda row: np.nan
+        if np.isnan(row["z"])
+        else time(int(row["original_frame"]), row["z"])
+    )
     movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
 
-    # Add imaging time in number of frames for each particles
+    # Add imaging time in number of frames for each particles.
     time_frame = process_metadata.extract_renormalized_frame(frame_metadata)
-    time_frame_apply = lambda row: time_frame(int(row["original_frame"]), row["z"])
+    time_frame_apply = (
+        lambda row: np.nan
+        if np.isnan(row["z"])
+        else time_frame(int(row["original_frame"]), row["z"])
+    )
     movie_properties["t_frame"] = movie_properties.apply(time_frame_apply, axis=1)
 
     # Add columns with reversed frame and t_frame to enable reverse tracking
@@ -523,8 +537,16 @@ def link_df(
     else:
         link = tp.link_df
 
+    # Occasionally some connected components will be a single-pixel thick in one of the
+    # coordinates, which throws `np.nan` as a centroid in that coordinate. We handle this
+    # by screening against `np.nan` in the dataframe before tracking.
+    finite_position = segmentation_df[pos_columns].notnull().all(axis=1)
+    finite_time = segmentation_df[t_column].notnull()
+
+    finite_filtered_dataframe = segmentation_df[finite_position & finite_time].copy()
+    
     linked_dataframe = link(
-        segmentation_df,
+        finite_filtered_dataframe,
         search_range=search_range,
         memory=memory,
         pos_columns=pos_columns,

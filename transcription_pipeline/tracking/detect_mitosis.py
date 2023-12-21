@@ -244,7 +244,7 @@ def _assign_siblings_threshold(
 
     track_first_frames.apply(_iterate_siblings)
     sibling_array = np.array([track_start_index, siblings]).T
-    
+
     return sibling_array
 
 
@@ -269,10 +269,17 @@ def _assign_siblings_frame(
     all of the standard trackpy keyword arguments.
     """
     # Exclude all recently divided particles from search
+    vel_columns = ["".join(["v_", pos]) for pos in pos_columns]
+
+    finite_velocity = frame_df[vel_columns].notnull().all(axis=1)
+    finite_position = frame_df[pos_columns].notnull().all(axis=1)
+    finite_coordinates = finite_velocity & finite_position
     recently_divided_parent = (~frame_df["new_particle"]) & (
         frame_df["age"] <= minimum_age
     )
-    frame_df = frame_df.drop(frame_df[recently_divided_parent].index)
+    remove_particles = recently_divided_parent | (~finite_coordinates)
+    frame_df = frame_df.drop(frame_df[remove_particles].index)
+
     if frame_df.empty:
         siblings_array = np.array([], dtype=int)
         return siblings_array
@@ -282,8 +289,6 @@ def _assign_siblings_frame(
     # that the new particles are in the next frame and need to be linked.
     frame_df.loc[~frame_df["new_particle"], "frame"] = 1
     frame_df.loc[frame_df["new_particle"], "frame"] = 2
-
-    vel_columns = ["".join(["v_", pos]) for pos in pos_columns]
 
     if antiparallel_coordinate == "collision":
         frame_df[pos_columns] -= 0.5 * frame_df[vel_columns].values
@@ -330,13 +335,16 @@ def _assign_siblings_frame(
 
         pos_columns = pos_columns + vel_columns
 
-    linked_siblings = trackpy.link_df(
-        frame_df,
-        search_range=search_range,
-        pos_columns=pos_columns,
-        t_column="frame",
-        **kwargs,
-    )
+    try:
+        linked_siblings = trackpy.link_df(
+            frame_df,
+            search_range=search_range,
+            pos_columns=pos_columns,
+            t_column="frame",
+            **kwargs,
+        )
+    except Exception:
+        print(frame_df)
 
     # We can finally extract pairs of siblings from the linking
     siblings_mask = linked_siblings.duplicated(subset=["particle"], keep=False)
@@ -427,7 +435,8 @@ def _assign_siblings(
                     tracked_siblings_df.loc[older_sibling_mask, "age"] - new_initial_age
                 )
 
-    siblings_array = np.concatenate(siblings_array)
+    if len(siblings_array) > 0:
+        siblings_array = np.concatenate(siblings_array)
 
     return siblings_array
 

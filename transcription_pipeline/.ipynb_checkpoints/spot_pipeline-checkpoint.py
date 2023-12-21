@@ -347,7 +347,7 @@ class Spot:
         0.5*`retrack_search_range_um` is used.
     :param int stitch_max_frame_distance: Maximum number of frames between tracks with no
         points from either tracks that still allows for stitching to occur.
-    :param int frames_mean: Number of frames to average over when estimating the mean
+    :param int stitch_frames_mean: Number of frames to average over when estimating the mean
         position of the start and end of candidate tracks to stitch together.
     :param list series_splits: list of first frame of each series. This is useful
            when stitching together z-coordinates to improve tracking when the z-stack
@@ -519,6 +519,7 @@ class Spot:
         modifications applied to the corresponding class attributes), instantiating a
         class attribute for the output (evaluated and Dask Futures objects) at each
         step if requested.
+        
         :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.

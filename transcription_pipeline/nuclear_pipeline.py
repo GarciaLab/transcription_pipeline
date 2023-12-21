@@ -1,5 +1,5 @@
 from .nuclear_analysis import segmentation
-from .tracking import track_features, detect_mitosis
+from .tracking import track_features, detect_mitosis, stitch_tracks
 from .preprocessing import import_data
 import warnings
 import numpy as np
@@ -12,10 +12,13 @@ import glob
 
 
 def choose_nuclear_analysis_parameters(
+    *,
     nuclear_size,
     sigma_ratio,
     channel_global_metadata,
     division_trigger,
+    pos_columns,
+    search_range_um,
 ):
     """
     Chooses reasonable default parameters based on the physical size in each axis of
@@ -30,6 +33,11 @@ def choose_nuclear_analysis_parameters(
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param division_trigger: Image feature to use to determine the division frames.
     :type division_trigger: {'num_objects', 'nuclear_fluorescence'}
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
+    :param float search_range_um: The maximum distance features in microns can move between
+        frames.
     :return: Dictionary of kwarg dicts corresponding to each function in the nuclear
         segmentation and tracking pipeline:
         *`nuclear_analysis.segmentation.denoise_movie`
@@ -164,11 +172,9 @@ def choose_nuclear_analysis_parameters(
     # A search range of ~3.5 um seems to work very well for tracking nuclei in the XY
     # plane. 3D tracking is not as of now handled in the defaults and has to be
     # explicitly passed along with an appropriate search range
-    search_range = 3.5 / mppY
-    pos_columns = ["y", "x"]  # Tracking only in XY in case z-stack was adjusted
     t_column = "frame_reverse"  # Track reversed time to help with large accelerations
     link_df_params = {
-        "search_range": search_range,
+        "search_range": search_range_um,
         "memory": 1,
         "pos_columns": pos_columns,
         "t_column": t_column,
@@ -179,7 +185,7 @@ def choose_nuclear_analysis_parameters(
 
     # The search range for sibling nuclei can be significantly larger, since only new
     # nuclei are considered as candidate at each linking step
-    search_range_mitosis = search_range * 2
+    search_range_mitosis = search_range_um * 2
     construct_lineage_params = {
         "pos_columns": pos_columns,
         "search_range_mitosis": search_range_mitosis,
@@ -230,9 +236,30 @@ class Nuclear:
     :type division_trigger: {'num_objects', 'nuclear_fluorescence'}
     :param float sigma_ratio: Ratio of stndard deviations used in bandpass filtering
         using difference of gaussians. Larger ratios widen the bandwidth of the filter.
-    :param bool quantify_nuclear: If `True`, mean and standard deviation over nuclear
-        pixels is quantifies for each nucleus and added to the dataframe. Defaults to
-        `False`. Note that no background subtraction is done as of this implementation.
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
+    :param float search_range_um: The maximum distance features in microns can move between
+        frames.
+    :param bool stitch: If `True`, attempts to stitch together filtered tracks by mean
+        position and separation in time.
+    :param float stitch_max_distance: Maximum distance between mean position of partial tracks
+        that still allows for stitching to occur. If `None`, a default of
+        0.5*`retrack_search_range_um` is used.
+    :param int stitch_max_frame_distance: Maximum number of frames between tracks with no
+        points from either tracks that still allows for stitching to occur.
+    :param int stitch_frames_mean: Number of frames to average over when estimating the mean
+        position of the start and end of candidate tracks to stitch together.
+    :param stitch_pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate to use for stitching partial tracks.
+    :type stitch_pos_columns: list of DataFrame column names
+    :param list series_splits: list of first frame of each series. This is useful
+           when stitching together z-coordinates to improve tracking when the z-stack
+           has been shifted mid-imaging.
+    :param list series_shifts: list of estimated shifts in pixels (sub-pixel
+           approximated using centroid of normalized correlation peak) between stacks
+           at interface between separate series - this quantifies the shift in the
+           z-stack.
     :param bool evaluate: If `True`, each step of the pipeline is fully evaluated
         to produce a Numpy array that gets added as an attribute. Otherwise that
         attribute is set to `None`. The final labelled and tracked array `reordered_labels`
@@ -306,7 +333,15 @@ class Nuclear:
         nuclear_size=[8.0, 4.2, 4.2],
         division_trigger="num_objects",
         sigma_ratio=5,
-        quantify_nuclear=False,
+        pos_columns=["y", "x"],
+        search_range_um=3.5,
+        stitch=True,
+        stitch_max_distance=None,
+        stitch_max_frame_distance=3,
+        stitch_frames_mean=4,
+        stitch_pos_columns=["y", "x"],
+        series_splits=None,
+        series_shifts=None,
         evaluate=False,
         keep_futures=False,
     ):
@@ -319,29 +354,41 @@ class Nuclear:
             self.nuclear_size = nuclear_size
             self.division_trigger = division_trigger
             self.sigma_ratio = sigma_ratio
+            self.pos_columns = pos_columns
+            self.search_range_um = search_range_um
+            self.stitch = stitch
+            self.stitch_pos_columns = stitch_pos_columns
+            self.stitch_max_distance = stitch_max_distance
+            self.stitch_max_frame_distance = stitch_max_frame_distance
+            self.stitch_frames_mean = stitch_frames_mean
+            self.series_splits = series_splits
+            self.series_shifts = series_shifts
             self.data = data
             self.client = client
 
             self.default_params = choose_nuclear_analysis_parameters(
-                self.nuclear_size,
-                self.sigma_ratio,
-                self.global_metadata,
-                self.division_trigger,
+                nuclear_size=self.nuclear_size,
+                sigma_ratio=self.sigma_ratio,
+                channel_global_metadata=self.global_metadata,
+                division_trigger=self.division_trigger,
+                pos_columns=self.pos_columns,
+                search_range_um=self.search_range_um,
             )
             self.evaluate = evaluate
             self.keep_futures = keep_futures
 
-        self.quantify_nuclear = quantify_nuclear
-
-    def track_nuclei(self):
+    def track_nuclei(self, rescale=True, retrack=False):
         """
         Runs through the nuclear segmentation and tracking pipeline using the parameters
         instantiated in the constructor method (or any modifications applied to the
         corresponding class attributes), instantiating a class attribute for the output
         (evaluated and Dask Futures objects) at each step if requested.
+
+        :param bool rescale: If `True`, rescales particle positions to correspond
+            to real space.
+        :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
         """
-        # Quantification of nuclear protein if requested
-        if self.quantify_nuclear:
+        if not retrack:
             self.default_params["segmentation_df_params"]["extra_properties"] = (
                 "intensity_mean",
             )
@@ -350,81 +397,142 @@ class Nuclear:
                 "extra_properties_callable"
             ] = (intensity_stdev,)
 
-        (
-            self.denoised,
-            self.denoised_futures,
-            self.data_futures,
-        ) = segmentation.denoise_movie_parallel(
-            self.data,
-            client=self.client,
-            evaluate=self.evaluate,
-            futures_in=True,
-            futures_out=True,
-            **(self.default_params["denoise_params"]),
-        )
+            (
+                self.denoised,
+                self.denoised_futures,
+                self.data_futures,
+            ) = segmentation.denoise_movie_parallel(
+                self.data,
+                client=self.client,
+                evaluate=self.evaluate,
+                futures_in=True,
+                futures_out=True,
+                **(self.default_params["denoise_params"]),
+            )
 
-        self.mask, self.mask_futures, _ = segmentation.binarize_movie_parallel(
-            self.denoised_futures,
-            client=self.client,
-            evaluate=self.evaluate,
-            futures_in=False,
-            futures_out=True,
-            **(self.default_params["binarize_params"]),
-        )
+            self.mask, self.mask_futures, _ = segmentation.binarize_movie_parallel(
+                self.denoised_futures,
+                client=self.client,
+                evaluate=self.evaluate,
+                futures_in=False,
+                futures_out=True,
+                **(self.default_params["binarize_params"]),
+            )
 
-        self.markers, self.markers_futures, _ = segmentation.mark_movie_parallel(
-            *(
-                self.data_futures
-            ),  # Wrapped in list from previous parallel run, needs unpacking
-            self.mask_futures,
-            client=self.client,
-            evaluate=self.evaluate,
-            futures_in=False,
-            futures_out=True,
-            **(self.default_params["mark_params"]),
-        )
-        if not self.keep_futures:
-            del self.data_futures
-            self.data_futures = None
+            self.markers, self.markers_futures, _ = segmentation.mark_movie_parallel(
+                *(
+                    self.data_futures
+                ),  # Wrapped in list from previous parallel run, needs unpacking
+                self.mask_futures,
+                client=self.client,
+                evaluate=self.evaluate,
+                futures_in=False,
+                futures_out=True,
+                **(self.default_params["mark_params"]),
+            )
+            if not self.keep_futures:
+                del self.data_futures
+                self.data_futures = None
 
-        self.labels, self.labels_futures, _ = segmentation.segment_movie_parallel(
-            self.denoised_futures,
-            self.markers_futures,
-            self.mask_futures,
-            client=self.client,
-            evaluate=True,
-            futures_in=False,
-            futures_out=True,
-            **(self.default_params["segment_params"]),
-        )
-        if not self.keep_futures:
-            del self.denoised_futures
-            self.denoised_future = None
-            del self.mask_futures
-            self.mask_futures = None
-            del self.markers_futures
-            self.markers_futures = None
+            self.labels, self.labels_futures, _ = segmentation.segment_movie_parallel(
+                self.denoised_futures,
+                self.markers_futures,
+                self.mask_futures,
+                client=self.client,
+                evaluate=True,
+                futures_in=False,
+                futures_out=True,
+                **(self.default_params["segment_params"]),
+            )
+            if not self.keep_futures:
+                del self.denoised_futures
+                self.denoised_future = None
+                del self.mask_futures
+                self.mask_futures = None
+                del self.markers_futures
+                self.markers_futures = None
 
-        (
-            self.segmentation_dataframe,
-            self.division_frames,
-            self.nuclear_cycle,
-        ) = track_features.segmentation_df(
-            self.labels,
-            self.data,
-            self.frame_metadata,
-            **(self.default_params["segmentation_df_params"]),
-        )
+            (
+                self.segmentation_dataframe,
+                self.division_frames,
+                self.nuclear_cycle,
+            ) = track_features.segmentation_df(
+                self.labels,
+                self.data,
+                self.frame_metadata,
+                **(self.default_params["segmentation_df_params"]),
+            )
+
+            if rescale:
+                # Back up pixel-space (unshifted) positions
+                pixels_column_names = [
+                    "".join([pos, "_pixel"]) for pos in self.pos_columns
+                ]
+                for i, _ in enumerate(pixels_column_names):
+                    self.segmentation_dataframe[
+                        pixels_column_names[i]
+                    ] = self.segmentation_dataframe[self.pos_columns[i]].copy()
+
+                if (self.series_shifts is not None) and ("z" in self.pos_columns):
+                    # Account for z-stack shift between series
+                    for i, shift_frame in enumerate(self.series_splits):
+                        self.segmentation_dataframe.loc[
+                            self.segmentation_dataframe["frame"] > shift_frame, "z"
+                        ] = (
+                            self.segmentation_dataframe.loc[
+                                self.segmentation_dataframe["frame"] > shift_frame, "z"
+                            ]
+                            - self.series_shifts[i]
+                        )
+
+                # Rescale pixel-space position columns to match real space
+                if self.global_metadata is not None:
+                    mpp_pos_fields = [
+                        "".join(["PixelsPhysicalSize", pos.capitalize()])
+                        for pos in self.pos_columns
+                    ]
+                    mpp_pos = [self.global_metadata[field] for field in mpp_pos_fields]
+
+                    for i, _ in enumerate(self.pos_columns):
+                        self.segmentation_dataframe[self.pos_columns[i]] = (
+                            self.segmentation_dataframe[self.pos_columns[i]]
+                            * mpp_pos[i]
+                        )
 
         self.tracked_dataframe = track_features.link_df(
             self.segmentation_dataframe,
             **(self.default_params["link_df_params"]),
         )
 
+        if self.stitch:
+            print("Stitching tracks.")
+            if self.stitch_max_distance is None:
+                self.stitch_max_distance = (0.5 * self.search_range_um,)
+
+            stitch_tracks.stitch_tracks(
+                self.tracked_dataframe,
+                self.stitch_pos_columns,
+                self.stitch_max_distance,
+                self.stitch_max_frame_distance,
+                self.stitch_frames_mean,
+                quantification="intensity_mean",
+                inplace=True,
+            )
+
         self.mitosis_dataframe = detect_mitosis.construct_lineage(
             self.tracked_dataframe,
             **(self.default_params["construct_lineage_params"]),
         )
+
+        if (self.series_shifts is not None) and ("z" in self.pos_columns):
+            # Restore dataframe to pixel-space
+            for i, _ in enumerate(self.pos_columns):
+                self.mitosis_dataframe[self.pos_columns[i]] = self.mitosis_dataframe[
+                    pixels_column_names[i]
+                ]
+                self.mitosis_dataframe = self.mitosis_dataframe.drop(
+                    pixels_column_names[i], axis=1
+                )
 
         # Rename nuclear quantification columns
         self.mitosis_dataframe.rename(
