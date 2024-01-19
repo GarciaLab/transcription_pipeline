@@ -1,5 +1,5 @@
 Metadata-Version: 2.1
-Name: transcription-pipeline
+Name: transcription_pipeline
 Version: 0.0.1
 License-File: LICENSE
 Requires-Dist: matplotlib

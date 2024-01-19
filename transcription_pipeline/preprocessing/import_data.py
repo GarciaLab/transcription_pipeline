@@ -299,14 +299,20 @@ def collate_frame_metadata(
             "coords",
         ]
         for key in single_value_metadata:
-            channel_frame_metadata[key] = clear_duplicates(input_frame_metadata[key])
+            try:
+                channel_frame_metadata[key] = clear_duplicates(input_frame_metadata[key])
+            except KeyError:
+                channel_frame_metadata[key] = "No record."
 
         c = np.ones(new_shape) * i
         channel_frame_metadata["c"] = c
 
-        channel_frame_metadata["colors"] = (
-            clear_duplicates(input_frame_metadata["colors"])
-        )[i]
+        try:
+            channel_frame_metadata["colors"] = (
+                clear_duplicates(input_frame_metadata["colors"])
+            )[i]
+        except KeyError:
+            channel_frame_metadata["colors"] = "No record."
 
         if trim_series:
             end = -1
@@ -495,17 +501,25 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     )
 
     # Now we handle the frame-by-frame metadata
-    acquisition_times = input_global_metadata["ImageAcquisitionDate"]
-    # Flatten list so it is indexed by series
-    acquisition_times = [item for sublist in acquisition_times for item in sublist]
-    acquisition_times = [
-        datetime.strptime(series_time, "%Y-%m-%dT%H:%M:%S")
-        for series_time in acquisition_times
-    ]
-    time_delta_from_0 = [
-        (acquisition_times[i] - acquisition_times[0]).total_seconds()
-        for i in range(len(acquisition_times))
-    ]
+    try:
+        acquisition_times = input_global_metadata["ImageAcquisitionDate"]
+
+        # Flatten list so it is indexed by series
+        acquisition_times = [item for sublist in acquisition_times for item in sublist]
+        acquisition_times = [
+            datetime.strptime(series_time, "%Y-%m-%dT%H:%M:%S")
+            for series_time in acquisition_times
+        ]
+        time_delta_from_0 = [
+            (acquisition_times[i] - acquisition_times[0]).total_seconds()
+            for i in range(len(acquisition_times))
+        ]
+
+    except KeyError:
+        time_delta_from_0 = [0]
+        warnings.warn(
+            "Series acquisition time(s) not recorded, import will fail for multiple series."
+        )
 
     output_frame_metadata = collate_frame_metadata(
         input_frame_metadata,
@@ -742,7 +756,7 @@ def import_dataset(
         series_start = series_end
         series_splits.append(series_start)
 
-    series_splits = series_splits[:-1] # Remove end of last series
+    series_splits = series_splits[:-1]  # Remove end of last series
 
     # Estimate shift in z-stacks
     series_shifts = []
@@ -761,7 +775,9 @@ def import_dataset(
         )
         if np.isnan(shift):
             series_shifts.append(0)
-            warnings.warn("".join(["Could not align z-stack after series ", str(i), "."]))
+            warnings.warn(
+                "".join(["Could not align z-stack after series ", str(i), "."])
+            )
         else:
             series_shifts.append(shift)
 
