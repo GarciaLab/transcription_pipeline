@@ -3,10 +3,9 @@ Python pipeline for transcription spot tracking and analysis.
 
 # Installation instructions
 1. (Optional) Create a mamba/conda virtualenv from the `environment.yml` file.
-2. Run `pip install . && install_bioformats_jar`.
+2. Run `pip install . && install_bioformats_jar`. If you want to keep editing the source code without having to build and reinstall between edits, use `pip install -e . && install_bioformats_jar` instead - this will also mean that any changed pulled from Github will instantaneously take effect.
 
 Skipping step 1 should still yield a functional install of the `transcription_pipeline` package, but will not include convenient tools included in the conda/mamba environment file such as JupyterLab and tools for interactive plots.
-If you would like to modify the pipeline files without needed to rebuild and reinstall through pip, you can instead use `pip install -e . && install_bioformats_jar`.
 
 ## Data folder structure
 For individual datasets, we keep consistent with the Garcia Lab convention

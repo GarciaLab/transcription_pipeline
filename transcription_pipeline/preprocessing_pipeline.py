@@ -104,22 +104,33 @@ class DataImport:
         # Read original metadata dicts (single dictionary for global and single dictionary
         # for frame-by-frame).
         global_metadata_path = collated_path / "original_global_metadata.pkl"
-        with open(global_metadata_path, "rb") as f:
-            self.original_global_metadata = pickle.load(f)
+        try:
+            with open(global_metadata_path, "rb") as f:
+                self.original_global_metadata = pickle.load(f)
+        except FileNotFoundError:
+            self.original_global_metadata = None
 
         frame_metadata_path = collated_path / "original_frame_metadata.pkl"
-        with open(frame_metadata_path, "rb") as f:
-            self.original_frame_metadata = pickle.load(f)
+        try:
+            with open(frame_metadata_path, "rb") as f:
+                self.original_frame_metadata = pickle.load(f)
+        except FileNotFoundError:
+            self.original_frame_metadata = None
 
         # Read lists of splits and z-shifts between series (e.g. for z-stack
         # readjustment).
         series_splits_shift_path = collated_path / "series_splits_shift.pkl"
-        with open(series_splits_shift_path, "rb") as f:
-            series_splits_shift = pickle.load(f)
-            
-        self.series_shifts = series_splits_shift["series_shifts"]
-        self.series_splits = series_splits_shift["series_splits"]
-        self.registration_channel = series_splits_shift["registration_channel"]
+        try:
+            with open(series_splits_shift_path, "rb") as f:
+                series_splits_shift = pickle.load(f)
+                
+            self.series_shifts = series_splits_shift["series_shifts"]
+            self.series_splits = series_splits_shift["series_splits"]
+            self.registration_channel = series_splits_shift["registration_channel"]
+        except FileNotFoundError:
+            self.series_shifts = None
+            self.series_splits = None
+            self.registration_channel = None
 
         # Iterate over files with matching name patterns to find all channels
         global_metadata_file_list = glob.glob(
