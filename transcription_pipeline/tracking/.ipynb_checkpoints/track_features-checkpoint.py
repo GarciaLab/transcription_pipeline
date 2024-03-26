@@ -614,12 +614,9 @@ def reorder_labels(segmentation_mask, linked_dataframe):
     reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
 
     # Switch labels using 'particle' column in linked dataframe
-    try:
-        linked_dataframe.apply(
-            _switch_labels, args=(segmentation_mask, reordered_mask), axis=1
-        )
-    except IndexError:
-        return linked_dataframe
+    linked_dataframe.apply(
+        _switch_labels, args=(segmentation_mask, reordered_mask), axis=1
+    )
 
     return reordered_mask
 

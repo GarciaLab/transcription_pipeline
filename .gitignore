@@ -1,2 +1,16 @@
 test_data/
 build/
+.ipynb_checkpoints/
+.vscode
+APAxis.ipynb
+APAxis_AutoCorr.ipynb
+cufile.log
+nick_analysis.ipynb
+__pycache__/
+nuclear_analysis/__pycache__/
+preprocessing/__pycache__/
+spot_analysis/__pycache__/
+step_detection/__pycache__/
+tracking/__pycache__/
+utils/__pycache__/
+test.ipynb
