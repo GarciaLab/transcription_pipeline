@@ -3,7 +3,55 @@ import dask
 from dask.distributed import LocalCluster, Client
 
 
-def _check_input_form(movies_list, client):
+def zarr_to_futures(zarr_array, client):
+    """
+    Reads `zarr` array containing the image data as a list of Dask `Futures` objects
+    consistent with the existing chunking on the `zarr` array.
+    """
+    chunk_timepoints = zarr_array.chunks[0]
+    chunk_boundaries = (
+        np.arange(int(np.floor(zarr_array.shape[0] / chunk_timepoints)))
+        * chunk_timepoints
+    )
+    if zarr_array.shape[0] % chunk_timepoints != 0:
+        chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
+
+    chunk_start_stop = np.array([chunk_boundaries[:-1], chunk_boundaries[1:]]).T.tolist()
+
+    zarr_futures = client.map(lambda x: zarr_array[x[0] : x[1]], chunk_start_stop)
+
+    return chunk_start_stop, zarr_futures
+
+
+def futures_to_zarr(futures, chunk_start_stop, zarr_out, client):
+    """
+    Indexes into a `zarr` array and transfers in values from the corresponding
+    Dask `Futures` object.
+
+    :param futures: List of futures objects containing chunks of the output, e.g. from a
+        `client.map` operation.
+    :type futures: List of `dask.distribution.client.Futures` objects.
+    :param list chunk_start_stop: 2D list, with each 2-element along axis 0 corresponding
+        to the first and last indices of the target `zarr_out` to copy values to.
+    :param zarr_out: Target `zarr` array to copy values from `futures` into.
+    :type zarr_out: Zarr array.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
+    :return: List of `None` objects of same length as `futures`.
+    """
+
+    def _map_chunk_future_to_zarr(future, chunk_bounds):
+        # This could easily be done with a lambda function, just keeping it here
+        # for readibility and to make the `None` return explicit.
+        zarr_out[chunk_bounds[0] : chunk_bounds[1]] = future
+        return None
+
+    dummy_futures = client.map(_map_chunk_future_to_zarr, futures, chunk_start_stop)
+
+    return client.gather(dummy_futures)
+
+
+def _check_input_form(movies_list, client, *, num_chunks=None):
     """
     Handles possible input types for parallelized functions (list of futures or
     fully evaluated arrays) and pre-processes them for direct execution by
@@ -12,16 +60,7 @@ def _check_input_form(movies_list, client):
     """
     scattered_data = []
     for movie in movies_list:
-        num_processes = len(client.scheduler_info()["workers"])
-
         if isinstance(movie, list):
-            # Check that any already chunked and scattered input matches the
-            # number of processes on the cluster
-            if not len(movie) == num_processes:
-                raise Exception(
-                    "Inputs passed as list of Futures must match the number of processes."
-                )
-
             if all(
                 isinstance(chunk, dask.distributed.client.Future) for chunk in movie
             ):
@@ -33,7 +72,10 @@ def _check_input_form(movies_list, client):
                 )
 
         else:
-            scattered_data.append(client.scatter(np.array_split(movie, num_processes)))
+            num_processes = len(client.scheduler_info()["workers"])
+            if num_chunks is None:
+                num_chunks = num_processes
+            scattered_data.append(client.scatter(np.array_split(movie, num_chunks)))
 
     return scattered_data
 
@@ -64,7 +106,14 @@ def _compute_futures(scattered_data, func, client, evaluate, futures_in, futures
 
 
 def parallelize(
-    movies_list, func, client, *, evaluate=True, futures_in=True, futures_out=True
+    movies_list,
+    func,
+    client,
+    *,
+    evaluate=True,
+    futures_in=True,
+    futures_out=True,
+    num_chunks=None
 ):
     """
     Parallelizes the execution of input function `func` taking elements of movies_list
@@ -93,6 +142,8 @@ def parallelize(
         processed_movie_futures output. If False, scattered_output is set to None and
         the futures objects are removed so that the worker memory can be garbage
         collected.
+    :param int num_chunks: Number of chunks to split input movie into if fed as Numpy
+        array. Defaults to same as number of worker processes in the Dask `client`.
     :return: Tuple(processed_movie, processed_movie_futures, scattered_data) where
         *processed_movie is the fully evaluated result of the computation
         *processed_movie_futures is the list of futures objects resulting from the
@@ -104,7 +155,7 @@ def parallelize(
     if not isinstance(client, dask.distributed.client.Client):
         raise TypeError("Provided `client` argument is not a Dask client.")
 
-    scattered_data = _check_input_form(movies_list, client)
+    scattered_data = _check_input_form(movies_list, client, num_chunks=num_chunks)
 
     processed_movie, scattered_data, processed_movie_futures = _compute_futures(
         scattered_data,

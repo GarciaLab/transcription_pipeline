@@ -406,10 +406,10 @@ def detect_spots(
     :rtype: Tuple
     """
     if client is not None:
-        keep_futures_make_spot_mask = True
+        keep_futures_spots_movie = True
         evaluate_make_spot_mask = return_spot_labels
     else:
-        keep_futures_make_spot_mask = False
+        keep_futures_spots_movie = False
         evaluate_make_spot_mask = True
 
     (
@@ -428,9 +428,9 @@ def detect_spots(
         connectivity=connectivity,
         return_spot_labels=evaluate_make_spot_mask,
         return_bandpass=return_bandpass,
-        keep_futures_bandpass=keep_futures_make_spot_mask,
+        keep_futures_bandpass=keep_futures_bandpass,
         keep_futures_spot_labels=keep_futures_spot_labels,
-        keep_futures_spots_movie=keep_futures_make_spot_mask,
+        keep_futures_spots_movie=keep_futures_spots_movie,
         client=client,
     )
 

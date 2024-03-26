@@ -1,8 +1,12 @@
-from ..utils import label_manipulation
+from ..utils import label_manipulation, parallel_computing
+from pathlib import Path
 import numpy as np
 from scipy import stats
 from ..tracking import track_features
 from ..tracking.track_features import _reverse_segmentation_df
+import zarr
+import dask.dataframe as dd
+import warnings
 
 
 def _transfer_nuclear_labels_row(spot_dataframe_row, nuclear_labels, pos_columns):
@@ -23,6 +27,8 @@ def transfer_nuclear_labels(
     nuclear_labels,
     expand_distance=1,
     pos_columns=["z", "y", "x"],
+    working_memory_mode=None,
+    working_memory_folder=None,
     client=None,
 ):
     """
@@ -44,6 +50,16 @@ def transfer_nuclear_labels(
     :param pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
         position coordinate to be used to map to the nuclear labels.
     :type pos_columns: list of DataFrame column names
+    :param working_memory_mode: Sets whether the intermediate steps that need to be
+        evaluated to construct the nuclear tracking (e.g. construction of a nuclear
+        segmentation array) are kept in memory or committed to a `zarr` array. Note
+        that using `zarr` as working memory requires the input data to also be a
+        `zarr` array, whereby the chunking is inferred from the input data.
+    :type working_memory: {"zarr", None}
+    :param working_memory_folder: This parameter is required if `working_memory`
+        is set to `zarr`, and should be a folder path that points to the location
+        where the necessary `zarr` arrays will be stored to disk.
+    :type working_memory_folder: {str, `pathlib.Path`, None}
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: None
@@ -55,24 +71,102 @@ def transfer_nuclear_labels(
             nuclear_labels, distance=expand_distance
         )
     else:
-        expanded_labels, _, _ = label_manipulation.expand_labels_movie_parallel(
-            nuclear_labels,
+        if working_memory_mode == "zarr":
+            evaluate_expansion = False
+            futures_expansion = True
+
+            working_memory_path = Path(working_memory_folder)
+            results_path = working_memory_path / "expanded_labels"
+            results_path.mkdir(exist_ok=True)
+
+            expanded_labels_zarr = zarr.creation.zeros_like(
+                nuclear_labels,
+                overwrite=True,
+                store=results_path / "expanded_labels.zarr",
+            )
+
+            zarr_in_mode = isinstance(nuclear_labels, zarr.core.Array)
+
+            if zarr_in_mode:
+                chunk_boundaries, labels = parallel_computing.zarr_to_futures(
+                    nuclear_labels, client
+                )
+
+            else:
+                temp_labels = zarr.creation.array(
+                    nuclear_labels,
+                    overwrite=True,
+                    store=results_path / "nuclear_labels.zarr",
+                )
+
+                chunk_boundaries, labels = parallel_computing.zarr_to_futures(
+                    temp_labels, client
+                )
+
+        elif working_memory_mode is None:
+            evaluate_expansion = True
+            futures_expansion = False
+
+            labels = nuclear_labels
+
+        else:
+            raise ValueError("`working_memory_mode` option not recognized.")
+
+        (
+            expanded_labels,
+            expanded_labels_futures,
+            _,
+        ) = label_manipulation.expand_labels_movie_parallel(
+            labels,
             distance=expand_distance,
             client=client,
             futures_in=False,
-            futures_out=False,
-            evaluate=True,
+            futures_out=futures_expansion,
+            evaluate=evaluate_expansion,
         )
 
+        if working_memory_mode == "zarr":
+            parallel_computing.futures_to_zarr(
+                expanded_labels_futures,
+                chunk_boundaries,
+                expanded_labels_zarr,
+                client,
+            )
+
+            expanded_labels = expanded_labels_zarr
+
     # Transfer labels from expanded nuclear mask to each spot
-    spot_dataframe["nuclear_label"] = spot_dataframe.apply(
-        _transfer_nuclear_labels_row,
-        args=(
-            expanded_labels,
-            pos_columns,
-        ),
-        axis=1,
-    )
+    def _transfer_labels_df(spot_df, *, expanded_labels_array):
+        """
+        Helper function to tranfer labels from expanded label array.
+        """
+        nuclear_labels_series = spot_df.apply(
+            _transfer_nuclear_labels_row,
+            args=(
+                expanded_labels_array,
+                pos_columns,
+            ),
+            axis=1,
+        )
+        return nuclear_labels_series
+
+    if client is None:
+        spot_dataframe["nuclear_label"] = _transfer_labels_df(
+            spot_dataframe, expanded_labels_array=expanded_labels
+        )
+    else:
+        if working_memory_mode != "zarr":
+            warnings.warn(
+                "`working_memory_mode` is not zarr, labeled array will be serialized to workers."
+            )
+        # Convert to dask dataframe and partition across processes
+        num_processes = len(client.scheduler_info()["workers"])
+        spot_dataframe_dask = dd.from_pandas(spot_dataframe, npartitions=num_processes)
+        spot_dataframe["nuclear_label"] = spot_dataframe_dask.map_partitions(
+            _transfer_labels_df,
+            expanded_labels_array=expanded_labels,
+            meta=(None, "i4"),
+        ).compute()
 
     return None
 
@@ -441,6 +535,8 @@ def track_and_filter_spots(
     normalize_quantile_to=1,
     min_track_length_intensity=5,
     client=None,
+    working_memory_mode=None,
+    working_memory_folder=None,
     **kwargs,
 ):
     """
@@ -523,6 +619,16 @@ def track_and_filter_spots(
         considered when compiling successive differences for intensity-based retracking.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
+    :param working_memory_mode: Sets whether the intermediate steps that need to be
+        evaluated to construct the nuclear tracking (e.g. construction of a nuclear
+        segmentation array) are kept in memory or committed to a `zarr` array. Note
+        that using `zarr` as working memory requires the input data to also be a
+        `zarr` array, whereby the chunking is inferred from the input data.
+    :type working_memory: {"zarr", None}
+    :param working_memory_folder: This parameter is required if `working_memory`
+        is set to `zarr`, and should be a folder path that points to the location
+        where the necessary `zarr` arrays will be stored to disk.
+    :type working_memory_folder: {str, `pathlib.Path`, None}
     :return: None
     :rtype: None
 
@@ -555,18 +661,18 @@ def track_and_filter_spots(
             )
 
     # Transfer nuclear labels if provided
-    try:
+    if nuclear_labels is not None:
+        transfer_nuclear_labels(
+            spot_df,
+            nuclear_labels,
+            expand_distance=expand_distance,
+            pos_columns=nuclear_pos_columns,
+            working_memory_mode=working_memory_mode,
+            working_memory_folder=working_memory_folder,
+            client=client,
+        )
+
         # Make subdataframe excluding extranuclear spots
-        spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
-    except KeyError:       
-        if nuclear_labels is not None:
-            transfer_nuclear_labels(
-                spot_df,
-                nuclear_labels,
-                expand_distance=expand_distance,
-                pos_columns=nuclear_pos_columns,
-                client=client,
-            )
         spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
 
     # Add normalized intensity if intensity-based tracking is requested

@@ -300,7 +300,9 @@ def collate_frame_metadata(
         ]
         for key in single_value_metadata:
             try:
-                channel_frame_metadata[key] = clear_duplicates(input_frame_metadata[key])
+                channel_frame_metadata[key] = clear_duplicates(
+                    input_frame_metadata[key]
+                )
             except KeyError:
                 channel_frame_metadata[key] = "No record."
 
@@ -595,7 +597,15 @@ def z_cross_correlation_shift(stack1, stack2, peak_window=3, min_prominence=0.2)
 
 
 def import_dataset(
-    name_folder, trim_series, peak_window=3, min_prominence=0.2, registration_channel=-1
+    name_folder,
+    trim_series,
+    peak_window=3,
+    min_prominence=0.2,
+    registration_channel=-1,
+    *,
+    working_storage_mode=None,
+    collated_dataset_path=None,  # write doc
+    zarr_chunk_nbytes=None,  # write doc
 ):
     """
     Imports and collates the data files in the name_directory, and generates
@@ -615,6 +625,9 @@ def import_dataset(
     :param int registration_channel: Index of channel to use for registration of z-shift
         between stacks - usually works better with channels with more structure. By default
         uses last channel.
+    :param mode: Determines how the dataset is pulled into memory - `None` pulls the whole
+        dataset as a Numpy array into memory, "zarr" chunks as requested and commits data
+        to a zarr array.
     :return: Tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
@@ -714,8 +727,7 @@ def import_dataset(
     )
 
     num_frames_series = np.array(num_frames_series)  # Numpy array more
-    # convenient for later
-    # slicing
+    # convenient for later slicing
 
     num_frames = np.sum(num_frames_series)
     num_series = num_frames_series.size
@@ -726,23 +738,65 @@ def import_dataset(
     else:
         end = None
 
+    dtype = original_global_metadata["PixelsType"]
+    num_channels = original_global_metadata["ChannelCount"]
+    
     series_shape = data[0].shape
     dataset_shape = (
         num_frames,
         *series_shape[2:],
     )
 
-    dtype = original_global_metadata["PixelsType"]
-    full_dataset = np.empty(dataset_shape, dtype=dtype)
+    if num_channels > 1:
+        channel_shape = (dataset_shape[0], *dataset_shape[2:])
+    else:
+        channel_shape = dataset_shape
+
+    if working_storage_mode == "zarr":
+        chunk_num_frames = int(
+            np.prod(dataset_shape) * np.dtype(dtype).itemsize / zarr_chunk_nbytes
+        )
+        chunk_channel_shape = (chunk_num_frames, *channel_shape[1:])
+
+        channels_full_dataset = []
+        for i in range(num_channels):
+            filename = "".join(
+                    ["collated_dataset_ch{:02d}".format(i), ".zarr"]
+                )
+            collated_channel_path = Path(collated_dataset_path) / filename
+            channels_full_dataset.append(
+                zarr.creation.create(
+                    channel_shape,
+                    fill_value=0,
+                    chunks=chunk_channel_shape,
+                    dtype=dtype,
+                    overwrite=True,
+                    store=collated_channel_path,
+                )
+            )
+    else:
+        channels_full_dataset = []
+        for _ in range(num_channels):
+            channels_full_dataset.append(np.empty(channel_shape, dtype=dtype))
+        if working_storage_mode is not None:
+            warninings.warn(
+                "`working_storage_mode` option not recognized, using default."
+            )
 
     original_frame_metadata = {}  # One element per series
 
     # Collate the dataset and pull frame-by-frame metadata
     series_start = 0
-    series_splits = []
+    series_splits = (
+        []
+    )  # Keeps track of start frame of each series in the collated dataset
     for i, _ in enumerate(data):
         series_end = series_start + num_frames_series[i]
-        full_dataset[series_start:series_end] = data[i][0][:end]
+        for j in range(num_channels):
+            if num_channels > 1:
+                channels_full_dataset[j][series_start:series_end] = data[i][0][:end, j]
+            else:
+                channels_full_dataset[j][series_start:series_end] = data[i][0][:end]
         series_frame_metadata = data[i][0].metadata
 
         for frame_key in series_frame_metadata:
@@ -762,11 +816,11 @@ def import_dataset(
     series_shifts = []
     for i, series_start in enumerate(series_splits):
         if multichannel:
-            post_shift = full_dataset[series_start][registration_channel]
-            pre_shift = full_dataset[series_start - 1][registration_channel]
+            post_shift = channels_full_dataset[registration_channel][series_start]
+            pre_shift = channels_full_dataset[registration_channel][series_start - 1]
         else:
-            post_shift = full_dataset[series_start]
-            pre_shift = full_dataset[series_start - 1]
+            post_shift = channels_full_dataset[0][series_start]
+            pre_shift = channels_full_dataset[0][series_start - 1]
         shift = z_cross_correlation_shift(
             pre_shift,
             post_shift,
@@ -789,15 +843,6 @@ def import_dataset(
     # Close the readers
     for reader in data:
         reader.close()
-
-    # Split datasets into channels
-    num_channels = original_global_metadata["ChannelCount"]
-    channels_full_dataset = []
-    for i in range(num_channels):
-        if num_channels > 1:
-            channels_full_dataset.append(full_dataset[:, i, ...])
-        else:
-            channels_full_dataset.append(full_dataset)
 
     return (
         channels_full_dataset,

@@ -544,7 +544,7 @@ def link_df(
     finite_time = segmentation_df[t_column].notnull()
 
     finite_filtered_dataframe = segmentation_df[finite_position & finite_time].copy()
-    
+
     linked_dataframe = link(
         finite_filtered_dataframe,
         search_range=search_range,
@@ -636,7 +636,9 @@ def _chunk_dataframe(dataframe, first_frame, last_frame):
     return chunk_dataframe
 
 
-def reorder_labels_parallel(segmentation_mask, linked_dataframe, client, **kwargs):
+def reorder_labels_parallel(
+    segmentation_mask, linked_dataframe, client, first_last_frames=None, **kwargs
+):
     """
     Relabels the input segmentation_mask to match the particle ID assigned by
     :func:`~link_dataframe`, with the relabeling operation parallelized across
@@ -649,6 +651,8 @@ def reorder_labels_parallel(segmentation_mask, linked_dataframe, client, **kwarg
     :param linked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
+    :param list first_last_frames: 2D list, with each 2-element along axis 0 corresponding
+        to the first and last indices of the corresponding chunk in `segmentation_mask`.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`reordered_labels`, `reordered_labels_futures`, `scattered_movies`)
@@ -671,14 +675,24 @@ def reorder_labels_parallel(segmentation_mask, linked_dataframe, client, **kwarg
     )
 
     # Figure out which frames to split `linked_dataframe` around.
-    num_processes = len(client.scheduler_info()["workers"])
-    num_frames = parallel_computing.number_of_frames(segmentation_mask, client)
-    frame_array = np.arange(num_frames) + 1  # Frames are 1-indexed
-    split_array = np.array_split(frame_array, num_processes)
+    if first_last_frames is None:
+        num_processes = len(client.scheduler_info()["workers"])
+        num_frames = parallel_computing.number_of_frames(segmentation_mask, client)
+        frame_array = np.arange(num_frames) + 1  # Frames are 1-indexed
+        split_array = np.array_split(frame_array, num_processes)
 
-    first_last_frames = []
-    for chunk in split_array:
-        first_last_frames.append([chunk[0], chunk[-1]])
+        first_last_frames = []
+        for chunk in split_array:
+            first_last_frames.append([chunk[0], chunk[-1]])
+
+        warnings.warn(
+            "".join(
+                [
+                    "No `first_last_frames` options passed, ",
+                    "defaulting to chunking by number of available workers.",
+                ]
+            )
+        )
 
     split_linked_dataframe = []
     for frame_split in first_last_frames:

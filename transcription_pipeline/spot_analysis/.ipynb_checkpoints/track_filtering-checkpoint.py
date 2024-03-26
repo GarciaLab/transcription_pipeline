@@ -555,16 +555,18 @@ def track_and_filter_spots(
             )
 
     # Transfer nuclear labels if provided
-    if nuclear_labels is not None:
-        transfer_nuclear_labels(
-            spot_df,
-            nuclear_labels,
-            expand_distance=expand_distance,
-            pos_columns=nuclear_pos_columns,
-            client=client,
-        )
-
+    try:
         # Make subdataframe excluding extranuclear spots
+        spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
+    except KeyError:       
+        if nuclear_labels is not None:
+            transfer_nuclear_labels(
+                spot_df,
+                nuclear_labels,
+                expand_distance=expand_distance,
+                pos_columns=nuclear_pos_columns,
+                client=client,
+            )
         spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
 
     # Add normalized intensity if intensity-based tracking is requested
