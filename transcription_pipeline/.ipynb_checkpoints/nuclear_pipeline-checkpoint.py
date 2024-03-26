@@ -1,6 +1,7 @@
 from .nuclear_analysis import segmentation
 from .tracking import track_features, detect_mitosis, stitch_tracks
 from .preprocessing import import_data
+from .utils import parallel_computing
 import warnings
 import numpy as np
 import pandas as pd
@@ -84,12 +85,7 @@ def choose_nuclear_analysis_parameters(
     opening_closing_footprint = segmentation.ellipsoid(
         3, opening_footprint_dimensions[0]
     )
-    # closing_footprint_dimensions = np.floor(
-    #     np.maximum(nuclear_size_pixels / 10, 3)
-    # ).astype(int)
-    # closing_footprint = segmentation.ellipsoid(
-    #     (closing_footprint_dimensions[1:]).max(), closing_footprint_dimensions[0]
-    # )
+
     cc_min_span = nuclear_size_pixels * 2
     # We only check the size in xy of connected components to identify surface noise
     cc_min_span[0] = 0
@@ -377,17 +373,53 @@ class Nuclear:
             self.evaluate = evaluate
             self.keep_futures = keep_futures
 
-    def track_nuclei(self, rescale=True, retrack=False):
+    def track_nuclei(
+        self,
+        working_memory_mode="zarr",
+        working_memory_folder=None,
+        rescale=True,
+        retrack=False,
+    ):
         """
         Runs through the nuclear segmentation and tracking pipeline using the parameters
         instantiated in the constructor method (or any modifications applied to the
         corresponding class attributes), instantiating a class attribute for the output
         (evaluated and Dask Futures objects) at each step if requested.
 
+        :param working_memory_mode: Sets whether the intermediate steps that need to be
+            evaluated to construct the nuclear tracking (e.g. construction of a nuclear
+            segmentation array) are kept in memory or committed to a `zarr` array. Note
+            that using `zarr` as working memory requires the input data to also be a
+            `zarr` array, whereby the chunking is inferred from the input data.
+        :type working_memory: {"zarr", None}
+        :param working_memory_folder: This parameter is required if `working_memory`
+            is set to `zarr`, and should be a folder path that points to the location
+            where the necessary `zarr` arrays will be stored to disk.
+        :type working_memory_folder: {str, `pathlib.Path`, None}
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
         """
+        # If `data` is passed as a zarr array, we wrap it as a list of futures
+        # that read each chunk - the parallelization is fully determined by the
+        # chunking of the data, so memory management can be done by rechunking
+        zarr_in_mode = isinstance(self.data, zarr.core.Array)
+        if zarr_in_mode:
+            if self.client is not None:
+                chunk_boundaries, data = parallel_computing.zarr_to_futures(
+                    self.data, self.client
+                )
+            else:
+                data = self.data[:]
+                working_memory_mode = None
+                warnings.warn("No Dask client available, working in local memory.")
+        else:
+            data = self.data
+            if working_memory_mode == "zarr":
+                raise ValueError(
+                    "Using `working_memory_mode = 'zarr'` requires the data to be fed in as a `zarr` array."
+                )
+
         if not retrack:
             self.default_params["segmentation_df_params"]["extra_properties"] = (
                 "intensity_mean",
@@ -402,7 +434,7 @@ class Nuclear:
                 self.denoised_futures,
                 self.data_futures,
             ) = segmentation.denoise_movie_parallel(
-                self.data,
+                data,
                 client=self.client,
                 evaluate=self.evaluate,
                 futures_in=True,
@@ -434,16 +466,57 @@ class Nuclear:
                 del self.data_futures
                 self.data_futures = None
 
+            # If working memory set to "zarr", commit to a zarr array instead of
+            # using "evaluate = True", which would pull the whole array into memory
+            if working_memory_mode == "zarr":
+                segment_evaluate = False
+                reorder_evaluate = False
+
+                working_memory_path = Path(working_memory_folder)
+                results_path = working_memory_path / "nuclear_analysis_results"
+                results_path.mkdir(exist_ok=True)
+
+                labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "segmentation.zarr",
+                    dtype=np.uint32,
+                )
+                reordered_labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "reordered_labels.zarr",
+                    dtype=np.uint32,
+                )
+
+            elif working_memory_mode is None:
+                segment_evaluate = True
+                reorder_evaluate = True
+
+            else:
+                raise ValueError("`working_memory_mode` option not recognized.")
+
             self.labels, self.labels_futures, _ = segmentation.segment_movie_parallel(
                 self.denoised_futures,
                 self.markers_futures,
                 self.mask_futures,
                 client=self.client,
-                evaluate=True,
+                evaluate=segment_evaluate,
                 futures_in=False,
                 futures_out=True,
                 **(self.default_params["segment_params"]),
             )
+
+            if working_memory_mode == "zarr":
+                parallel_computing.futures_to_zarr(
+                    self.labels_futures, chunk_boundaries, labels, self.client
+                )
+                self.labels = labels
+
+                if not self.keep_futures:
+                    del self.labels_futures
+                    self.labels_futures = None
+
             if not self.keep_futures:
                 del self.denoised_futures
                 self.denoised_future = None
@@ -544,6 +617,19 @@ class Nuclear:
         )
 
         if self.client is not None:
+            if working_memory_mode == "zarr":
+                first_last_frames = np.array(chunk_boundaries) + 1
+                first_last_frames[:, 1] -= 1
+                first_last_frames = first_last_frames.tolist()
+
+                if self.labels_futures is None:
+                    _, self.labels_futures = parallel_computing.zarr_to_futures(
+                        self.labels, self.client
+                    )
+
+            else:
+                first_last_frames = None
+
             (
                 self.reordered_labels,
                 self.reordered_labels_futures,
@@ -552,13 +638,27 @@ class Nuclear:
                 self.labels_futures,
                 self.mitosis_dataframe,
                 client=self.client,
-                evaluate=True,
+                first_last_frames=first_last_frames,
+                evaluate=reorder_evaluate,
                 futures_in=False,
                 futures_out=True,
             )
+
+            if working_memory_mode == "zarr":
+                parallel_computing.futures_to_zarr(
+                    self.reordered_labels_futures,
+                    chunk_boundaries,
+                    reordered_labels,
+                    self.client,
+                )
+                self.reordered_labels = reordered_labels
+
             if not self.keep_futures:
                 del self.labels_futures
                 self.labels_futures = None
+
+                del self.reordered_labels_futures
+                self.reordered_labels_futures = None
 
         else:
             self.reordered_labels = track_features.reorder_labels(
@@ -590,12 +690,12 @@ class Nuclear:
         results_path.mkdir(exist_ok=True)
 
         # Save movies, saving intermediate steps if requested
-        save_movies = {"reordered_nuclear_labels": self.reordered_labels}
+        save_movies = {"reordered_labels": self.reordered_labels}
 
         if save_all:
-            save_movies["denoised_nuclear_channel"] = self.denoised
-            save_movies["binarized_nuclear_channel"] = self.mask
-            save_movies["nuclear_watershed_markers"] = self.markers
+            save_movies["denoised"] = self.denoised
+            save_movies["binarized"] = self.mask
+            save_movies["watershed_markers"] = self.markers
 
         file_not_found = "".join(
             [
@@ -624,6 +724,9 @@ class Nuclear:
                     imsave(save_path, save_movies[movie], plugin="tifffile")
                 else:
                     warnings.warn("".join([movie, file_not_found]))
+
+        elif save_array_as is not None:
+            raise ValueError("`save_array_as` option not recognized.")
 
         # Save nuclear dataframes
         mitosis_dataframe_path = results_path / "mitosis_dataframe.pkl"
@@ -657,13 +760,14 @@ class Nuclear:
         results_path = name_path / "nuclear_analysis_results"
 
         # Import arrays
-        import_arrays = ["reordered_nuclear_labels"]
+        import_arrays = ["reordered_labels"]
         if import_all:
             import_arrays.extend(
                 [
-                    "nuclear_watershed_markers",
-                    "denoised_nuclear_channel",
-                    "binarized_nuclear_channel",
+                    "segmentation",
+                    "watershed_markers",
+                    "denoised",
+                    "binarized",
                 ]
             )
 

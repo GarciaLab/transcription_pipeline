@@ -1,5 +1,6 @@
 from .tracking import track_features, stitch_tracks
 from .spot_analysis import detection, fitting, track_filtering
+from .utils import parallel_computing
 from scipy.optimize import fsolve
 import warnings
 import numpy as np
@@ -34,6 +35,26 @@ def _solve_for_sigma(fwhm, sigma_ratio, ndim):
     high_sigma = low_sigma * sigma_ratio
 
     return low_sigma, high_sigma
+
+
+def _transfer_labels(dataframe_future, labels, params, pos_columns):
+    """Helper function to transfer labels inside the worker
+    memory."""
+    # Pull only required frames from labels into memory
+    initial_frame = dataframe_future["frame"].min() - 1
+    final_frame = dataframe_future["frame"].max()
+    labels_subarray = labels[initial_frame:final_frame]
+
+    dataframe = dataframe_future.copy()
+
+    track_filtering.transfer_nuclear_labels(
+        dataframe,
+        labels_subarray,
+        expand_distance=params["track_and_filter_spots_params"]["expand_distance"],
+        pos_columns=pos_columns,
+        client=None,
+    )
+    return dataframe
 
 
 def choose_spot_analysis_parameters(
@@ -512,19 +533,91 @@ class Spot:
             self.evaluate = evaluate
             self.keep_futures = keep_futures
 
-    def extract_spot_traces(self, retrack=False, rescale=True):
+    def extract_spot_traces(
+        self,
+        working_memory_mode="zarr",
+        working_memory_folder=None,
+        retrack=False,
+        rescale=True,
+    ):
         """
         Runs through the spot segmentation, tracking, fitting and quantification
         pipeline using the parameters instantiated in the constructor method (or any
         modifications applied to the corresponding class attributes), instantiating a
         class attribute for the output (evaluated and Dask Futures objects) at each
         step if requested.
-        
+
+        :param working_memory_mode: Sets whether the intermediate steps that need to be
+            evaluated to construct the nuclear tracking (e.g. construction of a nuclear
+            segmentation array) are kept in memory or committed to a `zarr` array. Note
+            that using `zarr` as working memory requires the input data to also be a
+            `zarr` array, whereby the chunking is inferred from the input data.
+        :type working_memory: {"zarr", None}
+        :param working_memory_folder: This parameter is required if `working_memory`
+            is set to `zarr`, and should be a folder path that points to the location
+            where the necessary `zarr` arrays will be stored to disk.
+        :type working_memory_folder: {str, `pathlib.Path`, None}
         :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         """
+        # If `data` is passed as a zarr array, we wrap it as a list of futures
+        # that read each chunk - the parallelization is fully determined by the
+        # chunking of the data, so memory management can be done by rechunking
+        zarr_in_mode = isinstance(self.data, zarr.core.Array)
+        if zarr_in_mode:
+            if self.client is not None:
+                chunk_boundaries, data = parallel_computing.zarr_to_futures(
+                    self.data, self.client
+                )
+            else:
+                data = self.data[:]
+                working_memory_mode = None
+                warnings.warn("No Dask client available, working in local memory.")
+        else:
+            data = self.data
+            if working_memory_mode == "zarr":
+                raise ValueError(
+                    "Using `working_memory_mode = 'zarr'` requires the data to be fed in as a `zarr` array."
+                )
+
         if not retrack:
+            if working_memory_mode == "zarr":
+                self.evaluate = False
+                self.keep_spot_labels = False
+                self.default_params["detect_and_gather_spots_params"][
+                    "return_spot_labels"
+                ] = False
+
+                working_memory_path = Path(working_memory_folder)
+                results_path = working_memory_path / "spot_analysis_results"
+                results_path.mkdir(exist_ok=True)
+
+                spot_labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "spot_labels.zarr",
+                    dtype=np.uint32,
+                )
+
+                reordered_spot_labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "reordered_spot_labels.zarr",
+                    dtype=np.uint32,
+                )
+
+                warnings.warn(
+                    "`working_memory_mode` set to 'zarr', will not pull `spot_labels` into memory."
+                )
+
+            elif working_memory_mode is not None:
+                raise ValueError("`working_memory_mode` option not recognized.")
+
+            # We set `return_spot_dataframe` to False without explicitly considering
+            # whether the operation is being sent to a cluster since
+            # `detection.detect_and_gather_spots" internally handles that and fully
+            # evaluates the dataframe if no client is supplied.
             (
                 self.spot_dataframe,
                 self.spot_dataframe_futures,
@@ -534,7 +627,7 @@ class Spot:
                 self.bandpassed_movie_futures,
                 self.spot_movie_futures,
             ) = detection.detect_and_gather_spots(
-                self.data,
+                data,
                 frame_metadata=self.frame_metadata,
                 keep_futures_spot_labels=True,
                 keep_futures_spots_movie=self.keep_futures,
@@ -544,6 +637,19 @@ class Spot:
                 client=self.client,
                 **(self.default_params["detect_and_gather_spots_params"]),
             )
+
+            # Dump to zarr here to avoid memory bottleneck since tracking is a blocking
+            # operation taking place in the local process. We handled checking for
+            # parallelization earlier, no need to do that here.
+            if working_memory_mode == "zarr":
+                parallel_computing.futures_to_zarr(
+                    self.spot_labels_futures, chunk_boundaries, spot_labels, self.client
+                )
+                self.spot_labels = spot_labels
+
+                if not self.keep_futures:
+                    del self.spot_labels_futures
+                    self.spot_labels_futures = None
 
             if self.client is not None:
                 add_fits_func = partial(
@@ -569,10 +675,40 @@ class Spot:
                     add_neighborhood_intensity_func, self.spot_dataframe_futures
                 )
 
+                # If labels are provided, we transfer nuclear labels before proceeding
+                if (self.labels is not None) and (working_memory_mode == "zarr"):
+                    zarr_labels_mode = isinstance(self.labels, zarr.core.Array)
+
+                    if not zarr_labels_mode:
+                        labels = zarr.creation.array(
+                            self.labels,
+                            overwrite=True,
+                            store=results_path / "nuclear_labels.zarr",
+                            dtype=np.uint32,
+                        )
+                    else:
+                        labels = self.labels
+
+                    transfer_labels_func = partial(
+                        _transfer_labels,
+                        labels=labels,
+                        params=self.default_params,
+                        pos_columns=self.pos_columns,
+                    )
+
+                    self.spot_dataframe_futures = self.client.map(
+                        transfer_labels_func, self.spot_dataframe_futures
+                    )
+
                 spot_dataframe = pd.concat(
                     self.client.gather(self.spot_dataframe_futures),
                     ignore_index=True,
                 )
+
+                if not self.keep_futures:
+                    del self.spot_dataframe_futures
+                    self.spot_dataframe_futures = None
+
                 # If the dataframes characterizing spots in each chunk (`Future`) of the
                 # movie are constructed independently in each worker, we use the field
                 # `original_frame` to keep track of the frame number in the full movie
@@ -664,8 +800,8 @@ class Spot:
         if self.stitch:
             print("Stitching tracks.")
             if self.stitch_max_distance is None:
-                self.stitch_max_distance = 0.5*self.search_range_um
-                
+                self.stitch_max_distance = 0.5 * self.search_range_um
+
             stitch_tracks.stitch_tracks(
                 self.spot_dataframe,
                 self.retrack_pos_columns,
@@ -688,7 +824,21 @@ class Spot:
                     pixels_column_names[i], axis=1
                 )
 
+        # Pull from zarr here
+
         if self.client is not None:
+            if working_memory_mode == "zarr":
+                first_last_frames = np.array(chunk_boundaries) + 1
+                first_last_frames[:, 1] -= 1
+                first_last_frames = first_last_frames.tolist()
+
+                if self.spot_labels_futures is None:
+                    _, self.spot_labels_futures = parallel_computing.zarr_to_futures(
+                        self.spot_labels, self.client
+                    )
+            else:
+                first_last_frames = None
+
             (
                 self.reordered_spot_labels,
                 self.reordered_spot_labels_futures,
@@ -697,14 +847,27 @@ class Spot:
                 self.spot_labels_futures,
                 self.spot_dataframe,
                 client=self.client,
+                first_last_frames=first_last_frames,
                 futures_in=False,
-                futures_out=self.keep_futures,
+                futures_out=True,
                 evaluate=self.evaluate,
             )
+
+            if working_memory_mode == "zarr":
+                parallel_computing.futures_to_zarr(
+                    self.reordered_spot_labels_futures,
+                    chunk_boundaries,
+                    reordered_spot_labels,
+                    self.client,
+                )
+                self.reordered_spot_labels = reordered_spot_labels
 
             if not self.keep_futures:
                 del self.spot_labels_futures
                 self.spot_labels_futures = None
+
+                del self.reordered_spot_labels_futures
+                self.reordered_spot_labels_futures = None
 
         else:
             self.reordered_spot_labels = track_features.reorder_labels(
@@ -767,6 +930,9 @@ class Spot:
                 else:
                     warnings.warn("".join([movie, file_not_found]))
 
+        elif save_array_as is not None:
+            raise ValueError("`save_array_as` option not recognized.")
+
         # Save spot dataframe
         spot_dataframe_path = results_path / "spot_dataframe.pkl"
         self.spot_dataframe.to_pickle(spot_dataframe_path)
@@ -805,7 +971,7 @@ class Spot:
             # Try importing as zarr first - if there is no zarr array, this will
             # return `None`
             zarr_path = results_path / "".join([array, ".zarr"])
-            setattr(self, array, zarr.load(zarr_path))
+            setattr(self, array, zarr.open(zarr_path))
 
             if getattr(self, array) is None:
                 tiff_path = results_path / "".join([array, ".tiff"])
