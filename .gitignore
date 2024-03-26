@@ -1,2 +1,8 @@
 test_data/
 build/
+.ipynb_checkpoints
+.vscode
+APAxis.ipynb
+APAxis_AutoCorr.ipynb
+cufile.log
+nick_analysis.ipynb
