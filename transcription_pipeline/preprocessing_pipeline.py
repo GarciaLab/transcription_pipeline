@@ -7,6 +7,19 @@ import pickle
 import glob
 
 
+# Parse target chunk size using helper function from https://stackoverflow.com/a/42865957
+def _parse_size(size):
+    """
+    Parse byte size of chunks.
+    """
+    if size is not None:
+        units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
+        number, unit = [string.strip() for string in size.split()]
+        return int(float(number) * units[unit])
+    else:
+        return None
+
+
 class DataImport:
     """
     Uses the PIMS Bioformats reader to import each channel of a movie as an
@@ -61,6 +74,9 @@ class DataImport:
         peak_window=3,
         min_prominence=0.2,
         registration_channel=-1,
+        working_storage_mode=None,  # write doc
+        collated_dataset_path=None,  # write doc
+        zarr_chunk_memory_size=None,  # write doc
     ):
         """
         Constructor method. Instantiates class with imported data as attributes as
@@ -75,6 +91,23 @@ class DataImport:
             self.peak_window = peak_window
             self.min_prominence = min_prominence
             self.registration_channel = registration_channel
+            self.working_storage_mode = working_storage_mode
+
+            if working_storage_mode is not None:
+                if collated_dataset_path is None:
+                    collated_dataset_path = Path(name_folder) / "collated_dataset"
+                self.collated_dataset_path = str(collated_dataset_path)
+            else:
+                self.collated_dataset_path = None
+
+            if working_storage_mode == "zarr":
+                if zarr_chunk_memory_size is None:
+                    self.zarr_chunk_memory_size = "1 GB"
+                else:
+                    self.zarr_chunk_memory_size = zarr_chunk_memory_size
+            else:
+                self.zarr_chunk_memory_size = None
+
             (
                 self.channels_full_dataset,
                 self.original_global_metadata,
@@ -89,6 +122,9 @@ class DataImport:
                 self.peak_window,
                 self.min_prominence,
                 self.registration_channel,
+                working_storage_mode=self.working_storage_mode,
+                collated_dataset_path=self.collated_dataset_path,
+                zarr_chunk_nbytes=_parse_size(self.zarr_chunk_memory_size),
             )
 
     def read(self, name_folder):
@@ -123,7 +159,7 @@ class DataImport:
         try:
             with open(series_splits_shift_path, "rb") as f:
                 series_splits_shift = pickle.load(f)
-                
+
             self.series_shifts = series_splits_shift["series_shifts"]
             self.series_splits = series_splits_shift["series_splits"]
             self.registration_channel = series_splits_shift["registration_channel"]
@@ -181,7 +217,7 @@ class DataImport:
         self.channels_full_dataset = []
         for file in file_list:
             if mode == "zarr":
-                self.channels_full_dataset.append(zarr.load(file))
+                self.channels_full_dataset.append(zarr.open(file))
             elif mode == "tiff":
                 self.channels_full_dataset.append(imread(file, plugin="tifffile"))
 
@@ -238,17 +274,21 @@ class DataImport:
                     [(self.export_global_metadata[i])["ImageName"], ".tiff"]
                 )
                 collated_data_path = collated_path / filename
+                if self.working_storage_mode == "zarr":
+                    channel_data = channel_data[:]
                 imsave(collated_data_path, channel_data, plugin="tifffile")
 
             elif mode == "zarr":
-                # Save data to file for each channel
-                filename = "".join(
-                    [(self.export_global_metadata[i])["ImageName"], ".zarr"]
-                )
-                collated_data_path = collated_path / filename
+                # File should already be stored as zarr if `working_storage_mode` is "zarr"
+                if self.working_storage_mode != "zarr":
+                    # Save data to file for each channel
+                    filename = "".join(
+                        [(self.export_global_metadata[i])["ImageName"], ".zarr"]
+                    )
+                    collated_data_path = collated_path / filename
 
-                # Convert to zarr
-                zarr.save(collated_data_path, channel_data)
+                    # Convert to zarr
+                    zarr.save(collated_data_path, channel_data)
             else:
                 raise Exception("Save mode not recognized.")
 
