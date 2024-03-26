@@ -580,7 +580,7 @@ class Nuclear:
         if self.stitch:
             print("Stitching tracks.")
             if self.stitch_max_distance is None:
-                self.stitch_max_distance = (0.5 * self.search_range_um,)
+                self.stitch_max_distance = 0.5 * self.search_range_um
 
             stitch_tracks.stitch_tracks(
                 self.tracked_dataframe,
@@ -617,7 +617,7 @@ class Nuclear:
         )
 
         if self.client is not None:
-            if working_memory_mode == "zarr":
+            if zarr_in_mode:
                 first_last_frames = np.array(chunk_boundaries) + 1
                 first_last_frames[:, 1] -= 1
                 first_last_frames = first_last_frames.tolist()
@@ -775,7 +775,7 @@ class Nuclear:
             # Try importing as zarr first - if there is no zarr array, this will
             # return `None`
             zarr_path = results_path / "".join([array, ".zarr"])
-            setattr(self, array, zarr.load(zarr_path))
+            setattr(self, array, zarr.open(zarr_path))
 
             if getattr(self, array) is None:
                 tiff_path = results_path / "".join([array, ".tiff"])

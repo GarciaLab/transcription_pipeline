@@ -207,7 +207,6 @@ def construct_stitch_dataframe(
             nearest_neighbor, nearest_neighbor_distance = _nearest_neighbor_iter(
                 particle, frame_distance
             )
-
             if nearest_neighbor_distance < max_distance:
                 break
 
