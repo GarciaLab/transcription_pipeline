@@ -268,6 +268,7 @@ def choose_spot_analysis_parameters(
         "velocity_predict": True,
         "velocity_averaging": velocity_averaging,
         "min_track_length": retrack_min_track_length,
+        "max_num_spots": max_num_spots,
         "filter_negative": False,
         "track_by_intensity": retrack_by_intensity,
         "normalize_quantile_to": retrack_intensity_normalize_quantile,
