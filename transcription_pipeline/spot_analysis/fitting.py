@@ -558,7 +558,7 @@ def extract_spot_shell(
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
-    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the  xy plane.
+    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the xy plane.
     :param float shell_width_um: Width of shell to extract around the ellipsoid mask
         used to extract the spot. This is used to estimate the background. This should
         be at least a little over `mppZ` to ensure a continuous shell is extracted.

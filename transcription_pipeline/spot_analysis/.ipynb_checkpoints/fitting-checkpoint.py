@@ -558,7 +558,7 @@ def extract_spot_shell(
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
-    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the  xy plane.
+    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the xy plane.
     :param float shell_width_um: Width of shell to extract around the ellipsoid mask
         used to extract the spot. This is used to estimate the background. This should
         be at least a little over `mppZ` to ensure a continuous shell is extracted.
@@ -663,14 +663,17 @@ def bootstrap_intensity(
     spot_sum_bootstrap = np.sum(spot_bootstrap, axis=1)
     mean_background_bootstrap = np.mean(background_bootstrap, axis=1)
 
+    background_intensity = (num_spot_pixels * mean_background_bootstrap)
+
     intensity_bootstrap = (
         spot_sum_bootstrap - num_spot_pixels * mean_background_bootstrap
     )
 
     intensity = intensity_bootstrap.mean()
+    background_intensity = background_intensity.mean()
     intensity_err = intensity_bootstrap.std()
 
-    return intensity, intensity_err
+    return intensity, intensity_err, background_intensity
 
 
 def _add_neighborhood_intensity_row(
@@ -692,7 +695,7 @@ def _add_neighborhood_intensity_row(
     centroid = spot_row[["z", "y", "x"]] - spot_row["coordinates_start"][1:]
 
     if raw_spot is not None:
-        intensity, intensity_err = bootstrap_intensity(
+        intensity, intensity_err, background_intensity = bootstrap_intensity(
             raw_spot,
             centroid=centroid,
             mppYX=mppYX,
@@ -705,8 +708,9 @@ def _add_neighborhood_intensity_row(
     else:
         intensity = np.nan
         intensity_err = np.nan
+        background_intensity = np.nan
 
-    return intensity, intensity_err
+    return intensity, intensity_err, background_intensity
 
 
 def add_neighborhood_intensity_spot_dataframe(
@@ -780,7 +784,7 @@ def add_neighborhood_intensity_spot_dataframe(
     )
 
     spot_dataframe[
-        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood"]
+        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood", "background_intensity_from_neighborhood"]
     ] = spot_dataframe.apply(
         bootstrap_intensity_row_func, axis=1, result_type="expand"
     )
@@ -841,7 +845,7 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     """
     # Preallocate columns to facilitate sharing metadata with Dask
     spot_dataframe[
-        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood"]
+        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood", "background_intensity_from_neighborhood"]
     ] = np.nan
     num_processes = len(client.scheduler_info()["workers"])
     spot_dataframe_dask = dd.from_pandas(spot_dataframe, npartitions=num_processes)

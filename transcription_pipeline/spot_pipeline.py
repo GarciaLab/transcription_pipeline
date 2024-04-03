@@ -11,6 +11,7 @@ from pathlib import Path
 import pickle
 import glob
 from functools import partial
+from trackpy import SubnetOversizeException
 
 
 def _solve_for_sigma(fwhm, sigma_ratio, ndim):
@@ -37,23 +38,27 @@ def _solve_for_sigma(fwhm, sigma_ratio, ndim):
     return low_sigma, high_sigma
 
 
-def _transfer_labels(dataframe_future, labels, params, pos_columns):
-    """Helper function to transfer labels inside the worker
-    memory."""
+def _transfer_labels(dataframe_future, labels, params, pos_columns, frame_column):
+    """Helper function to transfer labels inside the worker memory."""
     # Pull only required frames from labels into memory
-    initial_frame = dataframe_future["frame"].min() - 1
-    final_frame = dataframe_future["frame"].max()
+    initial_frame = dataframe_future[frame_column].min() - 1
+    final_frame = dataframe_future[frame_column].max()
     labels_subarray = labels[initial_frame:final_frame]
 
     dataframe = dataframe_future.copy()
+    dataframe["temp_frame_column"] = dataframe[frame_column] - initial_frame
 
     track_filtering.transfer_nuclear_labels(
         dataframe,
         labels_subarray,
         expand_distance=params["track_and_filter_spots_params"]["expand_distance"],
         pos_columns=pos_columns,
+        frame_column="temp_frame_column",
         client=None,
     )
+
+    dataframe.drop("temp_frame_column", axis=1, errors="ignore", inplace=True)
+
     return dataframe
 
 
@@ -65,6 +70,7 @@ def choose_spot_analysis_parameters(
     spot_sigma_x_y_bounds,
     spot_sigma_z_bounds,
     extract_sigma_multiple,
+    max_num_spots,
     expand_distance,
     search_range_um,
     memory,
@@ -114,6 +120,8 @@ def choose_spot_analysis_parameters(
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
     :type extract_sigma_multiple: Array-like
+    :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
+        `nuclear_labels` is provided.
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
     :param float search_range_um: The maximum distance features in microns can move between
@@ -241,9 +249,9 @@ def choose_spot_analysis_parameters(
         "velocity_predict": True,
         "velocity_averaging": velocity_averaging,
         "min_track_length": min_track_length,
-        "filter_multiple": filter_multiple,
         "choose_by": "intensity_from_neighborhood",
         "min_or_max": "maximize",
+        "max_num_spots": max_num_spots,
         "filter_negative": True,
         "quantification": "intensity_from_neighborhood",
         "track_by_intensity": False,
@@ -260,7 +268,6 @@ def choose_spot_analysis_parameters(
         "velocity_predict": True,
         "velocity_averaging": velocity_averaging,
         "min_track_length": retrack_min_track_length,
-        "filter_multiple": False,
         "filter_negative": False,
         "track_by_intensity": retrack_by_intensity,
         "normalize_quantile_to": retrack_intensity_normalize_quantile,
@@ -319,6 +326,8 @@ class Spot:
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
     :type extract_sigma_multiple: Array-like
+    :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
+        `nuclear_labels` is provided.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
     :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
@@ -362,7 +371,8 @@ class Spot:
     :param bool filter_multiple: Decide whether or not to enforce a single-spot
         limit for each nucleus.
     :param bool stitch: If `True`, attempts to stitch together filtered tracks by mean
-        position and separation in time.
+        position and separation in time. This is ignored if tracking is transferred from
+        nuclear labels (i.e. if a `labels` argument is passed).
     :param float stitch_max_distance: Maximum distance between mean position of partial tracks
         that still allows for stitching to occur. If `None`, a default of
         0.5*`retrack_search_range_um` is used.
@@ -434,10 +444,12 @@ class Spot:
         spot_sigma_x_y_bounds=(0.052, 0.52),
         spot_sigma_z_bounds=(0.16, 1),
         extract_sigma_multiple=[6, 10, 10],
+        max_num_spots=1,
         num_bootstraps=1000,
         integrate_sigma_multiple=9,
         expand_distance=2,
-        search_range_um=4.2,
+        search_range_um=4.2,  # write doc
+        fallback_adaptive_step=0.95,  # write doc
         memory=2,
         pos_columns=["z", "y", "x"],
         velocity_averaging=None,
@@ -474,10 +486,13 @@ class Spot:
             self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
             self.spot_sigma_z_bounds = spot_sigma_z_bounds
             self.extract_sigma_multiple = extract_sigma_multiple
+            self.max_num_spots = max_num_spots
             self.num_bootstraps = num_bootstraps
             self.integrate_sigma_multiple = integrate_sigma_multiple
             self.expand_distance = expand_distance
             self.search_range_um = search_range_um
+            self.fallback_adaptive_search_stop_um = spot_sigmas[1]
+            self.fallback_adaptive_step = fallback_adaptive_step
             self.memory = memory
             self.pos_columns = pos_columns
             self.velocity_averaging = velocity_averaging
@@ -511,6 +526,7 @@ class Spot:
                 spot_sigma_x_y_bounds=self.spot_sigma_x_y_bounds,
                 spot_sigma_z_bounds=self.spot_sigma_z_bounds,
                 extract_sigma_multiple=self.extract_sigma_multiple,
+                max_num_spots=self.max_num_spots,
                 expand_distance=self.expand_distance,
                 search_range_um=self.search_range_um,
                 memory=self.memory,
@@ -538,6 +554,7 @@ class Spot:
         working_memory_mode="zarr",
         working_memory_folder=None,
         retrack=False,
+        stitch=True,
         rescale=True,
     ):
         """
@@ -561,6 +578,8 @@ class Spot:
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         """
+        # Update stitch conditional
+        self.stitch = stitch
         # If `data` is passed as a zarr array, we wrap it as a list of futures
         # that read each chunk - the parallelization is fully determined by the
         # chunking of the data, so memory management can be done by rechunking
@@ -597,13 +616,6 @@ class Spot:
                     self.data,
                     overwrite=True,
                     store=results_path / "spot_labels.zarr",
-                    dtype=np.uint32,
-                )
-
-                reordered_spot_labels = zarr.creation.zeros_like(
-                    self.data,
-                    overwrite=True,
-                    store=results_path / "reordered_spot_labels.zarr",
                     dtype=np.uint32,
                 )
 
@@ -694,6 +706,9 @@ class Spot:
                         labels=labels,
                         params=self.default_params,
                         pos_columns=self.pos_columns,
+                        frame_column="original_frame",  # This is required since we're
+                        # passing the whole movie for the nuclear labels but the dataframe
+                        # is still chunked in worker memories.
                     )
 
                     self.spot_dataframe_futures = self.client.map(
@@ -767,37 +782,72 @@ class Spot:
                         self.spot_dataframe[self.pos_columns[i]] * mpp_pos[i]
                     )
 
-        track_filtering.track_and_filter_spots(
-            self.spot_dataframe,
-            nuclear_labels=self.labels,
-            nuclear_pos_columns=pixels_column_names,
-            client=self.client,
-            **(self.default_params["track_and_filter_spots_params"]),
-        )
+        # We set a fallback for adaptive tracking in case the data is very
+        # noisy and tracking fails. We set the stop of the adaptive search to the
+        # estimated spot PSF.
+        try:
+            track_filtering.track_and_filter_spots(
+                self.spot_dataframe,
+                nuclear_labels=self.labels,
+                nuclear_pos_columns=pixels_column_names,
+                client=self.client,
+                **(self.default_params["track_and_filter_spots_params"]),
+            )
+        except SubnetOversizeException:
+            warnings.warn(
+                "Initial tracking failed, defaulting to adaptive search range."
+            )
+
+            track_filtering.track_and_filter_spots(
+                self.spot_dataframe,
+                nuclear_labels=self.labels,
+                nuclear_pos_columns=pixels_column_names,
+                client=self.client,
+                adaptive_stop=self.fallback_adaptive_search_stop_um,
+                adaptive_step=self.fallback_adaptive_step,
+                **(self.default_params["track_and_filter_spots_params"]),
+            )
 
         # A second tracking allows tracking to occur without distraction from spurious
         # particles that end up getting culled anyway - this allows for use of a larger
         # search radius and memory parameter if desired. This is only used if nuclear
         # labels are not provided, otherwise the spot tracking is not actually used to
         # assign particle IDs.
-        if self.retrack_after_filter and (self.labels is None):
+        if self.retrack_after_filter and (
+            (self.labels is None) or (self.max_num_spots > 1)
+        ):
             filtered_dataframe = self.spot_dataframe[
                 self.spot_dataframe["particle"] != 0
             ].copy()
 
-            track_filtering.track_and_filter_spots(
-                filtered_dataframe,
-                nuclear_labels=self.labels,
-                nuclear_pos_columns=pixels_column_names,
-                client=self.client,
-                **(self.default_params["retrack_spots_params"]),
-            )
+            try:
+                track_filtering.track_and_filter_spots(
+                    filtered_dataframe,
+                    nuclear_labels=self.labels,
+                    nuclear_pos_columns=pixels_column_names,
+                    client=self.client,
+                    **(self.default_params["retrack_spots_params"]),
+                )
+            except SubnetOversizeException:
+                warnings.warn(
+                    "Initial re-tracking failed, defaulting to adaptive search range."
+                )
+
+                track_filtering.track_and_filter_spots(
+                    filtered_dataframe,
+                    nuclear_labels=self.labels,
+                    nuclear_pos_columns=pixels_column_names,
+                    client=self.client,
+                    adaptive_stop=self.fallback_adaptive_search_stop_um,
+                    adaptive_step=self.fallback_adaptive_step,
+                    **(self.default_params["retrack_spots_params"]),
+                )
 
             self.spot_dataframe.loc[
                 filtered_dataframe.index, "particle"
             ] = filtered_dataframe["particle"]
 
-        if self.stitch:
+        if self.stitch and ((self.labels is None) or (self.max_num_spots > 1)):
             print("Stitching tracks.")
             if self.stitch_max_distance is None:
                 self.stitch_max_distance = 0.5 * self.search_range_um
@@ -825,17 +875,32 @@ class Spot:
                 )
 
         # Pull from zarr here
-
         if self.client is not None:
             if working_memory_mode == "zarr":
                 first_last_frames = np.array(chunk_boundaries) + 1
                 first_last_frames[:, 1] -= 1
                 first_last_frames = first_last_frames.tolist()
 
-                if self.spot_labels_futures is None:
+                try:
+                    pull_into_futures = self.spot_labels_futures is None
+                except AttributeError:
+                    pull_into_futures = True
+
+                if pull_into_futures:
                     _, self.spot_labels_futures = parallel_computing.zarr_to_futures(
                         self.spot_labels, self.client
                     )
+
+                working_memory_path = Path(working_memory_folder)
+                results_path = working_memory_path / "spot_analysis_results"
+
+                reordered_spot_labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "reordered_spot_labels.zarr",
+                    dtype=np.uint32,
+                )
+
             else:
                 first_last_frames = None
 

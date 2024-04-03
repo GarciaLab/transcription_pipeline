@@ -5,13 +5,15 @@ from ..tracking import track_features
 from ..tracking.track_features import _reverse_segmentation_df
 
 
-def _transfer_nuclear_labels_row(spot_dataframe_row, nuclear_labels, pos_columns):
+def _transfer_nuclear_labels_row(
+    spot_dataframe_row, nuclear_labels, pos_columns, frame_column
+):
     """
     Uses a provided nuclear mask to transfer the nuclear label of the nucleus
     containing the detected spot in a row of the spot dataframe output by
     :func"`~spot_analysis.detection`.
     """
-    t_coordinate = spot_dataframe_row["frame"] - 1
+    t_coordinate = spot_dataframe_row[frame_column] - 1
     spatial_coordinates = spot_dataframe_row[pos_columns].astype(float).round().values
     coordinates = np.array([t_coordinate, *spatial_coordinates], dtype=int)
     label = nuclear_labels[(*coordinates,)]
@@ -23,6 +25,7 @@ def transfer_nuclear_labels(
     nuclear_labels,
     expand_distance=1,
     pos_columns=["z", "y", "x"],
+    frame_column="frame",
     client=None,
 ):
     """
@@ -44,6 +47,9 @@ def transfer_nuclear_labels(
     :param pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
         position coordinate to be used to map to the nuclear labels.
     :type pos_columns: list of DataFrame column names
+    :param str frame_column: Name of column containing the frame numbers. This is provided
+        as an option to facilitate working directly with dataframe Futures generate from
+        chunked movies before stitching together in the local process.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: None
@@ -70,6 +76,7 @@ def transfer_nuclear_labels(
         args=(
             expanded_labels,
             pos_columns,
+            frame_column,
         ),
         axis=1,
     )
@@ -226,7 +233,9 @@ def filter_spots_by_tracks(tracked_spot_dataframe, min_track_length):
     return None
 
 
-def _remove_duplicate_row(spot_dataframe_row, spot_dataframe, *, choose_by, min_or_max):
+def _remove_duplicate_row(
+    spot_dataframe_row, spot_dataframe, *, choose_by, min_or_max, max_num_spots=1
+):
     """
     Checks input `spot_dataframe` for spots with the same nuclear label in the same
     frame, and marks each row with `True` if it is the only spot in that nucleus or if
@@ -239,15 +248,22 @@ def _remove_duplicate_row(spot_dataframe_row, spot_dataframe, *, choose_by, min_
         spot_dataframe["nuclear_label"] == spot_dataframe_row["nuclear_label"]
     )
 
-    discriminant_value = spot_dataframe_row[choose_by]
     if min_or_max == "minimize":
-        best_discriminant = (spot_dataframe.loc[spots_nuclear_mask, choose_by]).min()
+        best_discriminant_idx = (
+            (spot_dataframe.loc[spots_nuclear_mask, choose_by])
+            .nsmallest(max_num_spots)
+            .index
+        )
     elif min_or_max == "maximize":
-        best_discriminant = (spot_dataframe.loc[spots_nuclear_mask, choose_by]).max()
+        best_discriminant_idx = (
+            (spot_dataframe.loc[spots_nuclear_mask, choose_by])
+            .nlargest(max_num_spots)
+            .index
+        )
     else:
         raise ValueError("`min_or_max` option not recognized.")
 
-    if discriminant_value == best_discriminant:
+    if spot_dataframe_row.name in best_discriminant_idx:
         choose_row = True
     else:
         choose_row = False
@@ -255,7 +271,7 @@ def _remove_duplicate_row(spot_dataframe_row, spot_dataframe, *, choose_by, min_
     return choose_row
 
 
-def filter_multiple_spots(spot_dataframe, *, choose_by, min_or_max):
+def filter_multiple_spots(spot_dataframe, *, choose_by, min_or_max, max_num_spots=1):
     """
     Checks input `spot_dataframe` for spots with the same nuclear label in the same
     frame, and marks each row with `True` in an added `include_spot_from_multiple`
@@ -274,13 +290,19 @@ def filter_multiple_spots(spot_dataframe, *, choose_by, min_or_max):
     :param min_or_max: Sets whether the spots are chosen so as to maximize or minimize
         the value in the column prescribed by `choose_by`.
     :type min_or_max: {"minimize", "maximize"}
+    :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
+        `nuclear_labels` is provided.
     :return: None
     :rtype: None
     """
     spot_dataframe["include_spot_from_multiple"] = spot_dataframe.apply(
         _remove_duplicate_row,
         args=(spot_dataframe,),
-        **{"choose_by": choose_by, "min_or_max": min_or_max},
+        **{
+            "choose_by": choose_by,
+            "min_or_max": min_or_max,
+            "max_num_spots": max_num_spots,
+        },
         axis=1,
     )
     return None
@@ -427,14 +449,15 @@ def track_and_filter_spots(
     search_range=10,
     memory=2,
     pos_columns=["z", "y", "x"],
+    frame_column="frame",
     nuclear_pos_columns=["z", "y", "x"],
     t_column="frame_reverse",
     velocity_predict=True,
     velocity_averaging=None,
     min_track_length=3,
-    filter_multiple=True,
     choose_by="intensity_from_neighborhood",
     min_or_max="maximize",
+    max_num_spots=1,
     filter_negative=True,
     quantification="intensity_from_neighborhood",
     track_by_intensity=False,
@@ -480,6 +503,11 @@ def track_and_filter_spots(
     :type pos_columns: list of DataFrame column names
     :param nuclear_pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
         position coordinate to be used to map to the nuclear labels.
+    :param str frame_column: Name of column containing the frame numbers. This is provided
+        as an option to facilitate working directly with dataframe Futures generate from
+        chunked movies before stitching together in the local process - in this case
+        it is used to transfer nuclear labels when the whole labeled array has been passed
+        instead of corresponding chunks.
     :type nuclear_pos_columns: list of DataFrame column names
     :param t_column: Name of column in `segmentation_df` containing the time coordinate
         for each feature.
@@ -493,14 +521,14 @@ def track_and_filter_spots(
     :param int averaging: Number of frames to average velocity over.
     :param int min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis.
-    :param bool filter_multiple: Decide whether or not to enforce a single-spot
-        limit for each nucleus.
     :param str choose_by: Name of column in `spot_dataframe` whose values to use
         as discriminating factor when choosing which of multiple spots in a nucleus
         to keep.
     :param min_or_max: Sets whether the spots are chosen so as to maximize or minimize
         the value in the column prescribed by `choose_by`.
     :type min_or_max: {"minimize", "maximize"}
+    :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
+        `nuclear_labels` is provided.
     :param bool filter_negative: Ignores datapoints where the spot quantification
         goes negative - as long as we are looking at background-subtracted intensity,
         negative values are clear mistrackings/misquantifications.
@@ -530,7 +558,21 @@ def track_and_filter_spots(
         This function can also take any kwargs accepted by ``trackpy.link_df`` to
         specify the tracking options.
     """
-    spot_df = spot_dataframe.copy()
+    # Transfer nuclear labels if provided
+    try:
+        # Make subdataframe excluding extranuclear spots
+        spot_df = spot_dataframe[~(spot_dataframe["nuclear_label"] == 0)].copy()
+    except KeyError:
+        if nuclear_labels is not None:
+            transfer_nuclear_labels(
+                spot_dataframe,
+                nuclear_labels,
+                expand_distance=expand_distance,
+                pos_columns=nuclear_pos_columns,
+                frame_column=frame_column,
+                client=client,
+            )
+            spot_df = spot_dataframe[~(spot_dataframe["nuclear_label"] == 0)].copy()
 
     # First filter out spots with unphysical sigmas
     filter_spots_by_sigma(
@@ -553,21 +595,6 @@ def track_and_filter_spots(
                     ]
                 )
             )
-
-    # Transfer nuclear labels if provided
-    try:
-        # Make subdataframe excluding extranuclear spots
-        spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
-    except KeyError:       
-        if nuclear_labels is not None:
-            transfer_nuclear_labels(
-                spot_df,
-                nuclear_labels,
-                expand_distance=expand_distance,
-                pos_columns=nuclear_pos_columns,
-                client=client,
-            )
-        spot_df = spot_df[~(spot_df["nuclear_label"] == 0)]
 
     # Add normalized intensity if intensity-based tracking is requested
     retrack_pos_columns = pos_columns.copy()
@@ -612,9 +639,12 @@ def track_and_filter_spots(
     ].copy()
 
     # Handle remaining multiple spots in same nucleus
-    if (nuclear_labels is not None) and filter_multiple:
+    if nuclear_labels is not None:
         filter_multiple_spots(
-            filtered_tracked_spots_df, choose_by=choose_by, min_or_max=min_or_max
+            filtered_tracked_spots_df,
+            choose_by=choose_by,
+            min_or_max=min_or_max,
+            max_num_spots=max_num_spots,
         )
         filtered_tracked_spots_df = filtered_tracked_spots_df[
             filtered_tracked_spots_df["include_spot_from_multiple"]
@@ -622,10 +652,26 @@ def track_and_filter_spots(
 
     # Add labels back to original dataframe
     spot_dataframe["particle"] = 0
+    spot_dataframe["particle"] = spot_dataframe["particle"].astype(int)
+
     if nuclear_labels is not None:
+        spot_dataframe["nuclear_label"] = 0
+        spot_dataframe["nuclear_label"] = spot_dataframe["nuclear_label"].astype(int)
+
         spot_dataframe.loc[
-            filtered_tracked_spots_df.index, "particle"
+            filtered_tracked_spots_df.index, "nuclear_label"
         ] = filtered_tracked_spots_df["nuclear_label"]
+
+        if max_num_spots == 1:
+            spot_dataframe.loc[
+                filtered_tracked_spots_df.index, "particle"
+            ] = filtered_tracked_spots_df["nuclear_label"]
+
+        else:
+            spot_dataframe.loc[
+                filtered_tracked_spots_df.index, "particle"
+            ] = filtered_tracked_spots_df["trackpy_label"]
+
     else:
         spot_dataframe.loc[
             filtered_tracked_spots_df.index, "particle"
