@@ -658,6 +658,11 @@ def import_dataset(
     file_list = glob.glob(str(file_path))
     file_list.sort()
 
+    if not file_list:
+        raise FileNotFoundError(
+            "Check working directory matches structure described in README."
+        )
+
     # Metadata fields to ignore during consistency checks (these fields
     # typically vary from series to series).
     ignore_fields = [
@@ -740,7 +745,7 @@ def import_dataset(
 
     dtype = original_global_metadata["PixelsType"]
     num_channels = original_global_metadata["ChannelCount"]
-    
+
     series_shape = data[0].shape
     dataset_shape = (
         num_frames,
@@ -760,9 +765,7 @@ def import_dataset(
 
         channels_full_dataset = []
         for i in range(num_channels):
-            filename = "".join(
-                    ["collated_dataset_ch{:02d}".format(i), ".zarr"]
-                )
+            filename = "".join(["collated_dataset_ch{:02d}".format(i), ".zarr"])
             collated_channel_path = Path(collated_dataset_path) / filename
             channels_full_dataset.append(
                 zarr.creation.create(

@@ -573,6 +573,8 @@ def track_and_filter_spots(
                 client=client,
             )
             spot_df = spot_dataframe[~(spot_dataframe["nuclear_label"] == 0)].copy()
+        else:
+            spot_df = spot_dataframe.copy()
 
     # First filter out spots with unphysical sigmas
     filter_spots_by_sigma(
