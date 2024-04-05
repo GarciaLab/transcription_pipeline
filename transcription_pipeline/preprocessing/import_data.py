@@ -658,6 +658,7 @@ def import_dataset(
     file_list = glob.glob(str(file_path))
     file_list.sort()
 
+    # More informative error message.
     if not file_list:
         raise FileNotFoundError(
             "Check working directory matches structure described in README."
