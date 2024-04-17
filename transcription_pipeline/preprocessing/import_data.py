@@ -29,6 +29,7 @@ def _set_java_environment_path():
 _set_java_environment_path()
 
 
+# noinspection PyBroadException
 def extract_global_metadata(metadata_object):
     """
     Helper function that extracts a dictionary of the global metadata
@@ -166,7 +167,7 @@ def collate_global_metadata(
 ):
     """
     Helper function that uses the metadata from the files being processed
-    to write a consistend global metadata dictionary for the collated file.
+    to write a consistent global metadata dictionary for the collated file.
 
     :param dict input_global_metadata: Clean up metadata dictionary for an
         extracted dataset, as output by :func:`~check_metadata`.
@@ -211,9 +212,9 @@ def collate_global_metadata(
                 else:
                     channel_global_metadata[field] = input_global_metadata[field]
 
-        (channel_global_metadata)["ImageName"] = "collated_dataset_ch{:02d}".format(i)
-        (channel_global_metadata)["ImageCount"] = 1
-        (channel_global_metadata)["InstrumentCount"] = 1
+        channel_global_metadata["ImageName"] = "collated_dataset_ch{:02d}".format(i)
+        channel_global_metadata["ImageCount"] = 1
+        channel_global_metadata["InstrumentCount"] = 1
 
         pixel_size_t = input_global_metadata["PixelsSizeT"][0]
         total_timepoints = sum(
@@ -231,8 +232,8 @@ def collate_global_metadata(
             total_timepoints -= num_series_total
             total_planes -= num_series_total * pixel_size_z
 
-        (channel_global_metadata)["PixelsSizeT"] = total_timepoints
-        (channel_global_metadata)["PlaneCount"] = total_planes
+        channel_global_metadata["PixelsSizeT"] = total_timepoints
+        channel_global_metadata["PlaneCount"] = total_planes
 
         output_global_metadata.append(channel_global_metadata)
 
@@ -241,7 +242,6 @@ def collate_global_metadata(
 
 def collate_frame_metadata(
     input_frame_metadata,
-    input_global_metadata,
     output_global_metadata,
     trim_series,
     num_channels,
@@ -249,16 +249,16 @@ def collate_frame_metadata(
 ):
     """
     Helper function that uses the metadata from the files being processed
-    to write a consistend frame-by-frame metadata dictionary for the
+    to write a consistent frame-by-frame metadata dictionary for the
     collated file.
 
-    :param dict input_frame_metadata; Frame-by-frame metadata dictionary for
+    :param input_frame_metadata; Frame-by-frame metadata dictionary for
         an extracted dataset.
-    :param dict input_global_metadata: Cleaned up metadata dictionary for an
-        extracted dataset, as output by :func:`~check_metadata`.
-    :param dict output_global_metadata: Global metadata dictionary for the
+    :type input_frame_metadata: dict
+    :param output_global_metadata: Global metadata dictionary for the
         exported (collated) data file, as output by
         :func:`~collate_global_metadata`.
+    :type output_global_metadata: dict
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
@@ -330,9 +330,11 @@ def collate_frame_metadata(
             else:
                 z_list = [z_original[:end] for z_original in input_frame_metadata["z"]]
             z = np.concatenate(z_list)
-            channel_frame_metadata["z"] = z
+
         except ValueError:
             z = "inconsistent_metadata"
+
+        channel_frame_metadata["z"] = z
 
         try:
             if num_channels > 1:
@@ -348,9 +350,11 @@ def collate_frame_metadata(
             for j in range(1, len(t_list)):
                 t_list_offset[j] += t_list_offset[j - 1][-1, -1] + 1
             t = np.concatenate(t_list_offset)
-            channel_frame_metadata["t"] = t
+
         except ValueError:
             t = "inconsistent_metadata"
+
+        channel_frame_metadata["t"] = t
 
         try:
             if num_channels > 1:
@@ -380,9 +384,11 @@ def collate_frame_metadata(
                     t_s_list_offset[j].astype(float) + time_delta_from_0[j]
                 )
             t_s = np.concatenate(t_s_list_offset)
-            channel_frame_metadata["t_s"] = t_s
+
         except ValueError:
             t_s = "inconsistent_metadata"
+
+        channel_frame_metadata["t_s"] = t_s
 
         output_frame_metadata.append(channel_frame_metadata)
 
@@ -525,14 +531,13 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
 
     output_frame_metadata = collate_frame_metadata(
         input_frame_metadata,
-        input_global_metadata,
         output_global_metadata,
         trim_series,
         num_channels,
         time_delta_from_0,
     )
 
-    return (output_global_metadata, output_frame_metadata)
+    return output_global_metadata, output_frame_metadata
 
 
 def z_cross_correlation_shift(stack1, stack2, peak_window=3, min_prominence=0.2):
@@ -604,12 +609,12 @@ def import_dataset(
     registration_channel=-1,
     *,
     working_storage_mode=None,
-    collated_dataset_path=None,  # write doc
-    zarr_chunk_nbytes=None,  # write doc
+    collated_dataset_path=None,
+    zarr_chunk_nbytes=None,
 ):
     """
     Imports and collates the data files in the name_directory, and generates
-    metadata dictionaries for the origininal files metadata and new metadata
+    metadata dictionaries for the original files metadata and new metadata
     corresponding to the collated file.
 
     :param str name_folder: Path to name folder containing data files.
@@ -625,9 +630,15 @@ def import_dataset(
     :param int registration_channel: Index of channel to use for registration of z-shift
         between stacks - usually works better with channels with more structure. By default
         uses last channel.
-    :param mode: Determines how the dataset is pulled into memory - `None` pulls the whole
-        dataset as a Numpy array into memory, "zarr" chunks as requested and commits data
-        to a zarr array.
+    :param working_storage_mode: Determines how the dataset is pulled into memory - `None`
+        pulls the whole dataset as a Numpy array into memory, "zarr" chunks as requested and
+        commits data to a zarr array.
+    :type working_storage_mode: {`None`, "zarr"}
+    :param collated_dataset_path: Path to the folder containing the collated data after
+        extraction from the raw files.
+    :type collated_dataset_path: str or pathlib.Path
+    :param int zarr_chunk_nbytes: Imported movies are chunked along the time axis, with the
+        memory size of each chunk being approximately set by this parameter in memory size.
     :return: Tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
@@ -689,6 +700,10 @@ def import_dataset(
     num_frames_series = []  # One element per series
     metadata_list = []  # One element per file
 
+    if not file_list:
+        raise FileNotFoundError(
+            "Check working directory matches structure described in documentation."
+        )
     for file in file_list:
         # Open a reader for the first series of the file
         series = pims.Bioformats(file, read_mode="jpype", series=0)
@@ -700,7 +715,7 @@ def import_dataset(
             multichannel = False
 
         data.append(series)
-        num_frames_series.append((series.shape)[1])
+        num_frames_series.append(series.shape[1])
 
         # Extract metadata for each file and do consistency checks
         file_metadata = extract_global_metadata(series.metadata)
@@ -716,7 +731,7 @@ def import_dataset(
             else:
                 series.bundle_axes = "tzyx"
             data.append(series)
-            num_frames_series.append((series.shape)[1])
+            num_frames_series.append(series.shape[1])
 
     # We check for imaging settings consistency between files (the previous
     # block should already have checked for consistency between series).
@@ -759,8 +774,9 @@ def import_dataset(
         channel_shape = dataset_shape
 
     if working_storage_mode == "zarr":
-        chunk_num_frames = int(
-            np.prod(dataset_shape) * np.dtype(dtype).itemsize / zarr_chunk_nbytes
+        chunk_num_frames = max(
+            int(np.prod(dataset_shape) * np.dtype(dtype).itemsize / zarr_chunk_nbytes),
+            1,
         )
         chunk_channel_shape = (chunk_num_frames, *channel_shape[1:])
 
@@ -783,7 +799,7 @@ def import_dataset(
         for _ in range(num_channels):
             channels_full_dataset.append(np.empty(channel_shape, dtype=dtype))
         if working_storage_mode is not None:
-            warninings.warn(
+            warnings.warn(
                 "`working_storage_mode` option not recognized, using default."
             )
 
@@ -819,6 +835,7 @@ def import_dataset(
     # Estimate shift in z-stacks
     series_shifts = []
     for i, series_start in enumerate(series_splits):
+        # noinspection PyUnboundLocalVariable
         if multichannel:
             post_shift = channels_full_dataset[registration_channel][series_start]
             pre_shift = channels_full_dataset[registration_channel][series_start - 1]
@@ -952,7 +969,7 @@ def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
             collated_data_path = collated_path / filename
 
             # Convert to zarr
-            store = zarr.storage.DirectoryStore(collated_data_path)
+            store = zarr.storage.DirectoryStore(str(collated_data_path))
             channel_data = zarr.creation.array(channel_data, chunks=chunks, store=store)
             store.close()
 
@@ -974,7 +991,7 @@ def import_full_embryo(name_folder, name):
     """
     Imports the FullEmbryo data files in the name_directory used to assign position of
     the imaging window along the embryo AP axis, and generates metadata dictionaries for
-    the origininal files metadata and new metadata corresponding to the respective
+    the original files metadata and new metadata corresponding to the respective
     channels.
 
     :param str name_folder: Path to name folder containing data files.
@@ -1010,10 +1027,8 @@ def import_full_embryo(name_folder, name):
     file_image = pims.Bioformats(file, read_mode="jpype")
     try:
         file_image.bundle_axes = "czyx"
-        multichannel = True
     except ValueError:
         file_image.bundle_axes = "zyx"
-        multichannel = False
 
     file_metadata = file_image.metadata
     original_global_metadata = extract_global_metadata(file_metadata)

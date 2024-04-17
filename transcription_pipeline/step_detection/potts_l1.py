@@ -1,5 +1,6 @@
 import numpy as np
-from numba import jit
+
+# from numba import jit
 
 
 def _construct_histogram(trace, weights):

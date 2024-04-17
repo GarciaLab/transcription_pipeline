@@ -1,6 +1,6 @@
 import numpy as np
 import dask
-from dask.distributed import LocalCluster, Client
+from dask.distributed import LocalCluster
 
 
 def zarr_to_futures(zarr_array, client):
@@ -16,7 +16,9 @@ def zarr_to_futures(zarr_array, client):
     if zarr_array.shape[0] % chunk_timepoints != 0:
         chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
 
-    chunk_start_stop = np.array([chunk_boundaries[:-1], chunk_boundaries[1:]]).T.tolist()
+    chunk_start_stop = np.array(
+        [chunk_boundaries[:-1], chunk_boundaries[1:]]
+    ).T.tolist()
 
     zarr_futures = client.map(lambda x: zarr_array[x[0] : x[1]], chunk_start_stop)
 
@@ -42,7 +44,7 @@ def futures_to_zarr(futures, chunk_start_stop, zarr_out, client):
 
     def _map_chunk_future_to_zarr(future, chunk_bounds):
         # This could easily be done with a lambda function, just keeping it here
-        # for readibility and to make the `None` return explicit.
+        # for readability and to make the `None` return explicit.
         zarr_out[chunk_bounds[0] : chunk_bounds[1]] = future
         return None
 
@@ -204,6 +206,8 @@ def number_of_frames(movie, client):
 
     :param movie: Input movie as passed wrapped in list to `parallelize`.
     :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
     :return: Number of frames in input movie.
     :rtype: int
     """
@@ -212,8 +216,7 @@ def number_of_frames(movie, client):
 
     elif isinstance(movie, list):
         if all(isinstance(chunk, dask.distributed.client.Future) for chunk in movie):
-            count_frames = lambda x: x.shape[0]
-            frames = client.map(count_frames, movie)
+            frames = client.map(lambda x: x.shape[0], movie)
             frames = np.array(client.gather(frames))
             num_frames = int(np.sum(frames))
 

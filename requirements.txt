@@ -7,3 +7,6 @@ scipy==1.11.1
 scikit-image==0.21.0
 trackpy==0.6.1
 zarr==2.14.2
+numba~=0.58.1
+tqdm~=4.66.1
+install-jdk==1.1.0

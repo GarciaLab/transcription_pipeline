@@ -20,7 +20,6 @@ from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
 from ..utils import parallel_computing
-from ..utils.neighborhood_manipulation import ellipsoid
 
 
 def _determine_num_iter(footprint):
@@ -137,7 +136,7 @@ def _find_plateau(array, **kwargs):
             "".join(
                 [
                     "No plateau found with specified max_differences, ",
-                    "defaulting to minimzing successive differences.",
+                    "defaulting to minimizing successive differences.",
                 ]
             )
         )
@@ -196,6 +195,7 @@ def _iterative_peak_warnings(
     return None
 
 
+# noinspection PyIncorrectDocstring
 def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
     """
     Find peaks in an image as coordinate list.
@@ -219,9 +219,9 @@ def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
         stationary value of the detected maxima with respect to the number of
         iterations).
     :type mask: Numpy array of booleans.
-    :param frame_number: Index of frame being processed, used to make warning
+    :param frame_index: Index of frame being processed, used to make warning
         about footprint more descriptive.
-    :type frame_number: int
+    :type frame_index: int
     :param int max_diff: Maximum difference allowed for contiguous points to be
         considered a plateau when looking for a stationary value of the number
         of detected nuclei with respect to the distance between peaks as set by
@@ -266,6 +266,7 @@ def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
     return peak_mask
 
 
+# noinspection PyIncorrectDocstring
 def denoise_frame(stack, denoising, **kwargs):
     """
     Denoises a z-stack using specified method (gaussian or median filtering).
@@ -394,6 +395,7 @@ def _background_mask(
     # If connected component from blurred image is not near surface or spans too
     # much of the stack, do not mark as background.
     if background_spans_surface and np.all(span <= max_span):
+        # noinspection PyTestUnpassedFixture
         binarized_background = labeled_background == background_regionprop.label
         binary_dilation(
             binarized_background,
@@ -406,6 +408,7 @@ def _background_mask(
     return binarized_background
 
 
+# noinspection PyIncorrectDocstring
 def binarize_frame(
     stack,
     *,
@@ -515,10 +518,13 @@ def binarize_frame(
         elif thresholding == "local_otsu":
             # If thresholding is done using local Otsu, the conversion to ubyte
             # and extraction of the footprint kwarg will have already happened
+            # noinspection PyUnboundLocalVariable
             threshold = rank.otsu(stack, otsu_footprint, mask=(~background_mask))
         elif thresholding == "li":
             threshold_guess = threshold_otsu(stack[~background_mask])
-            threshold = threshold_li(stack[~background_mask])
+            threshold = threshold_li(
+                stack[~background_mask], initial_guess=threshold_guess
+            )
 
         binarized_stack = (stack >= threshold) * (~background_mask)
 
@@ -531,6 +537,7 @@ def binarize_frame(
     return binarized_stack
 
 
+# noinspection PyIncorrectDocstring
 def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
@@ -592,6 +599,7 @@ def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     return markers
 
 
+# noinspection PyIncorrectDocstring
 def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
     """
     Segments nuclei in a z-stack using watershed method, starting from a set of
@@ -628,7 +636,7 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
         watershed_landscape = -stack
 
     elif watershed_method == "distance_transform":
-        watershed_landscape = -(ndi.distance_transform_edt(binarized_stack))
+        watershed_landscape = -(ndi.distance_transform_edt(stack))
 
     elif watershed_method == "sobel":
         watershed_landscape = sobel(stack)
@@ -650,6 +658,7 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
     return labels
 
 
+# noinspection PyIncorrectDocstring
 def denoise_movie(movie, *, denoising, **kwargs):
     """
     Denoises a movie frame-by-frame using specified method (gaussian or median
@@ -686,6 +695,7 @@ def denoise_movie(movie, *, denoising, **kwargs):
     return denoised_movie
 
 
+# noinspection PyIncorrectDocstring
 def binarize_movie(
     movie,
     *,
@@ -772,6 +782,7 @@ def binarize_movie(
     return binarized_movie
 
 
+# noinspection PyIncorrectDocstring
 def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
@@ -831,6 +842,7 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     return markers
 
 
+# noinspection PyIncorrectDocstring
 def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
     """
     Segments nuclei in a movie using watershed method.
@@ -875,6 +887,7 @@ def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
     return labels
 
 
+# noinspection PyIncorrectDocstring
 def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     """
     Denoises a movie frame-by-frame using specified method (gaussian or median
@@ -943,6 +956,7 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     return denoised_movie, denoised_movie_futures, scattered_movie
 
 
+# noinspection PyIncorrectDocstring
 def binarize_movie_parallel(
     movie,
     *,
@@ -1059,6 +1073,7 @@ def binarize_movie_parallel(
     return binarized_movie, binarized_movie_futures, scattered_movie
 
 
+# noinspection PyIncorrectDocstring
 def mark_movie_parallel(
     movie, mask, *, low_sigma, high_sigma, max_footprint, client, **kwargs
 ):
@@ -1147,6 +1162,7 @@ def mark_movie_parallel(
     return marked_movie, marked_movie_futures, scattered_movies
 
 
+# noinspection PyIncorrectDocstring
 def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **kwargs):
     """
     Segments nuclei in a movie using watershed method, parallelizing on a Dask
@@ -1214,6 +1230,6 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     else:
         segmented_movie = segment_movie_func(movie, markers, mask)
         segmented_movie_futures = None
-        scattered_movie = None
+        scattered_movies = None
 
     return segmented_movie, segmented_movie_futures, scattered_movies

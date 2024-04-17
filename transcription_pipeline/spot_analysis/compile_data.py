@@ -3,9 +3,9 @@ import warnings
 import numpy as np
 
 
-def _compile_property(compiled_dataframe_row, original_dataframe, property, sort=True):
+def _compile_property(compiled_dataframe_row, original_dataframe, quantity, sort=True):
     """
-    Returns the values of a specified column `property` in `original_dataframe`
+    Returns the values of a specified column `quantity` in `original_dataframe`
     corresponding to a particle specified by the `particle` column of
     `compiled_dataframe_row`.
     """
@@ -16,7 +16,7 @@ def _compile_property(compiled_dataframe_row, original_dataframe, property, sort
     if sort:
         particle_df = particle_df.sort_values("t_s")
 
-    compiled_property = particle_df[property].values
+    compiled_property = particle_df[quantity].values
 
     return compiled_property
 
@@ -56,7 +56,7 @@ def compile_traces(
         `nuclear_tracking_dataframe`.
     :type compile_columns_nuclear: List of column names.
     :param int max_frames_outside_division: The maximum number of timepoints a track
-        can have outside of a nuclear cycle and still be considered exlusively part
+        can have outside of a nuclear cycle and still be considered exclusively part
         of that nuclear cycle.
     :param bool ignore_negative_spots: Ignores datapoints where the spot quantification
         goes negative - as long as we are looking at background-subtracted intensity,
@@ -76,21 +76,21 @@ def compile_traces(
 
     compiled_dataframe = pd.DataFrame(data=particles, columns=["particle"])
 
-    for property in compile_columns_spot:
+    for quantity in compile_columns_spot:
         # Preallocate and convert to dtype object to allow storage of arrays
-        compiled_dataframe[property] = np.nan
-        compiled_dataframe[property] = compiled_dataframe[property].astype(object)
+        compiled_dataframe[quantity] = np.nan
+        compiled_dataframe[quantity] = compiled_dataframe[quantity].astype(object)
 
         try:
-            compiled_dataframe[property] = compiled_dataframe.apply(
-                _compile_property, args=(spot_tracking_dataframe, property), axis=1
+            compiled_dataframe[quantity] = compiled_dataframe.apply(
+                _compile_property, args=(spot_tracking_dataframe, quantity), axis=1
             )
         except KeyError:
             warnings.warn(
                 "".join(
                     [
                         "Property ",
-                        property,
+                        quantity,
                         " to compile not found, check",
                         " that names of provided columns match respective DataFrame.",
                     ]
@@ -99,16 +99,16 @@ def compile_traces(
             )
 
     if nuclear_tracking_dataframe is not None:
-        for property in compile_columns_nuclear:
-            if isinstance(property, dict):
-                property_key = list(property.keys())[0]
-                property_value = property[property_key]
-                property = property_key
+        for quantity in compile_columns_nuclear:
+            if isinstance(quantity, dict):
+                property_key = list(quantity.keys())[0]
+                property_value = quantity[property_key]
+                quantity = property_key
                 column_name = property_value
             else:
-                column_name = property
+                column_name = quantity
 
-            if property != "division_time":
+            if quantity != "division_time":
                 # Preallocate and convert to dtype object to allow storage of arrays
                 compiled_dataframe[column_name] = np.nan
                 compiled_dataframe[column_name] = compiled_dataframe[
@@ -117,7 +117,7 @@ def compile_traces(
 
                 compiled_dataframe[column_name] = compiled_dataframe.apply(
                     _compile_property,
-                    args=(nuclear_tracking_dataframe, property),
+                    args=(nuclear_tracking_dataframe, quantity),
                     axis=1,
                 )
 

@@ -9,7 +9,7 @@ def ellipsoid(diameter, height):
     in our images are typically anisotropic.
 
     :param int diameter: Diameter in xy-plane of ellipsoid footprint.
-    :param int heigh: Height in z-axis of ellipsoid footprint.
+    :param int height: Height in z-axis of ellipsoid footprint.
     :return: Ellipsoid footprint.
     :rtype: bool
     """
@@ -25,7 +25,12 @@ def ellipsoid(diameter, height):
             )
         )
 
-    round_odd = lambda x: int(((x + 1) // 2) * 2 - 1)
+    def round_odd(num):
+        """
+        Helper function to round to the nearest odd integer.
+        """
+        return int(((num + 1) // 2) * 2 - 1)
+
     diameter = round_odd(diameter)
     height = round_odd(height)
 
@@ -48,7 +53,7 @@ def ellipsoid(diameter, height):
 def extract_neighborhood(image, coordinates, span):
     """
     Extracts a view of a neighborhood of size `span` (or the largest odd number under
-    `span` if `span` is even) centered around the pixel corresponding to position 
+    `span` if `span` is even) centered around the pixel corresponding to position
     specified by `coordinates` from an input `image` in arbitrary dimensions, with
     `span` and `coordinates` both having size matching the dimensions of `image` and
     specifying the neighborhood in respective axes. This is useful when extracting
@@ -72,16 +77,20 @@ def extract_neighborhood(image, coordinates, span):
     if np.all(coordinates_start >= 0):
         box_dimensions = pixel_span * 2 + 1
         box_indices = tuple((np.indices(box_dimensions).T + coordinates_start).T)
-    
+
         try:
             neighborhood = image[box_indices]
+            # The NaN handling is done for padded or masked movies.
+            # `.sum()` is faster than `.any` on multidimensional arrays.
+            if np.isnan(neighborhood).sum():
+                neighborhood = None
         except IndexError:
             neighborhood = None
     else:
         neighborhood = None
 
     return neighborhood, coordinates_start
-    
+
 
 def inject_neighborhood(image, neighborhood, coordinates_start):
     """

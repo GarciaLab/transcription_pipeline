@@ -1,8 +1,11 @@
 from ..utils import label_manipulation
 import numpy as np
-from scipy import stats
+import warnings
 from ..tracking import track_features
+
+# noinspection PyProtectedMember
 from ..tracking.track_features import _reverse_segmentation_df
+from tqdm import tqdm
 
 
 def _transfer_nuclear_labels_row(
@@ -71,6 +74,8 @@ def transfer_nuclear_labels(
         )
 
     # Transfer labels from expanded nuclear mask to each spot
+    # No progress bar here since this can be handled inside
+    # Dask Futures.
     spot_dataframe["nuclear_label"] = spot_dataframe.apply(
         _transfer_nuclear_labels_row,
         args=(
@@ -145,12 +150,12 @@ def track_spots(
     `particle_nuclear` and adding a `particle` column with new labels from trackpy
     linking.
 
-    :param segmentation_df: trackpy-compatible pandas DataFrame for linking particles
+    :param spot_dataframe: trackpy-compatible pandas DataFrame for linking particles
         across frame.
-    :type segmentation_df: pandas DataFrame
+    :type spot_dataframe: pandas DataFrame
     :param float search_range: The maximum distance features can move between frames.
     :param int memory: The maximum number of frames during which a feature can vanish,
-        then reppear nearby, and be considered the same particle.
+        then reappear nearby, and be considered the same particle.
     :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
@@ -163,7 +168,7 @@ def track_spots(
         `predict.NearestVelocityPredict` class to estimate a velocity for each feature
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
-    :param int averaging: Number of frames to average velocity over.
+    :param int velocity_averaging: Number of frames to average velocity over.
     :return: Original `segmentation_df` DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
@@ -190,6 +195,7 @@ def track_spots(
         velocity_predict=velocity_predict,
         velocity_averaging=velocity_averaging,
         reindex=False,
+        add_velocities=False,
         **kwargs,
     )
 
@@ -200,36 +206,32 @@ def track_spots(
     return linked_spot_dataframe
 
 
-def _not_stub(tracked_spot_dataframe_row, tracked_spot_dataframe, min_track_length):
-    """
-    Returns `True` if a given track has over `min_track_length` points in its trackpy
-    label, `False` otherwise.
-    """
-    length = (
-        tracked_spot_dataframe["trackpy_label"]
-        == tracked_spot_dataframe_row["trackpy_label"]
-    ).sum()
-    not_stub = length > min_track_length
-    return not_stub
-
-
 def filter_spots_by_tracks(tracked_spot_dataframe, min_track_length):
     """
     Adds a column of booleans `include_spot_by_track` marking spots for inclusion
     based on whether a given spot could be tracked for more than `min_track_length`
     points. The input `spot_dataframe` is modified in-place.
 
-    :param spot_dataframe: DataFrame containing information about putative spots as
+    :param tracked_spot_dataframe: DataFrame containing information about putative spots as
         output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type spot_dataframe: pandas DataFrame
+    :type tracked_spot_dataframe: pandas DataFrame
     :param int min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis.
     :return: None
     :rtype: None
     """
-    tracked_spot_dataframe["include_spot_by_track"] = tracked_spot_dataframe.apply(
-        _not_stub, args=(tracked_spot_dataframe, min_track_length), axis=1
-    )
+    track_lengths = tracked_spot_dataframe.groupby(
+        "trackpy_label", as_index=False, sort=False
+    ).size()
+
+    tracked_spot_dataframe["include_spot_by_track"] = (
+        tracked_spot_dataframe.merge(
+            track_lengths,
+            on="trackpy_label",
+        )["size"]
+        > min_track_length
+    ).values
+
     return None
 
 
@@ -295,7 +297,8 @@ def filter_multiple_spots(spot_dataframe, *, choose_by, min_or_max, max_num_spot
     :return: None
     :rtype: None
     """
-    spot_dataframe["include_spot_from_multiple"] = spot_dataframe.apply(
+    tqdm.pandas(desc="Filtering multiple spots in nuclear labels")
+    spot_dataframe["include_spot_from_multiple"] = spot_dataframe.progress_apply(
         _remove_duplicate_row,
         args=(spot_dataframe,),
         **{
@@ -351,10 +354,15 @@ def compile_successive_differences(
     """
     # Find all unique particles
     particles = np.sort(np.trim_zeros(tracked_dataframe["particle"].unique()))
+    num_particles = particles.size
 
     # Compile all successive differences
     differences = np.array([])
-    for particle in particles:
+    for particle in tqdm(
+        particles,
+        total=num_particles,
+        desc="Compiling variations in intensity",
+    ):
         differences = np.append(
             differences,
             _compile_trace(
@@ -414,7 +422,7 @@ def normalized_variation_intensity(
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots.
     :type tracked_dataframe: pandas DataFrame
-    :param float normalize_quantile_to_1: Target value of .84-quantile of successive
+    :param float normalize_quantile_to: Target value of .84-quantile of successive
         differences in intensity across traces after normalization. This can essentially
         be used to set the "exchange rate" between spatial proximity and similarity in
         intensity (i.e. when tracking, differing in intensity by the .84-quantile
@@ -463,6 +471,7 @@ def track_and_filter_spots(
     track_by_intensity=False,
     normalize_quantile_to=1,
     min_track_length_intensity=5,
+    verbose=False,
     client=None,
     **kwargs,
 ):
@@ -497,7 +506,7 @@ def track_and_filter_spots(
         defaults to 1.
     :param float search_range: The maximum distance features can move between frames.
     :param int memory: The maximum number of frames during which a feature can vanish,
-        then reppear nearby, and be considered the same particle.
+        then reappear nearby, and be considered the same particle.
     :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate, used to track particles using `trackpy`.
     :type pos_columns: list of DataFrame column names
@@ -518,7 +527,7 @@ def track_and_filter_spots(
         `predict.NearestVelocityPredict` class to estimate a velocity for each feature
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
-    :param int averaging: Number of frames to average velocity over.
+    :param int velocity_averaging: Number of frames to average velocity over.
     :param int min_track_length: Minimum number of timepoints a spot has to be
         trackable for in order to be considered in the analysis.
     :param str choose_by: Name of column in `spot_dataframe` whose values to use
@@ -549,6 +558,8 @@ def track_and_filter_spots(
         tracking is of large variations in intensity.
     :param int min_track_length_intensity: Minimum number of data points for a trace to be
         considered when compiling successive differences for intensity-based retracking.
+    :param bool verbose: If `True`, marks each row of the spot dataframe with the boolean
+        flag indicating where the spot may have been filtered out.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: None
@@ -576,27 +587,36 @@ def track_and_filter_spots(
         else:
             spot_df = spot_dataframe.copy()
 
-    # First filter out spots with unphysical sigmas
-    filter_spots_by_sigma(
-        spot_df, sigma_x_y_bounds=sigma_x_y_bounds, sigma_z_bounds=sigma_z_bounds
-    )
-    spot_df = spot_df[spot_df["include_spot_by_sigma"]]
+    with tqdm(total=2, desc="Preliminary spot filtering") as pbar:
+        # First filter out spots with unphysical sigmas
+        filter_spots_by_sigma(
+            spot_df, sigma_x_y_bounds=sigma_x_y_bounds, sigma_z_bounds=sigma_z_bounds
+        )
+        if verbose:
+            spot_dataframe["include_spot_by_sigma"] = False
+            spot_dataframe.loc[spot_df.index, "include_spot_by_sigma"] = spot_df[
+                "include_spot_by_sigma"
+            ]
 
-    # If quantification is available, we can filter out spots that have a negative
-    # intensity since those are mistrackings/misquantifications.
-    if filter_negative:
-        try:
-            positive_filter = spot_df[quantification] > 0
-            spot_df = spot_df[positive_filter]
-        except KeyError:
-            warnings.warn(
-                "".join(
-                    [
-                        "Could not find requested quantification column, ",
-                        "skipping filtering negative-intensity spots.",
-                    ]
+        spot_df = spot_df[spot_df["include_spot_by_sigma"]]
+        pbar.update(1)
+
+        # If quantification is available, we can filter out spots that have a negative
+        # intensity since those are mistrackings/misquantifications.
+        if filter_negative:
+            try:
+                positive_filter = spot_df[quantification] > 0
+                spot_df = spot_df[positive_filter]
+            except KeyError:
+                warnings.warn(
+                    "".join(
+                        [
+                            "Could not find requested quantification column, ",
+                            "skipping filtering negative-intensity spots.",
+                        ]
+                    )
                 )
-            )
+        pbar.update(1)
 
     # Add normalized intensity if intensity-based tracking is requested
     retrack_pos_columns = pos_columns.copy()
@@ -634,23 +654,55 @@ def track_and_filter_spots(
         **kwargs,
     )
 
-    # Filter out short spurious tracks
-    filter_spots_by_tracks(tracked_spots_df, min_track_length)
-    filtered_tracked_spots_df = tracked_spots_df[
-        tracked_spots_df["include_spot_by_track"]
-    ].copy()
+    if verbose:
+        if "trackpy_id" in spot_dataframe:
+            spot_dataframe["previous_trackpy_id"] = spot_dataframe["trackpy_id"].copy()
 
-    # Handle remaining multiple spots in same nucleus
-    if nuclear_labels is not None:
-        filter_multiple_spots(
-            filtered_tracked_spots_df,
-            choose_by=choose_by,
-            min_or_max=min_or_max,
-            max_num_spots=max_num_spots,
-        )
-        filtered_tracked_spots_df = filtered_tracked_spots_df[
-            filtered_tracked_spots_df["include_spot_from_multiple"]
+        spot_dataframe["trackpy_id"] = 0
+        spot_dataframe.loc[tracked_spots_df.index, "trackpy_id"] = tracked_spots_df[
+            "trackpy_label"
+        ]
+
+    with tqdm(total=2, desc="Post-tracking spot filtering") as pbar:
+        # Filter out short spurious tracks
+        filter_spots_by_tracks(tracked_spots_df, min_track_length)
+
+        if verbose:
+            spot_dataframe["include_spot_by_track"] = False
+            spot_dataframe.loc[
+                tracked_spots_df.index, "include_spot_by_track"
+            ] = tracked_spots_df["include_spot_by_track"]
+            try:
+                spot_dataframe["normalized_intensity"] = np.nan
+                spot_dataframe.loc[
+                    tracked_spots_df.index, "normalized_intensity"
+                ] = tracked_spots_df["normalized_intensity"]
+            except KeyError:
+                spot_dataframe.drop("normalized_intensity", axis=1, inplace=True)
+
+        filtered_tracked_spots_df = tracked_spots_df[
+            tracked_spots_df["include_spot_by_track"]
         ].copy()
+        pbar.update(1)
+
+        # Handle remaining multiple spots in same nucleus
+        if nuclear_labels is not None:
+            filter_multiple_spots(
+                filtered_tracked_spots_df,
+                choose_by=choose_by,
+                min_or_max=min_or_max,
+                max_num_spots=max_num_spots,
+            )
+
+            if verbose:
+                spot_dataframe.loc[
+                    filtered_tracked_spots_df.index, "include_spot_from_multiple"
+                ] = filtered_tracked_spots_df["include_spot_from_multiple"]
+
+            filtered_tracked_spots_df = filtered_tracked_spots_df[
+                filtered_tracked_spots_df["include_spot_from_multiple"]
+            ].copy()
+        pbar.update(1)
 
     # Add labels back to original dataframe
     spot_dataframe["particle"] = 0

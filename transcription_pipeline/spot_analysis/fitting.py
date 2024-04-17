@@ -4,6 +4,7 @@ from scipy.linalg import svd
 import numpy as np
 from functools import partial
 import dask.dataframe as dd
+import deprecation
 
 
 def gaussian3d_sym_xy(coordinates, *, centroid, sigma_x_y, sigma_z, amplitude, offset):
@@ -113,7 +114,7 @@ def fit_gaussian_3d_sym_xy(
     :type data: Numpy array.
     :param centroid_guess: Intial guess for Gaussian centroid to feed to least
         squares minimization.
-    :type centroid: Array-like.
+    :type centroid_guess: Array-like.
     :param float sigma_x_y_guess: Initial guess for standard deviation of Gaussian
         fit in x- and y-coordinates, assumed to be symmetric.
     :param float sigma_z_guess: Initial guess for standard deviation of Gaussian
@@ -168,15 +169,20 @@ def fit_gaussian_3d_sym_xy(
             ]
         )
 
-        residuals_func = lambda x: (
-            generate_gaussian_3d_sym_xy(
-                data.shape,
-                [x[0], x[1], x[2]],
-                *x[3:],
-                coordinate_array=coordinate_array,
-            )
-            - data
-        ).ravel()
+        def residuals_func(x):
+            """
+            Helper function to compute the residuals of a 3D Gaussian fit.
+            """
+            residuals = (
+                generate_gaussian_3d_sym_xy(
+                    data.shape,
+                    [x[0], x[1], x[2]],
+                    *x[3:],
+                    coordinate_array=coordinate_array,
+                )
+                - data
+            ).ravel()
+            return residuals
 
         result = least_squares(
             residuals_func, param_initial, bounds=(0, np.inf), method=method, **kwargs
@@ -194,6 +200,7 @@ def fit_gaussian_3d_sym_xy(
             cost = result.cost
 
             # Taken from https://stackoverflow.com/a/67023688
+            # noinspection PyTupleAssignmentBalance
             U, s, Vh = svd(result.jac, full_matrices=False)
             tol = np.finfo(float).eps * s[0] * max(result.jac.shape)
             w = s > tol
@@ -234,7 +241,7 @@ def _fit_spot_dataframe_row(
         sigma_x_y_guess=sigma_x_y_guess,
         sigma_z_guess=sigma_z_guess,
         amplitude_guess=amplitude_guess,
-        offset_guess=amplitude_guess,
+        offset_guess=offset_guess,
         method=method,
         **kwargs,
     )
@@ -264,9 +271,9 @@ def intensity_from_fit_row(spot_dataframe_row):
     over space to estimate the integrated spot brightness from the amplitude and
     sigma fit parameters.
 
-    :param spot_dataframe: DataFrame containing information about putative spots as
-        output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type spot_dataframe: pandas DataFrame
+    :param spot_dataframe_row: Row of DataFrame containing information about putative
+        spots as output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type spot_dataframe_row: row of pandas DataFrame
 
     .. note::
         $$
@@ -290,9 +297,9 @@ def intensity_error_from_fit_row(spot_dataframe_row):
     to estimate the standard error of the intensity from the covariance matrix of the
     fit parameters.
 
-    :param spot_dataframe: DataFrame containing information about putative spots as
-        output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type spot_dataframe: pandas DataFrame
+    :param spot_dataframe_row: Riw of DataFrame containing information about putative spots
+        a output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type spot_dataframe_row: Row of pandas DataFrame
 
     .. note::
         We make use of the first-order expansion of errors for $I = \prod_i X_i$ given
@@ -367,6 +374,9 @@ def add_fits_spots_dataframe(
         an initial guess will be computed from the data by taking the mean value of
         the voxels on the surface of the `data` array (incidentally, this seems to
         already be a reasonable estimate of background).
+    :param image_size: Shape of the array corresponding to a frame. This is used to
+        check whether the proposed spot centroids are within the image bounds.
+    :type image_size: Numpy array.
     :param str method: Method to use for least-squares optimization (see
         `scipy.optimize.least_squares`).
     :param bool inplace: If True, the input `spot_df` is modified in-place to add the
@@ -394,6 +404,7 @@ def add_fits_spots_dataframe(
         offset_guess=offset_guess,
         method=method,
         image_size=image_size,
+        **kwargs,
     )
 
     fit_results = spot_dataframe.apply(fit_spot_row_func, axis=1)
@@ -426,24 +437,24 @@ def add_fits_spots_dataframe(
     spot_dataframe["norm_cost"] = np.nan
     spot_dataframe["intensity_from_fit"] = np.nan
     spot_dataframe["intensity_std_error_from_fit"] = np.nan
-    
+
     if attempted_fit_mask.sum() > 0:
         dataset_size = spot_dataframe.loc[attempted_fit_mask, "raw_spot"].apply(
             lambda x: x.size
         )
         amplitude = spot_dataframe.loc[attempted_fit_mask, "amplitude"]
-        
+
         spot_dataframe.loc[attempted_fit_mask, "norm_cost"] = (
             (2 * spot_dataframe.loc[attempted_fit_mask, "cost"])
             .apply(np.sqrt)
             .divide(dataset_size * amplitude)
         )
-    
+
         # Add intensity estimates from fit parameters
         spot_dataframe.loc[attempted_fit_mask, "intensity_from_fit"] = spot_dataframe[
             attempted_fit_mask
         ].apply(intensity_from_fit_row, axis=1)
-    
+
         # Add intensity error estimates from fit parameters
         spot_dataframe["intensity_std_error_from_fit"] = spot_dataframe[
             attempted_fit_mask
@@ -468,9 +479,9 @@ def add_fits_spots_dataframe_parallel(
     """
     Parallelizes :func:`~add_fits_spots_dataframe` across a Dask Cluster.
 
-    :param spot_df: DataFrame containing information about putative spots as output by
+    :param spot_dataframe: DataFrame containing information about putative spots as output by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type spot_df: pandas DataFrame
+    :type spot_dataframe: pandas DataFrame
     :param float sigma_x_y_guess: Initial guess for standard deviation of Gaussian
         fit in x- and y-coordinates, assumed to be symmetric.
     :param float sigma_z_guess: Initial guess for standard deviation of Gaussian
@@ -533,7 +544,6 @@ def add_fits_spots_dataframe_parallel(
 
     if evaluate:
         spot_dataframe_dask = spot_dataframe_dask.compute()
-        out = spot_dataframe_dask
 
     if inplace:
         spot_dataframe[:] = spot_dataframe_dask
@@ -591,7 +601,10 @@ def extract_spot_shell(
     return spot, background
 
 
-def bootstrap_intensity(
+@deprecation.deprecated(
+    details="Use `bootstrap_intensity` instead of `simple_bootstrap_intensity`, see documentation for details.."
+)
+def simple_bootstrap_intensity(
     raw_spot,
     *,
     centroid,
@@ -663,7 +676,203 @@ def bootstrap_intensity(
     spot_sum_bootstrap = np.sum(spot_bootstrap, axis=1)
     mean_background_bootstrap = np.mean(background_bootstrap, axis=1)
 
-    background_intensity = (num_spot_pixels * mean_background_bootstrap)
+    background_intensity = num_spot_pixels * mean_background_bootstrap
+
+    intensity_bootstrap = (
+        spot_sum_bootstrap - num_spot_pixels * mean_background_bootstrap
+    )
+
+    intensity = intensity_bootstrap.mean()
+    background_intensity = background_intensity.mean()
+    intensity_err = intensity_bootstrap.std()
+
+    return intensity, intensity_err, background_intensity
+
+
+def extract_spot_mask(
+    raw_spot, *, centroid, mppZ, mppYX, ball_diameter_um, shell_width_um, aspect_ratio
+):
+    """
+    Generates a mask corresponding an ellipsoid neighborhood around a proposed spot, and
+    to a shell around that neighborhood for spot and background quantification respectively.
+
+    :param raw_spot: Cuboidal neighborhood around a spot as extracted by
+        :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type raw_spot: Numpy array.
+    :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
+    :param float mppZ: Microns per pixel in z.
+    :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
+    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the xy plane.
+    :param float shell_width_um: Width of shell to extract around the ellipsoid mask
+        used to extract the spot. This is used to estimate the background. This should
+        be at least a little over `mppZ` to ensure a continuous shell is extracted.
+    :param float aspect_ratio: Ratio of diameter of ellipsoid neighborhood in xy to
+        the diameter in z. This should be matched to the ratio of the standard deviations
+        of the gaussian approximation to the PSF of the microscope in microns - for our
+        system, this is empirically very close to 0.5.
+    :return: (ball_mask, shell_mask) where `ball_mask` is a mask of the ellipsoid
+    neighborhood around the spot, and `background` is a mask of the shell around the
+    neighborhood.
+    :rtype: Tuple(Numpy array, Numpy array)
+    """
+    # Compute distance in pixel space
+    indices = np.indices(raw_spot.shape, dtype=float) + 0.5
+    distance_pixels = (indices.T - np.asarray(centroid)).astype(float)
+
+    # Use scope resolution to transform to real space
+    distance_pixels[..., 0] *= mppZ * aspect_ratio
+    distance_pixels[..., 1:] *= mppYX
+    distance_grid = np.sqrt(np.sum(distance_pixels**2, axis=3)).T
+
+    # Extract mask for ball centered around centroid and shell around ball
+    ball_mask = distance_grid < (ball_diameter_um / 2)
+    shell_mask = (distance_grid >= (ball_diameter_um / 2)) & (
+        distance_grid < (ball_diameter_um / 2) + shell_width_um
+    )
+
+    return ball_mask, shell_mask
+
+
+def create_blocks(
+    raw_spot,
+    spot_mask,
+    *,
+    centroid,
+):
+    """
+    Creates a list of masks corresponding to blocks of the raw spot that get sampled
+    for bootstrapping - this makes use of cylindrical symmetry of PSFs, and may not
+    be applicable for non-scanning microscopy.
+
+    :param spot_mask: Cuboidal neighborhood around a spot as extracted by
+        :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type raw_spot: Numpy array.
+    :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
+    :type centroid: Numpy array.
+    :return: List of boolean Numpy arrays.
+    """
+    # We iterate over xy planes and pick out pixel-thick rings to use as IID
+    # sample blocks for bootstrapping. We first define an xy-distance array
+    # to be used for picking out the rings in the following loop.
+    xy_indices = np.indices(raw_spot.shape[1:], dtype=float) + 0.5
+    xy_distance_pixels = (xy_indices.T - np.asarray(centroid[1:])).astype(float)
+    xy_distance_grid = np.sqrt(np.sum(xy_distance_pixels**2, axis=2)).T
+
+    blocks = []
+    # Index over z-planes
+    for i in range(raw_spot.shape[0]):
+        raw_spot_xy_plane = raw_spot[i]
+        spot_mask_xy_plane = spot_mask[i]
+
+        # Iterate over pixel-thick rings
+        radius = 1
+
+        while True:
+            ring_mask = (xy_distance_grid < radius) & (xy_distance_grid > (radius - 1))
+            block_mask = ring_mask & spot_mask_xy_plane
+
+            if block_mask.sum() == 0:
+                break
+
+            block = raw_spot_xy_plane[block_mask]
+            blocks.append(block)
+            radius += 1
+
+    return blocks
+
+
+def bootstrap_intensity(
+    raw_spot,
+    *,
+    centroid,
+    mppZ,
+    mppYX,
+    ball_diameter_um,
+    shell_width_um,
+    aspect_ratio,
+    num_bootstraps=1000,
+):
+    """
+    Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
+    pixel values in a shell around that neighborhood for spot and background
+    quantification respectively, then estimates the intensity as the sum of spot
+    pixel values in the ellipsoid mask, background-subtracted by estimating the background
+    intensity using the shell around the ellipsoid spot mask. This procedure is bootstrapped
+    and used to estimate the error on the intensity. Note that the bootstrapping procedure
+    divides the spot into rings around the center before bootstrapping across each ring so
+    that the counts on each bootstrapping block are iid by cylindrical symmetry of the PSF -
+    this may not be appropriate for non-scanning microscopy images.
+
+    :param raw_spot: Cuboidal neighborhood around a spot as extracted by
+        :func:`~spot_analysis.detection.detect_and_gather_spots`.
+    :type raw_spot: Numpy array.
+    :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
+    :param float mppZ: Microns per pixel in z.
+    :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
+    :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the  xy plane.
+    :param float shell_width_um: Width of shell to extract around the ellipsoid mask
+        used to extract the spot. This is used to estimate the background. This should
+        be at least a little over `mppZ` to ensure a continuous shell is extracted.
+    :param float aspect_ratio: Ratio of diameter of ellipsoid neighborhood in xy to
+        the diameter in z. This should be matched to the ratio of the standard deviations
+        of the gaussian approximation to the PSF of the microscope in microns - for our
+        system, this is empirically very close to 0.5.
+    :param int num_bootstraps: Number of bootstrap samples of the same shape as the
+        extracted pixel values to generate for intensity estimation.
+    :return: (intensity, intensity_err) where `intensity` is the sum of pixel values
+        inside the ellipsoid spot mask, background-subtracted by estimating the average
+        background intensity per pixel from the shell around the ellipsoid mask, and
+        averaged over `num_bootstraps` bootstrap samples. `intensity_err` is the standard
+        deviation of the same.
+    :rtype: Tuple
+
+    .. note:: If the imaging settings are fast relative to the diffusion time of
+        transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
+        good quantification of the spot. Otherwise (as they are on our system, with
+        ~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
+        that a larger neighborhood (~2 um seems to work fine on our system) should
+        be used.
+    """
+    # Extract spot and background pixel values
+    spot_mask, background_mask = extract_spot_mask(
+        raw_spot,
+        centroid=centroid,
+        mppYX=mppYX,
+        mppZ=mppZ,
+        ball_diameter_um=ball_diameter_um,
+        shell_width_um=shell_width_um,
+        aspect_ratio=aspect_ratio,
+    )
+
+    # Generate cylindrically-symmetric blocks for bootstrapping
+    blocks = create_blocks(raw_spot, spot_mask, centroid=centroid)
+
+    # Generate bootstrap resamples
+    spot_bootstrap_samples = np.zeros((spot_mask.sum(), num_bootstraps), dtype=float)
+    block_samples_start_index = 0
+    for block in blocks:
+        block_bootstrap_samples = np.random.choice(
+            block, size=(block.size, num_bootstraps), replace=True
+        )
+        block_samples_end_index = block_samples_start_index + block.size
+        spot_bootstrap_samples[
+            block_samples_start_index:block_samples_end_index
+        ] = block_bootstrap_samples
+        block_samples_start_index = block_samples_end_index
+
+    spot_bootstrap = spot_bootstrap_samples.T
+
+    background_bootstrap = np.random.choice(
+        raw_spot[background_mask], size=(num_bootstraps, background_mask.sum())
+    )
+
+    # Estimate intensity and error
+    num_spot_pixels = spot_mask.sum()
+
+    spot_sum_bootstrap = np.sum(spot_bootstrap, axis=1)
+    mean_background_bootstrap = np.mean(background_bootstrap, axis=1)
+
+    background_intensity = num_spot_pixels * mean_background_bootstrap
 
     intensity_bootstrap = (
         spot_sum_bootstrap - num_spot_pixels * mean_background_bootstrap
@@ -784,10 +993,12 @@ def add_neighborhood_intensity_spot_dataframe(
     )
 
     spot_dataframe[
-        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood", "background_intensity_from_neighborhood"]
-    ] = spot_dataframe.apply(
-        bootstrap_intensity_row_func, axis=1, result_type="expand"
-    )
+        [
+            "intensity_from_neighborhood",
+            "intensity_std_error_from_neighborhood",
+            "background_intensity_from_neighborhood",
+        ]
+    ] = spot_dataframe.apply(bootstrap_intensity_row_func, axis=1, result_type="expand")
 
     return out
 
@@ -804,14 +1015,13 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     num_bootstraps=1000,
     evaluate=True,
     inplace=True,
-    **kwargs,
 ):
     """
     Parallelizes `add_neighborhood_intensity_spot_dataframe` across a Dask cluster.
 
     :param spot_dataframe: DataFrame containing information about proposed spots as output by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type spot_df: pandas DataFrame
+    :type spot_dataframe: pandas DataFrame
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
     :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the  xy plane.
@@ -845,7 +1055,11 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     """
     # Preallocate columns to facilitate sharing metadata with Dask
     spot_dataframe[
-        ["intensity_from_neighborhood", "intensity_std_error_from_neighborhood", "background_intensity_from_neighborhood"]
+        [
+            "intensity_from_neighborhood",
+            "intensity_std_error_from_neighborhood",
+            "background_intensity_from_neighborhood",
+        ]
     ] = np.nan
     num_processes = len(client.scheduler_info()["workers"])
     spot_dataframe_dask = dd.from_pandas(spot_dataframe, npartitions=num_processes)
@@ -867,7 +1081,6 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
 
     if evaluate:
         spot_dataframe_dask = spot_dataframe_dask.compute()
-        out = spot_dataframe_dask
 
     if inplace:
         spot_dataframe[:] = spot_dataframe_dask

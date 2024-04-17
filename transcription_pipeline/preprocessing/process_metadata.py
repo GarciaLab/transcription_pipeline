@@ -31,7 +31,6 @@ def extract_time(frame_metadata):
     frame_scan_time = np.median(time_between_frames)
 
     if time_by_frame:
-        
         num_slices = frame_metadata["z"].max() + 1
         time_per_slice = frame_scan_time / num_slices
 
@@ -41,10 +40,13 @@ def extract_time(frame_metadata):
         )
 
     else:
-        time_func = lambda frame_number, z_position: frame_times[
-            frame_number - 1, int(z_position)
-        ]
-        
+
+        def time_func(frame_number, z_position):
+            """
+            Helper function to calculate imaging time from the frame number and
+            position in the z-stack.
+            """
+            return frame_times[frame_number - 1, int(z_position)]
 
     return time_func, frame_scan_time
 
@@ -68,8 +70,12 @@ def extract_renormalized_frame(frame_metadata):
         time.
     """
     time_func, time_between_frames = extract_time(frame_metadata)
-    frame_time_func = lambda frame_number, z_position: int(
-        time_func(frame_number, z_position) / time_between_frames
-    )
+
+    def frame_time_func(frame_number, z_position):
+        """
+        Helper function to calculate imaging time, in units of the frame scanning
+        time, from the frame number and position in the z-stack.
+        """
+        return int(time_func(frame_number, z_position) / time_between_frames)
 
     return frame_time_func

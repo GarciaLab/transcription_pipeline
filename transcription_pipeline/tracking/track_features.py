@@ -4,11 +4,14 @@ import numpy as np
 from scipy.ndimage import uniform_filter1d
 import trackpy as tp
 from ..preprocessing import process_metadata
-from functools import partial
-import dask
 from ..utils import parallel_computing
 import scipy.signal as sig
 import warnings
+import logging
+import multiprocessing
+from tqdm import tqdm
+import subprocess
+import functools
 
 
 def _number_detected_objects(feature_dataframe):
@@ -115,10 +118,7 @@ def _nuclear_cycle_by_number_objects(num_objects, num_nuclei_per_fov):
     """
     nuclear_cycle = []
     for cycle in num_nuclei_per_fov:
-        if (
-            num_objects > num_nuclei_per_fov[cycle][0]
-            and num_objects < num_nuclei_per_fov[cycle][1]
-        ):
+        if num_nuclei_per_fov[cycle][0] < num_objects < num_nuclei_per_fov[cycle][1]:
             nuclear_cycle.append(cycle)
 
     if len(nuclear_cycle) > 1:
@@ -175,7 +175,7 @@ def assign_nuclear_cycle(
         of nuclear fluorescence.
     :param str fluorescence_field: Name of field used to quantify fluorescence for division
         frame assignment. Only used if `trigger_property` is set to "nuclear_fluorescence".
-    :param float ignore_fluo_threhold: Fraction of peak nuclear fluorescence below
+    :param float ignore_fluo_threshold: Fraction of peak nuclear fluorescence below
         which to ignore frames counting objects to avoid including spurious segmentation
         during nuclear divisions. Setting to 1 is equivalent to no threshold.
     :return: Tuple(division_frames, nuclear_cycle)
@@ -209,6 +209,9 @@ def assign_nuclear_cycle(
         num_objects = num_objects.astype(float)
         ignore_frames = property_array < ignore_fluo_threshold * (property_array.max())
         num_objects[ignore_frames] = np.nan
+
+    else:
+        raise ValueError("`trigger_property` option not recognized.")
 
     division_frames = determine_nuclear_cycle_frames(
         frames,
@@ -245,26 +248,26 @@ def assign_nuclear_cycle(
     return division_frames, np.array(nuclear_cycle)
 
 
-def _reverse_segmentation_df(segmentation_df):
+def _reverse_segmentation_df(segment_df):
     """
     Reverses the frame numbering in the segmentation dataframe to make trackpy track
     the movie backwards - this helps with structures with high acceleration by low
     deceleration, like nuclei as they divide. This adds a column with the reversed
     frame numbers in place to the input `segmentation_df`
     """
-    max_frame = segmentation_df["frame"].max()
-    segmentation_df["frame_reverse"] = segmentation_df.apply(
+    max_frame = segment_df["frame"].max()
+    segment_df["frame_reverse"] = segment_df.apply(
         lambda row: int(1 + max_frame - row["frame"]),
         axis=1,
     )
 
-    max_t_frame = segmentation_df["t_frame"].max()
+    max_t_frame = segment_df["t_frame"].max()
     reverse_t_frame = (
         lambda row: np.nan
         if np.isnan(row["t_frame"])
         else int(max_t_frame - row["t_frame"])
     )
-    segmentation_df["t_frame_reverse"] = segmentation_df.apply(
+    segment_df["t_frame_reverse"] = segment_df.apply(
         reverse_t_frame,
         axis=1,
     )
@@ -371,7 +374,7 @@ def segmentation_df(
 
     movie_properties.rename(rename_columns, axis=1, inplace=True)
 
-    # Add imaging time for each particle. The if-else statment is required to avoid
+    # Add imaging time for each particle. The if-else statement is required to avoid
     # errors due to single-pixel labels that throw np.nan when the centroid is requested.
     time = process_metadata.extract_time(frame_metadata)[0]
     time_apply = (
@@ -441,11 +444,11 @@ def _calculate_velocities(particle_dataframe, pos, t_column, averaging):
 def add_velocity(tracked_dataframe, pos_columns, t_column, averaging=None):
     """
     Returns a copy of a dataframe of tracked features (post linking with trackpy) with
-    added columns for the instantaneous velocities in cooridinates specified in
+    added columns for the instantaneous velocities in coordinates specified in
     `pos_columns`.
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
-    :type linked_dataframe: pandas DataFrame
+    :type tracked_dataframe: pandas DataFrame
     :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
@@ -479,8 +482,78 @@ def add_velocity(tracked_dataframe, pos_columns, t_column, averaging=None):
     return dataframe
 
 
+def read_trackpy_status(file_path, num_frames):
+    """
+    Helper function to read the trackpy progress file. Redirects trackpy's
+    logging to a specified file that is then monitored in `tqdm`.
+
+    :param str file_path: Path to file that trackpy's logging is being
+        redirected to.
+    :param int num_frames: Total number of frames trackpy is tracking
+        over.
+    """
+    tail = subprocess.Popen(
+        ["tail", "-F", file_path], stdout=subprocess.PIPE, bufsize=1, text=True
+    )
+    frame_iter = 0
+    progress_bar_init = False
+    for _ in iter(tail.stdout.readline, ""):
+        if not progress_bar_init:
+            progress_bar = tqdm(total=(num_frames - 1), desc="Tracking")
+            progress_bar_init = True
+        frame_iter += 1
+        # noinspection PyUnboundLocalVariable
+        progress_bar.update(1)
+        if frame_iter == (num_frames - 1):
+            tail.kill()
+            progress_bar.close()
+
+
+def tqdm_trackpy(
+    linking_function, *, num_frames=None, trackpy_log_path="/tmp/trackpy_log"
+):
+    """
+    A wrapper around `trackpy` linkers that redirects tracking progress to a file path
+    and monitors it on a `tqdm` progress bar.
+
+    :param linking_function: `trackpy` linking function.
+    :type linking_function: function
+    :param int num_frames: Total number of frames in dataframe being linked.
+    :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
+    """
+
+    # Identify `trackpy`'s logger for the tracking info messages printed
+    # to console.
+    @functools.wraps(linking_function)
+    def linking_decorator(*args, **kwargs):
+        trackpy_logger = logging.root.manager.loggerDict["trackpy"]
+
+        # Set `trackpy`'s logger to quiet.
+        trackpy_handler = trackpy_logger.handlers[0]
+        trackpy_handler.setLevel(logging.WARN)
+
+        # Add our own handler to read the tracking info messages
+        f = open(trackpy_log_path, "w")
+        temp_handler = logging.StreamHandler(f)
+        temp_handler.setLevel(logging.INFO)
+        trackpy_logger.addHandler(temp_handler)
+
+        with multiprocessing.Pool(processes=1) as pool:
+            pool.apply_async(read_trackpy_status, args=(trackpy_log_path, num_frames))
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Could not generate velocity field for prediction: no tracks",
+                )
+                linking_result = linking_function(*args, **kwargs)
+
+        return linking_result
+
+    return linking_decorator
+
+
 def link_df(
-    segmentation_df,
+    segmentation_dataframe,
     *,
     search_range,
     memory,
@@ -488,7 +561,10 @@ def link_df(
     t_column,
     velocity_predict=True,
     velocity_averaging=None,
+    add_velocities=True,
     reindex=True,
+    monitor_progress=True,
+    trackpy_log_path="/tmp/trackpy_log",
     **kwargs,
 ):
     """
@@ -499,12 +575,12 @@ def link_df(
     `x`, `y` and `z` and if those cannot be found will fall back on coordinates
     specified in `pos_columns`).
 
-    :param segmentation_df: trackpy-compatible pandas DataFrame for linking particles
+    :param segmentation_dataframe: trackpy-compatible pandas DataFrame for linking particles
         across frame.
-    :type segmentation_df: pandas DataFrame
+    :type segmentation_dataframe: pandas DataFrame
     :param float search_range: The maximum distance features can move between frames.
     :param int memory: The maximum number of frames during which a feature can vanish,
-        then reppear nearby, and be considered the same particle.
+        then reappear nearby, and be considered the same particle.
     :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
@@ -518,10 +594,15 @@ def link_df(
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
     :param int velocity_averaging: Number of frames to average velocity over.
+    :param bool add_velocities: If True, adds velocities of tracked particles after
+        tracking.
     :param bool reindex: If `True`, reindexes the dataframe after linking. This is
         important for subsequent mitosis detection on the nuclear channel, but
         prevents the split-apply-combine operations on the dataframe during spot
         analysis.
+    :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+        tracking monitoring to a `tqdm` progress bar.
+    :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
     :return: Original `segmentation_df` DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
@@ -540,10 +621,18 @@ def link_df(
     # Occasionally some connected components will be a single-pixel thick in one of the
     # coordinates, which throws `np.nan` as a centroid in that coordinate. We handle this
     # by screening against `np.nan` in the dataframe before tracking.
-    finite_position = segmentation_df[pos_columns].notnull().all(axis=1)
-    finite_time = segmentation_df[t_column].notnull()
+    finite_position = segmentation_dataframe[pos_columns].notnull().all(axis=1)
+    finite_time = segmentation_dataframe[t_column].notnull()
 
-    finite_filtered_dataframe = segmentation_df[finite_position & finite_time].copy()
+    finite_filtered_dataframe = segmentation_dataframe[
+        finite_position & finite_time
+    ].copy()
+
+    if monitor_progress:
+        num_frames = finite_filtered_dataframe[t_column].nunique()
+        link = tqdm_trackpy(
+            link, num_frames=num_frames, trackpy_log_path=trackpy_log_path
+        )
 
     linked_dataframe = link(
         finite_filtered_dataframe,
@@ -559,19 +648,20 @@ def link_df(
         linked_dataframe = linked_dataframe.reset_index(drop=True)
 
     # Increment particle labels by 1 to avoid erasing 0-th particle
-    linked_dataframe["particle"] = linked_dataframe["particle"].apply(lambda x: x + 1)
+    linked_dataframe["particle"] = (linked_dataframe["particle"] + 1).astype(int)
 
     #  Try to add velocities for all coordinates for flexibility, if not fall
     # back to velocities in requested coordinates.
-    vel_columns = ["z", "y", "x"]
-    try:
-        linked_dataframe = add_velocity(
-            linked_dataframe, vel_columns, t_column, averaging=velocity_averaging
-        )
-    except KeyError:
-        linked_dataframe = add_velocity(
-            linked_dataframe, pos_columns, t_column, averaging=velocity_averaging
-        )
+    if add_velocities:
+        vel_columns = ["z", "y", "x"]
+        try:
+            linked_dataframe = add_velocity(
+                linked_dataframe, vel_columns, t_column, averaging=velocity_averaging
+            )
+        except KeyError:
+            linked_dataframe = add_velocity(
+                linked_dataframe, pos_columns, t_column, averaging=velocity_averaging
+            )
 
     # Drop reversed time coordinates since we're done with trackpy
     linked_dataframe.drop(
@@ -591,8 +681,8 @@ def _switch_labels(properties, segmentation_mask, reordered_mask):
     old_label = properties["label"]
     new_label = properties["particle"]
 
-    object = segmentation_mask[frame_index] == old_label
-    reordered_mask[frame_index][object] = new_label
+    label_mask = segmentation_mask[frame_index] == old_label
+    reordered_mask[frame_index][label_mask] = new_label
     return reordered_mask
 
 
@@ -612,9 +702,11 @@ def reorder_labels(segmentation_mask, linked_dataframe):
     :rtype: Numpy array.
     """
     reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
+    # Remove filtered particles to avoid unnecessary switches
+    filtered_linked_dataframe = linked_dataframe[linked_dataframe["particle"] != 0]
 
     # Switch labels using 'particle' column in linked dataframe
-    linked_dataframe.apply(
+    filtered_linked_dataframe.apply(
         _switch_labels, args=(segmentation_mask, reordered_mask), axis=1
     )
 
