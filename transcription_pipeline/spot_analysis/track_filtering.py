@@ -145,6 +145,8 @@ def track_spots(
     t_column,
     velocity_predict=True,
     velocity_averaging=None,
+    monitor_progress=True,
+    trackpy_log_path="/tmp/trackpy_log",
     **kwargs,
 ):
     """
@@ -172,6 +174,9 @@ def track_spots(
         at each timestep and predict its position in the next frame. This can help
         tracking, particularly of nuclei during nuclear divisions.
     :param int velocity_averaging: Number of frames to average velocity over.
+    :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+        tracking monitoring to a `tqdm` progress bar.
+    :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
     :return: Original `segmentation_df` DataFrame with an added `particle` column
         assigning an ID to each unique feature as tracked by trackpy and velocity
         columns for each coordinate in `pos_columns`.
@@ -199,6 +204,8 @@ def track_spots(
         velocity_averaging=velocity_averaging,
         reindex=False,
         add_velocities=False,
+        monitor_progress=monitor_progress,
+        trackpy_log_path=trackpy_log_path,
         **kwargs,
     )
 
