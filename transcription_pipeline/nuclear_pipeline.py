@@ -395,6 +395,8 @@ class Nuclear:
         self,
         working_memory_mode="zarr",
         working_memory_folder=None,
+        monitor_progress=True,
+        trackpy_log_path="/tmp/trackpy_log",
         rescale=True,
         only_retrack=False,
     ):
@@ -414,6 +416,9 @@ class Nuclear:
             is set to `zarr`, and should be a folder path that points to the location
             where the necessary `zarr` arrays will be stored to disk.
         :type working_memory_folder: {str, `pathlib.Path`, None}
+        :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+            tracking monitoring to a `tqdm` progress bar.
+        :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         :param bool only_retrack: If `True`, only steps subsequent to tracking are re-run.
@@ -597,6 +602,8 @@ class Nuclear:
 
         self.tracked_dataframe = track_features.link_df(
             self.segmentation_dataframe,
+            monitor_progress=monitor_progress,
+            trackpy_log_path=trackpy_log_path,
             **(self.default_params["link_df_params"]),
         )
 
