@@ -433,8 +433,8 @@ class Spot:
 
     .. note::
 
-        * The default $\sigma_z = 0.43 \ \mu m$, $\sigma_{x, y} = 0.21 \ \mu m$ along with the
-          corresponding bounds on the standard deviations were chosen empirically by running
+        * The default :math:`\sigma_z = 0.43 \ \mu m`, :math:`\sigma_{x, y} = 0.21 \ \mu m` along
+          with the corresponding bounds on the standard deviations were chosen empirically by running
           the analysis on a preliminary dataset.
         * `dog_sigma_ratio = 1.6` was chosen to approximate the Laplacian of Gaussians while
           maintaining good response, as per https://doi.org/10.1098/rspb.1980.0020.

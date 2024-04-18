@@ -656,8 +656,8 @@ def simple_bootstrap_intensity(
         transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
         good quantification of the spot. Otherwise (as they are on our system, with
         ~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
-        that a larger neighborhood (~2 um seems to work fine on our system) should
-        be used.
+        that a larger neighborhood (~2 :math:`\mu m` seems to work fine on our system)
+        should be used.
     """
     # Extract spot and background pixel values
     spot, background = extract_spot_shell(
