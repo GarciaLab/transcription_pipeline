@@ -113,8 +113,11 @@ def filter_spots_by_sigma(
     :type sigma_z_bounds: Tuple of floats.
     :return: None
     :rtype: None
+
     .. note::
+
         This also automatically excludes any points that couldn't be fitted.
+
     """
     sigma_x_y_lb, sigma_x_y_ub = sigma_x_y_bounds
     sigma_z_lb, sigma_z_ub = sigma_z_bounds
@@ -341,6 +344,7 @@ def compile_successive_differences(
     """
     Compiles as a single array all successive differences in quantitation
     values of tracked traces.
+
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots.
     :type tracked_dataframe: pandas DataFrame
@@ -471,6 +475,8 @@ def track_and_filter_spots(
     track_by_intensity=False,
     normalize_quantile_to=1,
     min_track_length_intensity=5,
+    monitor_progress=True,
+    trackpy_log_path="tmp/trackpy_log",
     verbose=False,
     client=None,
     **kwargs,
@@ -558,6 +564,9 @@ def track_and_filter_spots(
         tracking is of large variations in intensity.
     :param int min_track_length_intensity: Minimum number of data points for a trace to be
         considered when compiling successive differences for intensity-based retracking.
+    :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+        tracking monitoring to a `tqdm` progress bar.
+    :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
     :param bool verbose: If `True`, marks each row of the spot dataframe with the boolean
         flag indicating where the spot may have been filtered out.
     :param client: Dask client to send the computation to.
@@ -651,6 +660,8 @@ def track_and_filter_spots(
         t_column=t_column,
         velocity_predict=velocity_predict,
         velocity_averaging=velocity_averaging,
+        monitor_progress=monitor_progress,
+        trackpy_log_path=trackpy_log_path,
         **kwargs,
     )
 
@@ -669,14 +680,14 @@ def track_and_filter_spots(
 
         if verbose:
             spot_dataframe["include_spot_by_track"] = False
-            spot_dataframe.loc[
-                tracked_spots_df.index, "include_spot_by_track"
-            ] = tracked_spots_df["include_spot_by_track"]
+            spot_dataframe.loc[tracked_spots_df.index, "include_spot_by_track"] = (
+                tracked_spots_df["include_spot_by_track"]
+            )
             try:
                 spot_dataframe["normalized_intensity"] = np.nan
-                spot_dataframe.loc[
-                    tracked_spots_df.index, "normalized_intensity"
-                ] = tracked_spots_df["normalized_intensity"]
+                spot_dataframe.loc[tracked_spots_df.index, "normalized_intensity"] = (
+                    tracked_spots_df["normalized_intensity"]
+                )
             except KeyError:
                 spot_dataframe.drop("normalized_intensity", axis=1, inplace=True)
 
@@ -712,23 +723,23 @@ def track_and_filter_spots(
         spot_dataframe["nuclear_label"] = 0
         spot_dataframe["nuclear_label"] = spot_dataframe["nuclear_label"].astype(int)
 
-        spot_dataframe.loc[
-            filtered_tracked_spots_df.index, "nuclear_label"
-        ] = filtered_tracked_spots_df["nuclear_label"]
+        spot_dataframe.loc[filtered_tracked_spots_df.index, "nuclear_label"] = (
+            filtered_tracked_spots_df["nuclear_label"]
+        )
 
         if max_num_spots == 1:
-            spot_dataframe.loc[
-                filtered_tracked_spots_df.index, "particle"
-            ] = filtered_tracked_spots_df["nuclear_label"]
+            spot_dataframe.loc[filtered_tracked_spots_df.index, "particle"] = (
+                filtered_tracked_spots_df["nuclear_label"]
+            )
 
         else:
-            spot_dataframe.loc[
-                filtered_tracked_spots_df.index, "particle"
-            ] = filtered_tracked_spots_df["trackpy_label"]
+            spot_dataframe.loc[filtered_tracked_spots_df.index, "particle"] = (
+                filtered_tracked_spots_df["trackpy_label"]
+            )
 
     else:
-        spot_dataframe.loc[
-            filtered_tracked_spots_df.index, "particle"
-        ] = filtered_tracked_spots_df["trackpy_label"]
+        spot_dataframe.loc[filtered_tracked_spots_df.index, "particle"] = (
+            filtered_tracked_spots_df["trackpy_label"]
+        )
 
     return None

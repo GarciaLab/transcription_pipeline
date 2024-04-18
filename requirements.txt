@@ -1,4 +1,4 @@
-dask==2023.5.1
+dask[complete]==2023.5.1
 deprecation==2.1.0
 numpy==1.24.4
 pandas==2.0.2
@@ -10,3 +10,4 @@ zarr==2.14.2
 numba~=0.58.1
 tqdm~=4.66.1
 install-jdk==1.1.0
+numba-progress==1.1.0

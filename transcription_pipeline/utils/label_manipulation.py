@@ -36,16 +36,21 @@ def expand_labels_movie_parallel(label_movie, *, client, distance=1, **kwargs):
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`expanded_labels`, `expanded_labels_futures`, `scattered_label_movie`)
         where
-        *`expanded_labels` is the fully evaluated labelled movie array with connected
-        regions enlarged frame-by-frame.
-        *`expanded_labels_futures` is the list of futures objects resulting from the
-        label expansion in the worker memories before gathering and concatenation.
-        *`scattered_label_movie` is a list with each element corresponding to a list of
-        futures pointing to the input `label_movie` in the workers' memory.
+
+        * `expanded_labels` is the fully evaluated labelled movie array with connected
+          regions enlarged frame-by-frame.
+        * `expanded_labels_futures` is the list of futures objects resulting from the
+          label expansion in the worker memories before gathering and concatenation.
+        * `scattered_label_movie` is a list with each element corresponding to a list of
+          futures pointing to the input `label_movie` in the workers' memory.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     expand_labels_func = partial(expand_labels_movie, distance=distance)
 

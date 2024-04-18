@@ -369,5 +369,3 @@ dependencies:
       - xyzservices==2023.10.1
       - zarr==2.14.2
       - zict==3.0.0
-prefix: 
-  /mnt/270311b5-903d-444b-aa7b-d8dc725944ea/Yovan/miniforge3/envs/transcription_pipeline

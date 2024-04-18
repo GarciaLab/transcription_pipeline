@@ -276,10 +276,12 @@ def denoise_frame(stack, denoising, **kwargs):
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
@@ -431,8 +433,10 @@ def binarize_frame(
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
+
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param opening_footprint: Footprint used for closing operation.
     :type opening_footprint: Numpy array of booleans.
@@ -669,10 +673,12 @@ def denoise_movie(movie, *, denoising, **kwargs):
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
@@ -718,8 +724,9 @@ def binarize_movie(
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param cc_min_span: Minimum span in each axis that the largest connected component
         in a binarized image must have to be considered possible background noise. The
@@ -898,10 +905,12 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
@@ -913,16 +922,21 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`denoised_movie`, `denoised_movie_futures`, `scattered_movie`)
         where
-        *`denoised_movie` is the fully evaluated denoised movie as an ndarray of the
-        same shape and `dtype` as `movie`.
-        *`denoised_movie_futures` is the list of futures objects resulting from the
-        denoising in the worker memories before gathering and concatenation.
-        *`scattered_movie` is a list of futures pointing to the input movie in
-        the workers' memory, wrapped in a list.
+
+        * `denoised_movie` is the fully evaluated denoised movie as an ndarray of the
+          same shape and `dtype` as `movie`.
+        * `denoised_movie_futures` is the list of futures objects resulting from the
+          denoising in the worker memories before gathering and concatenation.
+        * `scattered_movie` is a list of futures pointing to the input movie in
+          the workers' memory, wrapped in a list.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     denoise_movie_func = partial(
         denoise_movie,
@@ -981,8 +995,10 @@ def binarize_movie_parallel(
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
+
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param opening_footprint: Footprint used for closing operation.
     :type opening_footprint: Numpy array of booleans.
@@ -1022,17 +1038,24 @@ def binarize_movie_parallel(
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`binarized_movie`, `binarized_movie_futures`, `scattered_movie`)
         where
-        *`binarized_movie` is the fully evaluated binarized movie as an ndarray of
-        booleans of the same shape as movie, with only the pixels in the foreground
-        corresponding to a `True` value.
-        *`binarized_movie_futures` is the list of futures objects resulting from the
-        binarization in the worker memories before gathering and concatenation.
-        *`scattered_movie` is a list of futures pointing to the input movie in
-        the workers' memory, wrapped in a list.
+
+        * `binarized_movie` is the fully evaluated binarized movie as an ndarray of
+          booleans of the same shape as movie, with only the pixels in the foreground
+          corresponding to a `True` value.
+
+        * `binarized_movie_futures` is the list of futures objects resulting from the
+          binarization in the worker memories before gathering and concatenation.
+
+        * `scattered_movie` is a list of futures pointing to the input movie in
+          the workers' memory, wrapped in a list.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     binarize_movie_func = partial(
         binarize_movie,
@@ -1115,18 +1138,23 @@ def mark_movie_parallel(
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`marked_movie`, `marked_movie_futures`, `scattered_movies`) where
-        *`marked_movie` is the fully evaluated marked movie as an ndarray of
-        booleans of the same shape as movie, with each nucleus containing a single
-        `True` value.
-        *`marked_movie_futures` is the list of futures objects resulting from the
-        marking in the worker memories before gathering and concatenation.
-        *`scattered_movies` is a list with each element corresponding to a list of
-        futures pointing to the input movie and mask in the workers' memory
-        respectively.
+
+        * `marked_movie` is the fully evaluated marked movie as an ndarray of
+          booleans of the same shape as movie, with each nucleus containing a single
+          `True` value.
+        * `marked_movie_futures` is the list of futures objects resulting from the
+          marking in the worker memories before gathering and concatenation.
+        * `scattered_movies` is a list with each element corresponding to a list of
+          futures pointing to the input movie and mask in the workers' memory
+          respectively.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     mark_movie_func = partial(
         mark_movie,
@@ -1192,18 +1220,23 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`segmented_movie`, `segmented_movie_futures`, `scattered_movies`)
         where
-        *`segmented_movie` is the fully evaluated segmented movie as an ndarray of
-        the same shape as movie with `dtype=np.uint32`, with unique integer labels
-        corresponding to each nucleus.
-        *`segmented_movie_futures` is the list of futures objects resulting from the
-        segmentation in the worker memories before gathering and concatenation.
-        *`scattered_movies` is a list with each element corresponding to a list of
-        futures pointing to the input `movie`, `markers`, and `mask` in the workers'
-        memory respectively.
+
+        * `segmented_movie` is the fully evaluated segmented movie as an ndarray of
+          the same shape as movie with `dtype=np.uint32`, with unique integer labels
+          corresponding to each nucleus.
+        * `segmented_movie_futures` is the list of futures objects resulting from the
+          segmentation in the worker memories before gathering and concatenation.
+        * `scattered_movies` is a list with each element corresponding to a list of
+          futures pointing to the input `movie`, `markers`, and `mask` in the workers'
+          memory respectively.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     segment_movie_func = partial(
         segment_movie, watershed_method=watershed_method, **kwargs

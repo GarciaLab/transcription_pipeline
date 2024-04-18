@@ -56,17 +56,19 @@ def determine_nuclear_cycle_frames(
     """
     Assigns frames to nuclear divisions. Additional kwargs are passed through to the peak
     detection function `scipy.signal.find_peaks`.
-    ..note::
-        *If `trigger_property` is set to `num_objects`, the function looks for maxima of
-        the discrete time-derivative of the log of the number of detected nuclei to assign
-        frames to nuclear divisions. The log is used so that the same peak threshold
-        parameters can be used for every nuclear cycle and any zoom dataset (doubling
-        of the number of detected objects corresponding to a constant additive increase in
-        log-space).
-        *If `trigger_property` is set to `nuclear_fluorescence`, then the function
-        goes off of increase (e.g. histone compaction) or decrease (loss of nuclear
-        transcription factor) in nuclear fluorescence to estimate division frames, depending
-        on the setting for `invert`.
+
+    .. note::
+
+        * If `trigger_property` is set to `num_objects`, the function looks for maxima of
+          the discrete time-derivative of the log of the number of detected nuclei to assign
+          frames to nuclear divisions. The log is used so that the same peak threshold
+          parameters can be used for every nuclear cycle and any zoom dataset (doubling
+          of the number of detected objects corresponding to a constant additive increase in
+          log-space).
+        * If `trigger_property` is set to `nuclear_fluorescence`, then the function
+          goes off of increase (e.g. histone compaction) or decrease (loss of nuclear
+          transcription factor) in nuclear fluorescence to estimate division frames, depending
+          on the setting for `invert`.
 
     :param frame_array: Sorted array corresponding to the frame numbers.
     :type frame_array: Numpy array
@@ -153,7 +155,9 @@ def assign_nuclear_cycle(
     "nuclear_cycle" column. Additional kwargs are passed through to the peak
     detection function used to estimate division frames (see documentation for
     `determine_nuclear_cycle_frames`).
-    ..note::
+
+    .. note::
+
         Unless specified, a default parameter of `height` = 0.1, `distance` = 10 is
         passed through to `determine_nuclear_cycle_frames` if triggering off of the number
         of objects in the FOV. If triggering off of nuclear fluorescence, a default
@@ -179,11 +183,13 @@ def assign_nuclear_cycle(
         which to ignore frames counting objects to avoid including spurious segmentation
         during nuclear divisions. Setting to 1 is equivalent to no threshold.
     :return: Tuple(division_frames, nuclear_cycle)
-        *`division_frames`: Numpy array of frame number (not index - the frames are
-        1-indexed as per `trackpy`'s convention) of the detected division windows.
-        *`nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
-        entry of `division_frames` - this will be one entry larger than `division_frames`
-        since we obviously don't see division out of the last cycle observed.
+
+        * `division_frames`: Numpy array of frame number (not index - the frames are
+          1-indexed as per `trackpy`'s convention) of the detected division windows.
+        * `nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
+          entry of `division_frames` - this will be one entry larger than `division_frames`
+          since we obviously don't see division out of the last cycle observed.
+
     :rtype: Tuple of Numpy arrays.
     """
     frames, num_objects = _number_detected_objects(feature_dataframe)
@@ -262,10 +268,8 @@ def _reverse_segmentation_df(segment_df):
     )
 
     max_t_frame = segment_df["t_frame"].max()
-    reverse_t_frame = (
-        lambda row: np.nan
-        if np.isnan(row["t_frame"])
-        else int(max_t_frame - row["t_frame"])
+    reverse_t_frame = lambda row: (
+        np.nan if np.isnan(row["t_frame"]) else int(max_t_frame - row["t_frame"])
     )
     segment_df["t_frame_reverse"] = segment_df.apply(
         reverse_t_frame,
@@ -323,18 +327,20 @@ def segmentation_df(
         isotropic.
     :type spacing: tuple of float
     :return: Tuple(mitosis_dataframe, division_frames, nuclear_cycle) where
-        *`mitosis_dataframe`: pandas DataFrame of frame, label, centroids, and imaging time
-        `t_s` for each labelled region in the segmentation mask (along with other measurements
-        specified by extra_properties). Also includes column `t_frame` for the imaging time
-        in units of z-stack scanning time, and columns `frame_reverse` and `t_frame_reverse`
-        with the frame numbers reversed to allow tracking in reverse (this performs better
-        on high-acceleration, low-deceleration particles), along with the assigned nuclear
-        cycle for the particle as per `assign_nuclear_cycle`.
-        *`division_frames`: Numpy array of frame number (not index - the frames are
-        1-indexed as per `trackpy`'s convention) of the detected division windows.
-        *`nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
-        entry of `division_frames` - this will be one entry larger than `division_frames`
-        since we obviously don't see division out of the last cycle observed.
+
+        * `mitosis_dataframe`: pandas DataFrame of frame, label, centroids, and imaging time
+          `t_s` for each labelled region in the segmentation mask (along with other measurements
+          specified by extra_properties). Also includes column `t_frame` for the imaging time
+          in units of z-stack scanning time, and columns `frame_reverse` and `t_frame_reverse`
+          with the frame numbers reversed to allow tracking in reverse (this performs better
+          on high-acceleration, low-deceleration particles), along with the assigned nuclear
+          cycle for the particle as per `assign_nuclear_cycle`.
+        * `division_frames`: Numpy array of frame number (not index - the frames are
+          1-indexed as per `trackpy`'s convention) of the detected division windows.
+        * `nuclear_cycle`: Numpy array of nuclear cycle being exited at corresponding
+          entry of `division_frames` - this will be one entry larger than `division_frames`
+          since we obviously don't see division out of the last cycle observed.
+
     :rtype: Tuple(pandas DataFrame, numpy array, numpy array)
     """
     # Go over every frame and make a pandas-compatible dict for each labelled object
@@ -377,17 +383,15 @@ def segmentation_df(
     # Add imaging time for each particle. The if-else statement is required to avoid
     # errors due to single-pixel labels that throw np.nan when the centroid is requested.
     time = process_metadata.extract_time(frame_metadata)[0]
-    time_apply = (
-        lambda row: np.nan
-        if np.isnan(row["z"])
-        else time(int(row["original_frame"]), row["z"])
+    time_apply = lambda row: (
+        np.nan if np.isnan(row["z"]) else time(int(row["original_frame"]), row["z"])
     )
     movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
 
     # Add imaging time in number of frames for each particles.
     time_frame = process_metadata.extract_renormalized_frame(frame_metadata)
-    time_frame_apply = (
-        lambda row: np.nan
+    time_frame_apply = lambda row: (
+        np.nan
         if np.isnan(row["z"])
         else time_frame(int(row["original_frame"]), row["z"])
     )
@@ -446,6 +450,7 @@ def add_velocity(tracked_dataframe, pos_columns, t_column, averaging=None):
     Returns a copy of a dataframe of tracked features (post linking with trackpy) with
     added columns for the instantaneous velocities in coordinates specified in
     `pos_columns`.
+
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type tracked_dataframe: pandas DataFrame
@@ -749,18 +754,23 @@ def reorder_labels_parallel(
     :type client: `dask.distributed.client.Client` object.
     :return: Tuple(`reordered_labels`, `reordered_labels_futures`, `scattered_movies`)
         where
-        *`reordered_labels` is the fully evaluated segmentation mask reordered as per
-        the tracking, as an ndarray of the same shape as and dtype as
-        `segmentation_mask`, with unique integer labels corresponding to each nucleus.
-        *`reordered_labels_futures` is the list of futures objects resulting from the
-        reordering in the worker memories before gathering and concatenation.
-        *`scattered_data` is a list with each element corresponding to a list of
-        futures pointing to the input `segmentation_mask` and `linked_dataframe` in
-        the workers' memory respectively.
+
+        * `reordered_labels` is the fully evaluated segmentation mask reordered as per
+          the tracking, as an ndarray of the same shape as and dtype as
+          `segmentation_mask`, with unique integer labels corresponding to each nucleus.
+        * `reordered_labels_futures` is the list of futures objects resulting from the
+          reordering in the worker memories before gathering and concatenation.
+        * `scattered_data` is a list with each element corresponding to a list of
+          futures pointing to the input `segmentation_mask` and `linked_dataframe` in
+          the workers' memory respectively.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     evaluate, futures_in, futures_out = parallel_computing.parse_parallelize_kwargs(
         kwargs

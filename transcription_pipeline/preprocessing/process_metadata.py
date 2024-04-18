@@ -6,6 +6,7 @@ def extract_time(frame_metadata):
     Returns a function that maps a frame number and z-coordinate to the time in
     seconds after the start of the imaging sessions at which that coordinate was
     imaged.
+
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :return: Tuple of function object taking frame number and z-position as arguments
@@ -13,12 +14,15 @@ def extract_time(frame_metadata):
         form Tuple(function of form time_func(frame_number, z_position),
         time_between_frames).
     :rtype: Tuple(function, float)
+
     .. note::
+
         This function will try to estimate the time at which a coordinate was imaged.
         If the scope records the imaging time for each z-slice in the metadata, it will
         simply use the corresponding value. Some scopes, however, only record the
         time at the start of each z-stack - in this case it will interpolate the
         time.
+
     """
     # Check if imaging time is encoded on z-slice or frame basis
     frame_times = frame_metadata["t_s"]
@@ -62,12 +66,15 @@ def extract_renormalized_frame(frame_metadata):
     :return: Function object taking frame number and z-position as arguments and
         returning an imaging time number of z-stack scan times.
     :rtype: function of form time_func(frame_number, z_position)
+
     .. note::
+
         This function will try to estimate the time at which a coordinate was imaged.
         If the scope records the imaging time for each z-slice in the metadata, it will
         simply use the corresponding value. Some scopes, however, only record the
         time at the start of each z-stack - in this case it will interpolate the
         time.
+
     """
     time_func, time_between_frames = extract_time(frame_metadata)
 

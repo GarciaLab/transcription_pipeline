@@ -173,10 +173,12 @@ def choose_spot_analysis_parameters(
         and labeling but before filtering in memory.
     :return: Dictionary of kwarg dicts corresponding to each function in the spot
         segmentation and tracking pipeline:
-        *`detection.detect_and_gather_spots`
-        *`fitting.add_fits_spots_dataframe_parallel`
-        *`track_filtering.track_and_filter_spots`
-        *`track_features.reorder_labels_parallel`
+
+        * `detection.detect_and_gather_spots`
+        * `fitting.add_fits_spots_dataframe_parallel`
+        * `track_filtering.track_and_filter_spots`
+        * `track_features.reorder_labels_parallel`
+
     :rtype: dict
     """
     spot_sigmas = np.asarray(spot_sigmas)
@@ -430,15 +432,16 @@ class Spot:
         transferred over from provided `labels`.
 
     .. note::
-        *The default $\sigma_z = 0.43 \ \mu m$, $\sigma_{x, y} = 0.21 \ \mu m$ along with the
-        corresponding bounds on the standard deviations were chosen empirically by running
-        the analysis on a preliminary dataset.
-        *`dog_sigma_ratio = 1.6` was chosen to approximate the Laplacian of Gaussians while
-        maintaining good response, as per https://doi.org/10.1098/rspb.1980.0020.
-        *With the ratio of the standard deviations of the Difference of Gaussians filter
-        fixed, the standard deviations were chosen so that the full width at half-maximum
-        of the resultant filter matched that of a Gaussian with standard deviations
-        given by `spot_sigmas` so as to maximize the response to spots of the correct scale.
+
+        * The default $\sigma_z = 0.43 \ \mu m$, $\sigma_{x, y} = 0.21 \ \mu m$ along with the
+          corresponding bounds on the standard deviations were chosen empirically by running
+          the analysis on a preliminary dataset.
+        * `dog_sigma_ratio = 1.6` was chosen to approximate the Laplacian of Gaussians while
+          maintaining good response, as per https://doi.org/10.1098/rspb.1980.0020.
+        * With the ratio of the standard deviations of the Difference of Gaussians filter
+          fixed, the standard deviations were chosen so that the full width at half-maximum
+          of the resultant filter matched that of a Gaussian with standard deviations
+          given by `spot_sigmas` so as to maximize the response to spots of the correct scale.
     """
 
     def __init__(
@@ -569,11 +572,14 @@ class Spot:
 
     def extract_spot_traces(
         self,
+        *,
         working_memory_mode="zarr",
         working_memory_folder=None,
         only_retrack=False,
         retrack_after_filter=True,
         stitch=True,
+        monitor_progress=True,
+        trackpy_log_path="/tmp/trackpy_log",
         rescale=True,
         verbose=False,
     ):
@@ -596,9 +602,14 @@ class Spot:
         :type working_memory_folder: {str, `pathlib.Path`, None}
         :param bool only_retrack: If `True`, only steps subsequent to tracking are re-run.
         :param bool retrack_after_filter: Performs a second tracking after initial filtering
-        to avoid tracking getting "distracted" by spurious spots.
+            to avoid tracking getting "distracted" by spurious spots.
         :param bool stitch: If `True`, traces are stitched together by proximity
             after a first pass of tracking and filtering.
+        :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+            tracking monitoring to a `tqdm` progress bar.
+        :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
+        :param bool verbose: If `True`, marks each row of the spot dataframe with the boolean
+            flag indicating where the spot may have been filtered out.
         :param bool verbose: If `True`, marks each row of the spot dataframe with the boolean
             flag indicating where the spot may have been filtered out.
         :param bool rescale: If `True`, rescales particle positions to correspond
@@ -870,6 +881,8 @@ class Spot:
                 nuclear_pos_columns=pixels_column_names,
                 verbose=verbose,
                 client=self.client,
+                monitor_progress=monitor_progress,
+                trackpy_log_path=trackpy_log_path,
                 **(self.default_params["track_and_filter_spots_params"]),
             )
         except SubnetOversizeException:
@@ -885,6 +898,8 @@ class Spot:
                 adaptive_stop=self.fallback_adaptive_search_stop_um,
                 adaptive_step=self.fallback_adaptive_step,
                 verbose=verbose,
+                monitor_progress=monitor_progress,
+                trackpy_log_path=trackpy_log_path,
                 **(self.default_params["track_and_filter_spots_params"]),
             )
 
@@ -927,9 +942,9 @@ class Spot:
                 )
 
             self.spot_dataframe["particle"] = 0
-            self.spot_dataframe.loc[
-                filtered_dataframe.index, "particle"
-            ] = filtered_dataframe["particle"]
+            self.spot_dataframe.loc[filtered_dataframe.index, "particle"] = (
+                filtered_dataframe["particle"]
+            )
 
             if verbose:
                 self.spot_dataframe["include_spot_by_retrack"] = False

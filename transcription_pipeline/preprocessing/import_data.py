@@ -252,7 +252,7 @@ def collate_frame_metadata(
     to write a consistent frame-by-frame metadata dictionary for the
     collated file.
 
-    :param input_frame_metadata; Frame-by-frame metadata dictionary for
+    :param input_frame_metadata: Frame-by-frame metadata dictionary for
         an extracted dataset.
     :type input_frame_metadata: dict
     :param output_global_metadata: Global metadata dictionary for the
@@ -642,25 +642,27 @@ def import_dataset(
     :return: Tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
+
            * ``channels_full_dataset``: list of numpy arrays, with each
-           element of the list being a collated dataset for a given channel.
+             element of the list being a collated dataset for a given channel.
            * ``original_global_metadata``: dictionary of global metadata
-           for all files and series in a dataset.
+             for all files and series in a dataset.
            * ``original_frame_metadata``: dictionary of frame-by-frame metadata
-           for all files and series in a dataset.
+             for all files and series in a dataset.
            * ``export_global_metadata``: list of dictionaries of global
-           metadata for the collated dataset, with each element of the list
-           corresponding to a channel.
+             metadata for the collated dataset, with each element of the list
+             corresponding to a channel.
            * ``export_frame_metadata``: list of dictionaries of frame-by-frame
-           metadata for the collated dataset, with each element of the list
-           corresponding to a channel.
+             metadata for the collated dataset, with each element of the list
+             corresponding to a channel.
            * ``series_splits``: list of first frame of each series. This is useful
-           when stitching together z-coordinates to improve tracking when the z-stack
-           has been shifted mid-imaging.
-           *``series_shifts``: list of estimated shifts in pixels (sub-pixel
-           approximated using centroid of normalized correlation peak) between stacks
-           at interface between separate series - this quantifies the shift in the
-           z-stack.
+             when stitching together z-coordinates to improve tracking when the z-stack
+             has been shifted mid-imaging.
+           * ``series_shifts``: list of estimated shifts in pixels (sub-pixel
+             approximated using centroid of normalized correlation peak) between stacks
+             at interface between separate series - this quantifies the shift in the
+             z-stack.
+
     :rtype: Tuple
     """
     name_folder_path = Path(name_folder)
@@ -901,19 +903,21 @@ def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
     :type chunks: bool, int or tuple of ints, optional.
     :return: Tuple(channels_full_dataset, original_global_metadata,
         original_frame_metadata, export_global_metadata,export_frame_metadata)
+
         * ``channels_full_dataset``: list of numpy (if mode='tiff') or zarr arrays
-        (if mode='zarr'), with each element of the list being a collated dataset
-        for a given channel.
+          (if mode='zarr'), with each element of the list being a collated dataset
+          for a given channel.
         * ``original_global_metadata``: dictionary of global metadata
-        for all files and series in a dataset.
+          for all files and series in a dataset.
         * ``original_frame_metadata``: dictionary of frame-by-frame metadata
-        for all files and series in a dataset.
+          for all files and series in a dataset.
         * ``export_global_metadata``: list of dictionaries of global
-        metadata for the collated dataset, with each element of the list
-        corresponding to a channel.
+          metadata for the collated dataset, with each element of the list
+          corresponding to a channel.
         * ``export_frame_metadata``: list of dictionaries of frame-by-frame
-        metadata for the collated dataset, with each element of the list
-        corresponding to a channel.
+          metadata for the collated dataset, with each element of the list
+          corresponding to a channel.
+
     :rtype: Tuple of dicts
     """
     (
@@ -1000,18 +1004,20 @@ def import_full_embryo(name_folder, name):
     :return: Tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
+
            * ``channels_dataset``: list of numpy arrays, with each
-           element of the list being a collated FullEmbryo dataset for a given channel.
+             element of the list being a collated FullEmbryo dataset for a given channel.
            * ``original_global_metadata``: dictionary of global metadata
-           for a FullEmbryo dataset.
+             for a FullEmbryo dataset.
            * ``original_frame_metadata``: dictionary of frame-by-frame metadata
-           for all files and series in a dataset.
+             for all files and series in a dataset.
            * ``export_global_metadata``: list of dictionaries of global
-           metadata for the collated dataset, with each element of the list
-           corresponding to a channel.
+             metadata for the collated dataset, with each element of the list
+             corresponding to a channel.
            * ``export_frame_metadata``: list of dictionaries of frame-by-frame
-           metadata for the collated dataset, with each element of the list
-           corresponding to a channel.
+             metadata for the collated dataset, with each element of the list
+             corresponding to a channel.
+
     :rtype: Tuple
     """
     name_folder_path = Path(name_folder)

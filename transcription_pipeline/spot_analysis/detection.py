@@ -434,16 +434,18 @@ def detect_spots(
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return:
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties.
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties, chunked up as list of `Futures` corresponding to labelled mask and
-        bandpassed-filtered movie `Futures` (see below).
-        *Labelled mask of spots in `spot_movie`
-        *labelled mask as list of `Futures`
-        *bandpass-filtered movie
-        *bandpass-filtered movie as a list of `Futures`
-        *input `spot_movie` as list of `Futures`
+
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties.
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties, chunked up as list of `Futures` corresponding to labelled mask and
+          bandpassed-filtered movie `Futures` (see below).
+        * labelled mask of spots in `spot_movie`
+        * labelled mask as list of `Futures`
+        * bandpass-filtered movie
+        * bandpass-filtered movie as a list of `Futures`
+        * input `spot_movie` as list of `Futures`
+
     :rtype: Tuple
     """
     if client is not None:
@@ -699,16 +701,18 @@ def detect_and_gather_spots(
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return:
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties.
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties, chunked up as list of `Futures` corresponding to labelled mask and
-        bandpassed-filtered movie `Futures` (see below).
-        *Labelled mask of spots in `spot_movie`
-        *labelled mask as list of `Futures`
-        *bandpass-filtered movie
-        *bandpass-filtered movie as a list of `Futures`
-        *input `spot_movie` as list of `Futures`
+
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties.
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties, chunked up as list of `Futures` corresponding to labelled mask and
+          bandpassed-filtered movie `Futures` (see below).
+        * labelled mask of spots in `spot_movie`
+        * labelled mask as list of `Futures`
+        * bandpass-filtered movie
+        * bandpass-filtered movie as a list of `Futures`
+        * input `spot_movie` as list of `Futures`
+
     :rtype: Tuple
     """
     if client is not None:

@@ -112,7 +112,7 @@ def fit_gaussian_3d_sym_xy(
     :param data: 3-dimensional array (with the usual spatial axis ordering 'zyx')
         containing a single putative spot to fit with a 3D Gaussian.
     :type data: Numpy array.
-    :param centroid_guess: Intial guess for Gaussian centroid to feed to least
+    :param centroid_guess: Initial guess for Gaussian centroid to feed to least
         squares minimization.
     :type centroid_guess: Array-like.
     :param float sigma_x_y_guess: Initial guess for standard deviation of Gaussian
@@ -136,12 +136,14 @@ def fit_gaussian_3d_sym_xy(
     :return: If optimization is successful, returns a tuple of fit parameters
         `(centroid, sigma_x_y, sigma_z, amplitude, offset, cost)`. The notation
         is consistent with that used in `gaussian3d_sym_xy`.
-        *`centroid`: Centroid of fitted 3D Gaussian (Numpy array).
-        *`sigma_x_y`: Standard deviation of fitted 3D Gaussian in x- and y-coordinate.
-        *`sigma_z`: Standard deviation of fitted 3D Gaussian in z-coordinate.
-        *`amplitude`: Amplitude of fitted 3D Gaussian.
-        *`offset`: Offset of fitted 3D Gaussian.
-        *`cost`: Value of cost function at the solution.
+
+        * `centroid`: Centroid of fitted 3D Gaussian (Numpy array).
+        * `sigma_x_y`: Standard deviation of fitted 3D Gaussian in x- and y-coordinate.
+        * `sigma_z`: Standard deviation of fitted 3D Gaussian in z-coordinate.
+        * `amplitude`: Amplitude of fitted 3D Gaussian.
+        * `offset`: Offset of fitted 3D Gaussian.
+        * `cost`: Value of cost function at the solution.
+
     :rtype: Tuple
 
     .. note:: This function can also pass through any kwargs accepted by
@@ -276,11 +278,13 @@ def intensity_from_fit_row(spot_dataframe_row):
     :type spot_dataframe_row: row of pandas DataFrame
 
     .. note::
-        $$
-        \int_{\mathbb{R}^3} A e^{- \frac{x^2 + y^2}{2 \sigma_{xy}^2}
-        - \frac{z^2}{2 \sigma_z^2}} \ dx \ dy \ dz =
-        2 \sqrt{2} A \pi^{3/2} \sigma_{xy}^2 \sigma_z
-        $$
+
+        .. math::
+
+            \\int_{\\mathbb{R}^3} A e^{- \\frac{x^2 + y^2}{2 \\sigma_{xy}^2}
+            - \\frac{z^2}{2 \\sigma_z^2}} \\ dx \\ dy \\ dz =
+            2 \\sqrt{2} A \\pi^{3/2} \\sigma_{xy}^2 \\sigma_z
+
     """
     amplitude = spot_dataframe_row["amplitude"]
     sigma_x_y = spot_dataframe_row["sigma_x_y"]
@@ -302,13 +306,14 @@ def intensity_error_from_fit_row(spot_dataframe_row):
     :type spot_dataframe_row: Row of pandas DataFrame
 
     .. note::
-        We make use of the first-order expansion of errors for $I = \prod_i X_i$ given
+
+        We make use of the first-order expansion of errors for :math:`I = \prod_i X_i` given
         by:
 
-        $$
-        \bigg( \frac{\sigma_I}{I} \bigg)^2 = \sum_i \bigg( \frac{\sigma_{X_i}}{X_i})^2
-        + 2 \sum_i \sum_{j > i} \frac{\sigma_{X_i X_j}}{X_i X_j}
-        $$
+        .. math::
+            \\bigg( \\frac{\\sigma_I}{I} \\bigg)^2 = \\sum_i \\bigg( \\frac{\\sigma_{X_i}}{X_i})^2 \\bigg) \\
+            + 2 \\sum_i \\sum_{j > i} \\frac{\\sigma_{X_i X_j}}{X_i X_j}
+
     """
     amplitude = spot_dataframe_row["amplitude"]
     sigma_x_y = spot_dataframe_row["sigma_x_y"]
@@ -347,17 +352,18 @@ def add_fits_spots_dataframe(
     output by :func:`~spot_analysis.detection.detect_and_gather_spots` using
     :func:`~fit_gaussian_3d_sym_xy`. The fit centroid is then used to refine the
     spatial coordinates of the spot, and columns are added as follows:
-    *"sigma_x_y": Standard deviation of Gaussian fit in x- and y-coordinates.
-    *"sigma_z": Standard deviation of Gaussian fit in z-coordinate.
-    *"amplitude": Amplitude of Gaussian fit (this is typically the signal of interest).
-    *"offset": Offset of Gaussian fit (useful for background subtraction).
-    *"cost": Value of the cost function at termination of the fit, see documentation
-    for `scipy.optimize.least_squares`.
-    *"norm_cost": Normalized cost, defined as the L2-norm of the residuals divided
-    by the product of the amplitude and the number of voxels. This gives a dimensionless
-    measure of cost of the fit that can be more easily used for downstream filtering.
-    *"intensity_from_fit": Estimated spot intensity by using analytical expression for
-    integral of 3D Gaussian over space and fit parameters.
+
+    * "sigma_x_y": Standard deviation of Gaussian fit in x- and y-coordinates.
+    * "sigma_z": Standard deviation of Gaussian fit in z-coordinate.
+    * "amplitude": Amplitude of Gaussian fit (this is typically the signal of interest).
+    * "offset": Offset of Gaussian fit (useful for background subtraction).
+    * "cost": Value of the cost function at termination of the fit, see documentation
+      for `scipy.optimize.least_squares`.
+    * "norm_cost": Normalized cost, defined as the L2-norm of the residuals divided
+      by the product of the amplitude and the number of voxels. This gives a dimensionless
+      measure of cost of the fit that can be more easily used for downstream filtering.
+    * "intensity_from_fit": Estimated spot intensity by using analytical expression for
+      integral of 3D Gaussian over space and fit parameters.
 
     :param spot_df: DataFrame containing information about putative spots as output by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
@@ -711,8 +717,8 @@ def extract_spot_mask(
         of the gaussian approximation to the PSF of the microscope in microns - for our
         system, this is empirically very close to 0.5.
     :return: (ball_mask, shell_mask) where `ball_mask` is a mask of the ellipsoid
-    neighborhood around the spot, and `background` is a mask of the shell around the
-    neighborhood.
+        neighborhood around the spot, and `background` is a mask of the shell around the
+        neighborhood.
     :rtype: Tuple(Numpy array, Numpy array)
     """
     # Compute distance in pixel space
@@ -855,9 +861,9 @@ def bootstrap_intensity(
             block, size=(block.size, num_bootstraps), replace=True
         )
         block_samples_end_index = block_samples_start_index + block.size
-        spot_bootstrap_samples[
-            block_samples_start_index:block_samples_end_index
-        ] = block_bootstrap_samples
+        spot_bootstrap_samples[block_samples_start_index:block_samples_end_index] = (
+            block_bootstrap_samples
+        )
         block_samples_start_index = block_samples_end_index
 
     spot_bootstrap = spot_bootstrap_samples.T
@@ -940,12 +946,13 @@ def add_neighborhood_intensity_spot_dataframe(
     values around the neighborhood is also extracted to estimate the background for
     background subtraction. This procedure is bootstrapped to obtain an estimate of the
     error in integrated fluorescence.
-    *"intensity_from_neighborhood": Estimated spot intensity by using sum of pixel
-    values in ellipsoid neighborhood around spot, background-subtracted by using
-    pixel values in shell around ellipsoid neighborhood to estimate background per
-    pixel.
-    *"intensity_std_error_from_neighborhood": Estimated error in spot intensity by
-    bootstrapping the estimator.
+
+    * "intensity_from_neighborhood": Estimated spot intensity by using sum of pixel
+      values in ellipsoid neighborhood around spot, background-subtracted by using
+      pixel values in shell around ellipsoid neighborhood to estimate background per
+      pixel.
+    * "intensity_std_error_from_neighborhood": Estimated error in spot intensity by
+      bootstrapping the estimator.
 
     :param spot_df: DataFrame containing information about putative spots as output by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
@@ -968,7 +975,8 @@ def add_neighborhood_intensity_spot_dataframe(
         for spot intensity and associated error. Otherwise returns `None`.
     :rtype: {pandas DataFrame, None}
 
-    .. note:: If the imaging settings are fast relative to the diffusion time of
+    .. note::
+        If the imaging settings are fast relative to the diffusion time of
         transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
         good quantification of the spot. Otherwise (as they are on our system, with
         ~0.6s between z-slices) the spot center moves enough as we traverse the z-stack

@@ -63,6 +63,9 @@ def construct_stitch_dataframe(
     frames_mean=4,
 ):
     """
+    Constructs dataframe containing identities of tracks that need to be stitched
+    together.
+
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots.
     :type tracked_dataframe: pandas DataFrame
@@ -77,13 +80,15 @@ def construct_stitch_dataframe(
         position of the start and end of candidate tracks to stitch together.
     :return: DataFrame with columns {`preliminary_particles`, `nearest_neighbor`,
         `distance`, `frame_overlap`, `frame_distance`}.
-        *`preliminary_particles`: Particle ID of tracked particles in `tracked_dataframe`.
-        *`nearest_neighbor`: Mean-position nearest-neighbor of current particle.
-        *`distance`: Euclidean distance (with respect to coordinates specified in
-        `pos_columns`) to nearest neighbor.
-        *`frame_overlap`: Number of frames that include both tracks.
-        *`frame_distance`: Number of frames separating the end of the earlier track
-        and the beginning of the later track if there is no overlapping frame.
+
+        * `preliminary_particles`: Particle ID of tracked particles in `tracked_dataframe`.
+        * `nearest_neighbor`: Mean-position nearest-neighbor of current particle.
+        * `distance`: Euclidean distance (with respect to coordinates specified in
+          `pos_columns`) to nearest neighbor.
+        * `frame_overlap`: Number of frames that include both tracks.
+        * `frame_distance`: Number of frames separating the end of the earlier track
+          and the beginning of the later track if there is no overlapping frame.
+
     :rtype: pandas DataFrame
     """
     # Only consider filtered particles
@@ -221,9 +226,9 @@ def construct_stitch_dataframe(
         return nearest_neighbor, nearest_neighbor_distance
 
     tqdm.pandas(desc="Stitching track nearest neighbors.")
-    stitch_dataframe[
-        ["nearest_neighbor", "distance"]
-    ] = stitch_dataframe.progress_apply(_nearest_neighbor, axis=1, result_type="expand")
+    stitch_dataframe[["nearest_neighbor", "distance"]] = (
+        stitch_dataframe.progress_apply(_nearest_neighbor, axis=1, result_type="expand")
+    )
 
     stitch_dataframe["nearest_neighbor"] = stitch_dataframe["nearest_neighbor"].astype(
         int

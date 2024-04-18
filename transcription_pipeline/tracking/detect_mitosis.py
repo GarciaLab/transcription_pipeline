@@ -622,7 +622,7 @@ def tracks_to_napari(viewer, dataframe, name="tracks", output=False):
     :param dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe` and lineage construction with `construct_lineage`.
     :type dataframe: pandas DataFrame
-    :param str name: Name of the `tracks` layer in `napari.
+    :param str name: Name of the `tracks` layer in napari.
     :param bool output: If True, returns the napari-compatible datastructures used
         to visualize tracks.
     :return: If `output = True`, returns lineage dictionary and parent properties

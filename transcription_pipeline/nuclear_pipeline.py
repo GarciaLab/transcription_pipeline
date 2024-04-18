@@ -40,13 +40,15 @@ def choose_nuclear_analysis_parameters(
         frames.
     :return: Dictionary of kwarg dicts corresponding to each function in the nuclear
         segmentation and tracking pipeline:
-        *`nuclear_analysis.segmentation.denoise_movie`
-        *`nuclear_analysis.segmentation.binarize_movie`
-        *`nuclear_analysis.segmentation.mark_movie`
-        *`nuclear_analysis.segmentation.segment_movie`
-        *`nuclear_analysis.segmentation.segmentation_df`
-        *`nuclear_analysis.segmentation.link_df`
-        *`nuclear_analysis.detect_mitosis.construct_lineage`
+
+        * `nuclear_analysis.segmentation.denoise_movie`
+        * `nuclear_analysis.segmentation.binarize_movie`
+        * `nuclear_analysis.segmentation.mark_movie`
+        * `nuclear_analysis.segmentation.segment_movie`
+        * `nuclear_analysis.segmentation.segmentation_df`
+        * `nuclear_analysis.segmentation.link_df`
+        * `nuclear_analysis.detect_mitosis.construct_lineage`
+
     :rtype: dict
     """
     # Query resolution of imaging to translate from physical size to pixels
@@ -315,11 +317,12 @@ class Nuclear:
         list of scattered futures in the Dask Client worker memories.
 
     .. note::
-        *`nuclear_size` was chosen to be $8.0 \ \mu m$ in the z-axis and $4.2 \ \mu m$ in
-        the x- and y- axes to match the lengthscale of nuclei in nc13-nc14 of the early
-        Drosphila embryo, with the width of the bandpass filter set by `sigma_ratio` being
-        set to a default 5 to ensure a wide enough band that nuclei ranging from nc12 to
-        nc14 are accurately detected.
+
+        * `nuclear_size` was chosen to be 8.0 :math:`\mu m` in the z-axis and  4.2
+          :math:`\mu m` in the x- and y- axes to match the lengthscale of nuclei in
+          nc13-nc14 of the early Drosphila embryo, with the width of the bandpass
+          filter set by `sigma_ratio` being set to a default 5 to ensure a wide enough
+          band that nuclei ranging from nc12 to nc14 are accurately detected.
     """
 
     def __init__(
@@ -561,9 +564,9 @@ class Nuclear:
             # Back up pixel-space (unshifted) positions
             pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
             for i, _ in enumerate(pixels_column_names):
-                self.segmentation_dataframe[
-                    pixels_column_names[i]
-                ] = self.segmentation_dataframe[self.pos_columns[i]].copy()
+                self.segmentation_dataframe[pixels_column_names[i]] = (
+                    self.segmentation_dataframe[self.pos_columns[i]].copy()
+                )
 
             if (self.series_shifts is not None) and ("z" in self.pos_columns):
                 # Account for z-stack shift between series
