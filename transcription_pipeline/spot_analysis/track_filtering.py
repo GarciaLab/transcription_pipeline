@@ -483,7 +483,7 @@ def track_and_filter_spots(
     normalize_quantile_to=1,
     min_track_length_intensity=5,
     monitor_progress=True,
-    trackpy_log_path="tmp/trackpy_log",
+    trackpy_log_path="/tmp/trackpy_log",
     verbose=False,
     client=None,
     **kwargs,

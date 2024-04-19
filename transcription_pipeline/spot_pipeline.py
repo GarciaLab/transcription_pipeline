@@ -923,6 +923,8 @@ class Spot:
                     nuclear_pos_columns=pixels_column_names,
                     verbose=verbose,
                     client=self.client,
+                    monitor_progress=monitor_progress,
+                    trackpy_log_path=trackpy_log_path,
                     **(self.default_params["retrack_spots_params"]),
                 )
             except SubnetOversizeException:
@@ -938,6 +940,8 @@ class Spot:
                     adaptive_stop=self.fallback_adaptive_search_stop_um,
                     adaptive_step=self.fallback_adaptive_step,
                     verbose=verbose,
+                    monitor_progress=monitor_progress,
+                    trackpy_log_path=trackpy_log_path,
                     **(self.default_params["retrack_spots_params"]),
                 )
 
