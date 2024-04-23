@@ -66,6 +66,8 @@ def choose_spot_analysis_parameters(
     *,
     channel_global_metadata,
     dog_sigma_ratio,
+    threshold,
+    threshold_factor,
     spot_sigmas,
     spot_sigma_x_y_bounds,
     spot_sigma_z_bounds,
@@ -99,6 +101,14 @@ def choose_spot_analysis_parameters(
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param float dog_sigma_ratio: Ratio of standard deviations of Difference of Gaussians
         filter used to preprocess the data.
+    :param threshold: Threshold below which to clip `spot_movie` after bandpass filter.
+        Note that bandpass filtering forces a conversion to normalized float, so the
+        threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
+        thresholding using the triangle method.
+    :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param spot_sigmas: Standard deviations in each coordinate axis of diffraction-
         limited spots. This is best estimated from preliminary data (for instance,
         by choosing a ballpark estimate and running a first pass of the analysis and
@@ -208,7 +218,8 @@ def choose_spot_analysis_parameters(
     detect_and_gather_spots_params = {
         "low_sigma": dog_sigmas[0],
         "high_sigma": dog_sigmas[1],
-        "threshold": "triangle",
+        "threshold": threshold,
+        "threshold_factor": threshold_factor,
         "min_size": 4,
         "connectivity": 1,
         "span": spot_sigmas_pixels * np.asarray(extract_sigma_multiple),
@@ -234,6 +245,7 @@ def choose_spot_analysis_parameters(
         "shell_width_um": mppY * 1.1,  # Ensures that a continuous ring is extracted
         "aspect_ratio": spot_sigmas[1] / spot_sigmas[0],
         "num_bootstraps": num_bootstraps,
+        "background": "mean",
         "inplace": False,
     }
 
@@ -328,6 +340,14 @@ class Spot:
         a ballpark can be estimates from the theoretical PSF of the microscope for a
         first pass.
     :type spot_sigma_z_bounds: Iterable
+    :param threshold: Threshold below which to clip `spot_movie` after bandpass filter.
+        Note that bandpass filtering forces a conversion to normalized float, so the
+        threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
+        thresholding using the triangle method.
+    :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param extract_sigma_multiple: Multiple of the proposed `spot_sigmas` in each axis
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
@@ -391,6 +411,7 @@ class Spot:
         points from either tracks that still allows for stitching to occur.
     :param int stitch_frames_mean: Number of frames to average over when estimating the mean
         position of the start and end of candidate tracks to stitch together.
+    :param int num_stitch_passes: Number of passes to take when stitching tracks.
     :param list series_splits: list of first frame of each series. This is useful
            when stitching together z-coordinates to improve tracking when the z-stack
            has been shifted mid-imaging.
@@ -455,6 +476,8 @@ class Spot:
         spot_sigmas=[0.43, 0.21, 0.21],
         spot_sigma_x_y_bounds=(0.052, 0.52),
         spot_sigma_z_bounds=(0.16, 1),
+        threshold="triangle",
+        threshold_factor=1,
         extract_sigma_multiple=[6, 10, 10],
         max_num_spots=1,
         num_bootstraps=1000,
@@ -478,6 +501,7 @@ class Spot:
         stitch_max_distance=None,
         stitch_max_frame_distance=3,
         stitch_frames_mean=4,
+        num_stitch_passes=1,
         series_splits=None,
         series_shifts=None,
         dog_sigma_ratio=1.6,
@@ -506,6 +530,8 @@ class Spot:
             self.spot_sigmas = spot_sigmas
             self.spot_sigma_x_y_bounds = spot_sigma_x_y_bounds
             self.spot_sigma_z_bounds = spot_sigma_z_bounds
+            self.threshold = threshold
+            self.threshold_factor = threshold_factor
             self.extract_sigma_multiple = extract_sigma_multiple
             self.max_num_spots = max_num_spots
             self.num_bootstraps = num_bootstraps
@@ -525,6 +551,7 @@ class Spot:
             self.stitch_max_distance = stitch_max_distance
             self.stitch_max_frame_distance = stitch_max_frame_distance
             self.stitch_frames_mean = stitch_frames_mean
+            self.num_stitch_passes = num_stitch_passes
             self.retrack_search_range_um = retrack_search_range_um
             self.retrack_memory = retrack_memory
             self.retrack_min_track_length = retrack_min_track_length
@@ -546,6 +573,8 @@ class Spot:
                 spot_sigmas=self.spot_sigmas,
                 spot_sigma_x_y_bounds=self.spot_sigma_x_y_bounds,
                 spot_sigma_z_bounds=self.spot_sigma_z_bounds,
+                threshold=self.threshold,
+                threshold_factor=self.threshold_factor,
                 extract_sigma_multiple=self.extract_sigma_multiple,
                 max_num_spots=self.max_num_spots,
                 expand_distance=self.expand_distance,
@@ -970,17 +999,18 @@ class Spot:
             if self.stitch_max_distance is None:
                 self.stitch_max_distance = 0.5 * self.search_range_um
 
-            stitch_tracks.stitch_tracks(
-                self.spot_dataframe,
-                self.retrack_pos_columns,
-                self.stitch_max_distance,
-                self.stitch_max_frame_distance,
-                self.stitch_frames_mean,
-                quantification=self.default_params["track_and_filter_spots_params"][
-                    "quantification"
-                ],
-                inplace=True,
-            )
+            for i in range(self.num_stitch_passes):
+                tqdm.write(
+                    "Stitching pass {} of {}".format(i + 1, self.num_stitch_passes)
+                )
+                stitch_tracks.stitch_tracks(
+                    self.spot_dataframe,
+                    self.retrack_pos_columns,
+                    self.stitch_max_distance,
+                    self.stitch_max_frame_distance,
+                    self.stitch_frames_mean,
+                    inplace=True,
+                )
 
         if rescale:
             # Restore dataframe to pixel-space

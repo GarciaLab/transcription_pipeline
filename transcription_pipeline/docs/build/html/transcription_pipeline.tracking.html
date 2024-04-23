@@ -538,7 +538,7 @@ and the beginning of the later track if there is no overlapping frame.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.remove_duplicates">
-<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">remove_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">remove_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates" title="Link to this definition">#</a></dt>
 <dd><p>After a round of tracking, a stitching operation is usually carried out to link
 partial tracks that are easily resolvable by mean position, leaving some
 tracks with duplicate spots in the frame where the stitching occurs. This function
@@ -549,9 +549,8 @@ Modifies the dataframe in place.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
 filtered and tracked spots after stitching operation.</p></li>
-<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
-when compiling successive differences along a trace. Defaults to
-<cite>intensity_from_neighborhood</cite>.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -562,7 +561,7 @@ when compiling successive differences along a trace. Defaults to
 
 <dl class="py function">
 <dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.stitch_tracks">
-<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">stitch_tracks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">stitch_tracks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks" title="Link to this definition">#</a></dt>
 <dd><p>Stitches together tracks depending on proximity in time (start time of candidate
 track to stitch relative to end time of a given track) and space (position averaged
 over a few frames at the end of given track relative to start of candidate track).</p>
@@ -579,9 +578,6 @@ that still allows for stitching to occur.</p></li>
 points from either tracks that still allows for stitching to occur.</p></li>
 <li><p><strong>frames_mean</strong> (<em>int</em>) – Number of frames to average over when estimating the mean
 position of the start and end of candidate tracks to stitch together.</p></li>
-<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
-when compiling successive differences along a trace. Defaults to
-<cite>intensity_from_neighborhood</cite>.</p></li>
 <li><p><strong>inplace</strong> (<em>bool</em>) – If <cite>True</cite>, <cite>tracked_dataframe</cite> is modified in-place and the
 function returns <cite>None</cite>. Otherwise, a stitched copy is returned.</p></li>
 </ul>

@@ -797,6 +797,7 @@ def bootstrap_intensity(
     shell_width_um,
     aspect_ratio,
     num_bootstraps=1000,
+    background="mean",
 ):
     """
     Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
@@ -825,6 +826,9 @@ def bootstrap_intensity(
         system, this is empirically very close to 0.5.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
+    :param background: Choose whether the background returned is the mean background
+        intensity per pixel or the total background subtracted over the spot.
+    :type background: {"mean", "total"}
     :return: (intensity, intensity_err) where `intensity` is the sum of pixel values
         inside the ellipsoid spot mask, background-subtracted by estimating the average
         background intensity per pixel from the shell around the ellipsoid mask, and
@@ -885,8 +889,14 @@ def bootstrap_intensity(
     )
 
     intensity = intensity_bootstrap.mean()
-    background_intensity = background_intensity.mean()
     intensity_err = intensity_bootstrap.std()
+
+    if background == "mean":
+        background_intensity = mean_background_bootstrap.mean()
+    elif background == "total":
+        background_intensity = background_intensity.mean()
+    else:
+        raise ValueError("`background` option must be 'mean' or 'total'.")
 
     return intensity, intensity_err, background_intensity
 
@@ -900,6 +910,7 @@ def _add_neighborhood_intensity_row(
     shell_width_um,
     aspect_ratio,
     num_bootstraps=1000,
+    background="mean",
 ):
     """
     Performs a bootstrap estimate of the spot intensity in an ellipsoid neighborhood,
@@ -919,6 +930,7 @@ def _add_neighborhood_intensity_row(
             shell_width_um=shell_width_um,
             aspect_ratio=aspect_ratio,
             num_bootstraps=num_bootstraps,
+            background=background,
         )
     else:
         intensity = np.nan
@@ -937,6 +949,7 @@ def add_neighborhood_intensity_spot_dataframe(
     shell_width_um,
     aspect_ratio,
     num_bootstraps=1000,
+    background="mean",
     inplace=True,
 ):
     """
@@ -969,6 +982,9 @@ def add_neighborhood_intensity_spot_dataframe(
         system, this is empirically very close to 0.5.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
+    :param background: Choose whether the background returned is the mean background
+        intensity per pixel or the total background subtracted over the spot.
+    :type background: {"mean", "total"}
     :param bool inplace: If True, the input `spot_df` is modified in-place to add the
         required columns and returns `None`. Otherwise, a modified copy is returned.
     :return: If `inplace=False`, returns copy of input `spot_df` with added columns
@@ -998,6 +1014,7 @@ def add_neighborhood_intensity_spot_dataframe(
         shell_width_um=shell_width_um,
         aspect_ratio=aspect_ratio,
         num_bootstraps=num_bootstraps,
+        background=background,
     )
 
     spot_dataframe[
@@ -1021,6 +1038,7 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     aspect_ratio,
     client,
     num_bootstraps=1000,
+    background="mean",
     evaluate=True,
     inplace=True,
 ):
@@ -1044,6 +1062,9 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     :type client: `dask.distributed.client.Client` object.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
+    :param background: Choose whether the background returned is the mean background
+        intensity per pixel or the total background subtracted over the spot.
+    :type background: {"mean", "total"}
     :param bool evaluate: If True, returns a fully-evaluated modified copy of the input
         `spot_dataframe` with the required columns added. Otherwise, returns a pointer
         to a Dask task that can be evaluated and returned on demand using the `compute`
@@ -1079,6 +1100,7 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
         shell_width_um=shell_width_um,
         aspect_ratio=aspect_ratio,
         num_bootstraps=num_bootstraps,
+        background=background,
         inplace=False,
     )
 

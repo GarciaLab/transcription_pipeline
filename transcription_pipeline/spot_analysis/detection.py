@@ -214,6 +214,7 @@ def make_spot_mask(
     high_sigma,
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -248,6 +249,9 @@ def make_spot_mask(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -272,7 +276,7 @@ def make_spot_mask(
         bandpassed_movie = _bandpass_movie(spot_movie, low_sigma, high_sigma)
 
         if threshold == "triangle":
-            spot_threshold = threshold_triangle(bandpassed_movie)
+            spot_threshold = threshold_triangle(bandpassed_movie) * threshold_factor
         else:
             spot_threshold = threshold
 
@@ -326,8 +330,9 @@ def make_spot_mask(
             global_bin_centers = histograms_array[:, 1][0]
             nbins = len(global_histogram)
 
-            spot_threshold = _threshold_triangle(
-                global_histogram, global_bin_centers, nbins
+            spot_threshold = (
+                _threshold_triangle(global_histogram, global_bin_centers, nbins)
+                * threshold_factor
             )
 
         else:
@@ -365,6 +370,7 @@ def detect_spots(
     frame_metadata,
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -405,6 +411,9 @@ def detect_spots(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -466,6 +475,7 @@ def detect_spots(
         high_sigma=high_sigma,
         nbins=nbins,
         threshold=threshold,
+        threshold_factor=threshold_factor,
         min_size=min_size,
         connectivity=connectivity,
         return_spot_labels=evaluate_make_spot_mask,
@@ -625,6 +635,7 @@ def detect_and_gather_spots(
     pos_columns=["z", "y", "x"],
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -672,6 +683,9 @@ def detect_and_gather_spots(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -736,6 +750,7 @@ def detect_and_gather_spots(
         low_sigma=low_sigma,
         high_sigma=high_sigma,
         threshold=threshold,
+        threshold_factor=threshold_factor,
         min_size=min_size,
         nbins=nbins,
         connectivity=connectivity,

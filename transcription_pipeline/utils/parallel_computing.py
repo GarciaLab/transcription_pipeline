@@ -13,8 +13,8 @@ def zarr_to_futures(zarr_array, client):
         np.arange(int(np.floor(zarr_array.shape[0] / chunk_timepoints)))
         * chunk_timepoints
     )
-    if zarr_array.shape[0] % chunk_timepoints != 0:
-        chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
+    # if zarr_array.shape[0] % chunk_timepoints != 0:
+    chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
 
     chunk_start_stop = np.array(
         [chunk_boundaries[:-1], chunk_boundaries[1:]]

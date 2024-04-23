@@ -14,7 +14,7 @@ from tqdm import tqdm
 # for now.
 
 
-def remove_duplicates(tracked_dataframe, quantification="intensity_from_neighborhood"):
+def remove_duplicates(tracked_dataframe, pos_columns=["z", "y", "x"]):
     """
     After a round of tracking, a stitching operation is usually carried out to link
     partial tracks that are easily resolvable by mean position, leaving some
@@ -25,9 +25,9 @@ def remove_duplicates(tracked_dataframe, quantification="intensity_from_neighbor
     :param tracked_dataframe: DataFrame containing information about detected,
         filtered and tracked spots after stitching operation.
     :type tracked_dataframe: pandas DataFrame
-    :param str quantification: Name of dataframe column containing quantification to use
-        when compiling successive differences along a trace. Defaults to
-        `intensity_from_neighborhood`.
+    :param pos_columns: Name of columns in `segmentation_df` containing a position
+        coordinate.
+    :type pos_columns: list of DataFrame column names
     :return: None
     """
     filtered_mask = tracked_dataframe["particle"] != 0
@@ -45,14 +45,29 @@ def remove_duplicates(tracked_dataframe, quantification="intensity_from_neighbor
         )
 
         if particle_frame_mask.sum() > 1:
-            particle_frame_subdf = tracked_dataframe[particle_frame_mask]
-            brightest_spot_mask = (
-                tracked_dataframe[quantification]
-                == particle_frame_subdf[quantification].max()
-            ) & particle_frame_mask
-            tracked_dataframe[(~brightest_spot_mask) & particle_frame_mask] = 0
+            particle_subdf = filtered_dataframe[
+                filtered_dataframe["particle"] == particle
+            ]
+            # Find closest frame that contains particle
+            closest_frame_mask = (
+                np.argsort(np.abs(particle_subdf["frame"] - frame)) == 1
+            )
+            closest_coordinates = particle_subdf.loc[closest_frame_mask, pos_columns]
 
-    filtered_dataframe.apply(_remove_duplicate_row, axis=1)
+            particle_frame_subdf = tracked_dataframe[particle_frame_mask]
+
+            distance_to_particle = (
+                (closest_coordinates - particle_frame_subdf[pos_columns]) ** 2
+            ).sum(axis=1)
+
+            closest_spot_mask = (
+                distance_to_particle == distance_to_particle.min()
+            ) & particle_frame_mask
+
+            tracked_dataframe[(~closest_spot_mask) & particle_frame_mask] = 0
+
+    tqdm.pandas(desc="Removing duplicate spots from stitching")
+    filtered_dataframe.progress_apply(_remove_duplicate_row, axis=1)
 
 
 def construct_stitch_dataframe(
@@ -128,13 +143,13 @@ def construct_stitch_dataframe(
 
     for pos in pos_columns:
         column = "".join(["start_", pos])
-        tqdm.pandas(desc=f"Finding track {pos} start position.")
+        tqdm.pandas(desc=f"Finding track {pos} start position")
         stitch_dataframe[column] = stitch_dataframe.progress_apply(
             _mean_trace_position, args=(pos, frames_mean, "start"), axis=1
         )
 
         column = "".join(["end_", pos])
-        tqdm.pandas(desc=f"Finding track {pos} end position.")
+        tqdm.pandas(desc=f"Finding track {pos} end position")
         stitch_dataframe[column] = stitch_dataframe.progress_apply(
             _mean_trace_position, args=(pos, frames_mean, "end"), axis=1
         )
@@ -150,7 +165,7 @@ def construct_stitch_dataframe(
 
         return first_frame, last_frame
 
-    tqdm.pandas(desc=f"Finding track first and last frames.")
+    tqdm.pandas(desc=f"Finding track first and last frames")
     stitch_dataframe[["first_frame", "last_frame"]] = stitch_dataframe.progress_apply(
         _first_last_frames, axis=1, result_type="expand"
     )
@@ -225,7 +240,7 @@ def construct_stitch_dataframe(
 
         return nearest_neighbor, nearest_neighbor_distance
 
-    tqdm.pandas(desc="Stitching track nearest neighbors.")
+    tqdm.pandas(desc="Stitching track nearest neighbors")
     stitch_dataframe[["nearest_neighbor", "distance"]] = (
         stitch_dataframe.progress_apply(_nearest_neighbor, axis=1, result_type="expand")
     )
@@ -274,7 +289,6 @@ def stitch_tracks(
     max_distance,
     max_frame_distance,
     frames_mean=4,
-    quantification="intensity_from_neighborhood",
     inplace=False,
 ):
     """
@@ -294,9 +308,6 @@ def stitch_tracks(
         points from either tracks that still allows for stitching to occur.
     :param int frames_mean: Number of frames to average over when estimating the mean
         position of the start and end of candidate tracks to stitch together.
-    :param str quantification: Name of dataframe column containing quantification to use
-        when compiling successive differences along a trace. Defaults to
-        `intensity_from_neighborhood`.
     :param bool inplace: If `True`, `tracked_dataframe` is modified in-place and the
         function returns `None`. Otherwise, a stitched copy is returned.
     :return: Tracked dataframe with stitched tracks.
@@ -328,7 +339,7 @@ def stitch_tracks(
         )
     tracked_df["particle"] = linking_stitched_particles
 
-    remove_duplicates(tracked_df, quantification=quantification)
+    remove_duplicates(tracked_df, pos_columns=pos_columns)
 
     if inplace:
         return None
