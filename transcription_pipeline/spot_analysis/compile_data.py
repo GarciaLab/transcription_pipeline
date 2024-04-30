@@ -1,6 +1,7 @@
 import pandas as pd
 import warnings
 import numpy as np
+from tqdm import tqdm
 
 
 def _compile_property(compiled_dataframe_row, original_dataframe, quantity, sort=True):
@@ -149,3 +150,50 @@ def compile_traces(
         )
 
     return compiled_dataframe
+
+
+def consolidate_traces(
+    traces_dataframe,
+    trace_column="background_intensity_from_neighborhood",
+    time_column="t_frame",
+):
+    """
+    Consolidates all traces from a compiled dataframe structure as output by
+    :func: `~compile_traces` into a single array with dimensions
+    `(number of traces, number of time points in the longest trace)`. All missing time points
+    are padded with `NaN`s.
+
+    :param traces_dataframe: Dataframe containing compiled traces.
+    :type traces_dataframe: pandas.DataFrame
+    :param str trace_column: Name of column in `traces_dataframe` containing the
+        traces to be consolidated (each entry being a time series array, each row
+        corresponding to a single trace).
+    :param str time_column: Name of column in `traces_dataframe` containing the
+        time points of the traces to be consolidated in units of the time resolution.
+        This must be an array of integers that map to real time (not just frame number
+        since those can be different if the data is concatenated from multiple series
+        with a time delay between the end of a series and the start of the next).
+    :return: Padded array containing compiled traces.
+    :rtype: Numpy array.
+    """
+    # Initialize as pandas object for convenient use of `apply`.
+    traces_dataframe = traces_dataframe.copy().reset_index(inplace=False, drop=True)
+    traces_time_series = traces_dataframe[time_column]
+
+    traces_length = traces_time_series.apply(lambda x: x[-1] - x[0] + 1)
+    num_traces = traces_time_series.size
+    consolidated_trace_array = np.empty((num_traces, traces_length.max()), dtype=float)
+    consolidated_trace_array[:] = np.nan
+
+    def _inject_trace(row):
+        """
+        Helper function to inject traces into consolidated numpy array, padding
+        missing timepoints with `NaN`s.
+        """
+        trace_index = row[time_column] - row[time_column][0]
+        consolidated_trace_array[row.name][trace_index] = row[trace_column]
+
+    tqdm.pandas(desc="Padding and consolidating traces")
+    traces_dataframe.progress_apply(_inject_trace, axis=1)
+
+    return consolidated_trace_array
