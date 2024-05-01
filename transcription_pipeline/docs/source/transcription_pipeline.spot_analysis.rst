@@ -36,6 +36,14 @@ transcription\_pipeline.spot\_analysis.track\_filtering module
    :undoc-members:
    :show-inheritance:
 
+transcription\_pipeline.spot\_analysis.smMS2\_calibration module
+----------------------------------------------------------------
+
+.. automodule:: transcription_pipeline.spot_analysis.smMS2_calibration
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

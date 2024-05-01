@@ -329,6 +329,7 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="docutils literal notranslate"><span class="pre">compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces"><code class="docutils literal notranslate"><span class="pre">consolidate_traces()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a><ul class="nav section-nav flex-column">
@@ -364,6 +365,11 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots"><code class="docutils literal notranslate"><span class="pre">track_and_filter_spots()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_spots"><code class="docutils literal notranslate"><span class="pre">track_spots()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels"><code class="docutils literal notranslate"><span class="pre">transfer_nuclear_labels()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">log_likelihood_step()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">vectorized_log_likelihood_step()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis">Module contents</a></li>
@@ -419,6 +425,36 @@ negative values are clear mistrackings/misquantifications.</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.compile_data.consolidate_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.compile_data.</span></span><span class="sig-name descname"><span class="pre">consolidate_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'background_intensity_from_neighborhood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t_frame'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces" title="Link to this definition">#</a></dt>
+<dd><p>Consolidates all traces from a compiled dataframe structure as output by
+<a class="reference internal" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces" title="transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_traces()</span></code></a> into a single array with dimensions
+<cite>(number of traces, number of time points in the longest trace)</cite>. All missing time points
+are padded with <cite>np.nan</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traces_dataframe</strong> (<em>pandas.DataFrame</em>) – Dataframe containing compiled traces.</p></li>
+<li><p><strong>trace_column</strong> (<em>str</em>) – Name of column in <cite>traces_dataframe</cite> containing the
+traces to be consolidated (each entry being a time series array, each row
+corresponding to a single trace).</p></li>
+<li><p><strong>time_column</strong> (<em>str</em>) – Name of column in <cite>traces_dataframe</cite> containing the
+time points of the traces to be consolidated in units of the time resolution.
+This must be an array of integers that map to real time (not just frame number
+since those can be different if the data is concatenated from multiple series
+with a time delay between the end of a series and the start of the next).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Padded array containing compiled traces.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Numpy array.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1588,6 +1624,20 @@ chunked movies before stitching together in the local process.</p></li>
 </dd></dl>
 
 </section>
+<section id="module-transcription_pipeline.spot_analysis.smMS2_calibration">
+<span id="transcription-pipeline-spot-analysis-smms2-calibration-module"></span><h2>transcription_pipeline.spot_analysis.smMS2_calibration module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.smMS2_calibration.</span></span><span class="sig-name descname"><span class="pre">log_likelihood_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_intensity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step" title="Link to this definition">#</a></dt>
+<dd><p>Computes the log-likelihood</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.smMS2_calibration.</span></span><span class="sig-name descname"><span class="pre">vectorized_log_likelihood_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_intensity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
 <section id="module-transcription_pipeline.spot_analysis">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.spot_analysis" title="Link to this heading">#</a></h2>
 </section>
@@ -1643,6 +1693,7 @@ chunked movies before stitching together in the local process.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="docutils literal notranslate"><span class="pre">compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces"><code class="docutils literal notranslate"><span class="pre">consolidate_traces()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a><ul class="nav section-nav flex-column">
@@ -1678,6 +1729,11 @@ chunked movies before stitching together in the local process.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots"><code class="docutils literal notranslate"><span class="pre">track_and_filter_spots()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_spots"><code class="docutils literal notranslate"><span class="pre">track_spots()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels"><code class="docutils literal notranslate"><span class="pre">transfer_nuclear_labels()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">log_likelihood_step()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">vectorized_log_likelihood_step()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis">Module contents</a></li>

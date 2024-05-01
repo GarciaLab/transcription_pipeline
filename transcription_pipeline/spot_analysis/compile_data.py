@@ -159,9 +159,9 @@ def consolidate_traces(
 ):
     """
     Consolidates all traces from a compiled dataframe structure as output by
-    :func: `~compile_traces` into a single array with dimensions
+    :func:`~compile_traces` into a single array with dimensions
     `(number of traces, number of time points in the longest trace)`. All missing time points
-    are padded with `NaN`s.
+    are padded with `np.nan`.
 
     :param traces_dataframe: Dataframe containing compiled traces.
     :type traces_dataframe: pandas.DataFrame

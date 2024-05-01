@@ -81,8 +81,60 @@ def corr_traces(
     corr_type="pearson",
     subtract_mean="rolling",
     mean_window=5,
+    win_kwargs={},
     **kwargs,
 ):
+    """
+    Calculates the correlation as a function of lag time, averaged across time, for an array
+    of traces where each element of the array corresponds to a sample with fixed time
+    resolution, with missing timepoints padded with `np.nan`s. If `corr_traces_array` is
+    provided, a cross-correlation is computed. Otherwise, the autocorrelation is computed.
+
+    :param traces_array: The array of traces with the 0-th axis enumerating traces, and the
+        1-st axis corresponding to timepoints. Missing timepoints are padded with `np.nan`s.
+        This can be compiled using :func:`~spot_analysis.compile_data.consolidate_traces`.
+        Single traces can be passed as a 1D array.
+    :type traces_array: np.ndarray
+    :param corr_traces_array: If provided, the cross-correlation with the traces in
+        `traces_array` is computed.
+    :type corr_traces_array: np.ndarray
+    :param corr_type: The type of correlation to compute (this chooses the normalization).
+        This changes the normalization of the correlation function, with `"pearson"`
+        corresponding to division by the product of the standard deviation of the traces
+        and `"fcs"` corresponding to division by the product of the average intensities
+        (after mean subtraction).
+    :type corr_type: {"pearson", "fcs"}
+    :param subtract_mean: Method to use when performing mean subtraction on relevant subsets
+        of the traces before computing the correlation.
+
+        * `"rolling"` corresponds to averaging over a prescribed sliding time window `"mean_window"`.
+          If rolling averaging is used, any keyword argument accepted by :func:`~pandas.DataFrame.rolling`
+          will be passed on. If a `win_type` argument is specified, a `win_kwargs` dictionary may
+          also need to be provided (see below).
+
+        * `"full"` corresponds to simply averaging over the entire relevant subsets of the traces
+          (i.e. the overlap after time delay).
+
+        * `None` corresponds to performing correlation without mean subtraction.
+
+    :type subtract_mean: {"rolling", "full", `None`}
+    :param int mean_window: Number of timepoints to roll over during mean subtraction if
+        `subtract_mean`="rolling"`.
+    :param dict win_kwargs: If a `scipy.signal` window type is used, as can be done by passing
+        on keyword arguments accepted by :func:`~pandas.DataFrame.rolling`, additional parameters
+        matching the keywords specified in the Scipy window type method may need to be passed
+        in this argument as a dictionary.
+    :return: Array of correlation function with respect to lag time for each trace, in the same
+        shape as `traces_array`.
+    :rtype: numpy.ndarray
+
+    .. note::
+        If you have an array of traces that you want individual correlation functions for, it is
+        better to pass the full array after padding rather than do it on individual traces in
+        a loop - the padding adds some overhead, but that ends up being much less costly than
+        the advantage we gain from leveraging Numpy's vectorized methods on arrays instead of
+        looping in Python.
+    """
     # Check to make sure we have a consolidated array - if we have a single trace, we
     # have to wrap it in a new axis for the helper function `_corr_traces` to work.
     if traces_array.ndim == 1:
@@ -111,6 +163,7 @@ def corr_traces(
                 corr_traces_array=corr_traces_array,
                 subtract_mean=subtract_mean,
                 mean_window=mean_window,
+                win_kwargs=win_kwargs,
                 **kwargs,
             )
 
@@ -123,14 +176,65 @@ def mean_corr_traces(
     corr_type="pearson",
     subtract_mean="rolling",
     mean_window=5,
+    win_kwargs={},
     **kwargs,
 ):
+    """
+    Averages correlation functions across traces as computed by :func:`corr_traces`.
+
+    :param traces_array: The array of traces with the 0-th axis enumerating traces, and the
+        1-st axis corresponding to timepoints. Missing timepoints are padded with `np.nan`s.
+        This can be compiled using :func:`~spot_analysis.compile_data.consolidate_traces`.
+        Single traces can be passed as a 1D array.
+    :type traces_array: np.ndarray
+    :param corr_traces_array: If provided, the cross-correlation with the traces in
+        `traces_array` is computed.
+    :type corr_traces_array: np.ndarray
+    :param corr_type: The type of correlation to compute (this chooses the normalization).
+        This changes the normalization of the correlation function, with `"pearson"`
+        corresponding to division by the product of the standard deviation of the traces
+        and `"fcs"` corresponding to division by the product of the average intensities
+        (after mean subtraction).
+    :type corr_type: {"pearson", "fcs"}
+    :param subtract_mean: Method to use when performing mean subtraction on relevant subsets
+        of the traces before computing the correlation.
+
+        * `"rolling"` corresponds to averaging over a prescribed sliding time window `"mean_window"`.
+          If rolling averaging is used, any keyword argument accepted by :func:`~pandas.DataFrame.rolling`
+          will be passed on. If a `win_type` argument is specified, a `win_kwargs` dictionary may
+          also need to be provided (see below).
+
+        * `"full"` corresponds to simply averaging over the entire relevant subsets of the traces
+          (i.e. the overlap after time delay).
+
+        * `None` corresponds to performing correlation without mean subtraction.
+
+    :type subtract_mean: {"rolling", "full", `None`}
+    :param int mean_window: Number of timepoints to roll over during mean subtraction if
+        `subtract_mean`="rolling"`.
+    :param dict win_kwargs: If a `scipy.signal` window type is used, as can be done by passing
+        on keyword arguments accepted by :func:`~pandas.DataFrame.rolling`, additional parameters
+        matching the keywords specified in the Scipy window type method may need to be passed
+        in this argument as a dictionary.
+    :return: Array of mean correlation function with respect to lag time averaged over all
+        traces.
+    :rtype: numpy.ndarray
+
+    .. note::
+        This is left here as a convenience function, but should almost never be used for
+        anything quantitative unless you're 100% sure that your correlograms for each trace
+        are going to be fine (e.g. on synthetic data simulated to be at steady-state)
+        since it's quite easy for the mean to get skewed by a few bad correlograms, for
+        instance if there's some bursty behavior. Instead, use :func:`corr_traces` and
+        manually curate the correlograms before averaging in your own script.
+    """
     corr = corr_traces(
         traces_array,
         corr_traces_array=corr_traces_array,
         corr_type=corr_type,
         subtract_mean=subtract_mean,
         mean_window=mean_window,
+        win_kwargs=win_kwargs,
         **kwargs,
     )
     with warnings.catch_warnings():

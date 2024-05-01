@@ -44,14 +44,6 @@ transcription\_pipeline.utils.plottable module
    :undoc-members:
    :show-inheritance:
 
-transcription\_pipeline.utils.smMS2\_calibration module
--------------------------------------------------------
-
-.. automodule:: transcription_pipeline.utils.smMS2_calibration
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
