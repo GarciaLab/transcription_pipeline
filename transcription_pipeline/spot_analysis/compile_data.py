@@ -174,7 +174,7 @@ def consolidate_traces(
         since those can be different if the data is concatenated from multiple series
         with a time delay between the end of a series and the start of the next).
     :return: Padded array containing compiled traces.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Initialize as pandas object for convenient use of `apply`.
     traces_dataframe = traces_dataframe.copy().reset_index(inplace=False, drop=True)

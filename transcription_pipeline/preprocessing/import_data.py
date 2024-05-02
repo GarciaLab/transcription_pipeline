@@ -414,11 +414,11 @@ def collate_metadata(input_global_metadata, input_frame_metadata, trim_series):
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
-    :return: Tuple(output_global_metadata, output_frame_metadata) of
+    :return: tuple(output_global_metadata, output_frame_metadata) of
         lists of dictionaries, each list element corresponding to a channel,
         matching the global and frame-by-frame metadata respectively of the
         collated dataset.
-    :rtype: Tuple of lists of dictionaries.
+    :rtype: tuple of lists of dictionaries.
     """
     # First, handle the global metadata
     # If the metadata in the original files is consistent, the following
@@ -547,10 +547,10 @@ def z_cross_correlation_shift(stack1, stack2, peak_window=3, min_prominence=0.2)
 
     :param stack1: Z-stack overlapping with `stack2` such that the normalized correlation
         peak can be used to estimate the shift in z between `stack1` and `stack2`.
-    :type stack1: Numpy array.
+    :type stack1: np.ndarray
     :param stack2: Z-stack overlapping with `stack1` such that the normalized correlation
         peak can be used to estimate the shift in z between `stack1` and `stack2`.
-    :type stack2: Numpy array
+    :type stack2: np.ndarray
     :param int peak_window: Window around proposed peak index in normalized correlation
         computed for different z-shifts to consider when computing the centroid of the
         peak of the normalized correlation.
@@ -639,7 +639,7 @@ def import_dataset(
     :type collated_dataset_path: str or pathlib.Path
     :param int zarr_chunk_nbytes: Imported movies are chunked along the time axis, with the
         memory size of each chunk being approximately set by this parameter in memory size.
-    :return: Tuple(channels_full_dataset, original_global_metadata,
+    :return: tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
 
@@ -663,7 +663,7 @@ def import_dataset(
              at interface between separate series - this quantifies the shift in the
              z-stack.
 
-    :rtype: Tuple
+    :rtype: tuple
     """
     name_folder_path = Path(name_folder)
     dataset_name = name_folder_path.name
@@ -901,7 +901,7 @@ def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
         array. If an int, the chunk size in each dimension will be given by the
         value of chunks. Default is False.
     :type chunks: bool, int or tuple of ints, optional.
-    :return: Tuple(channels_full_dataset, original_global_metadata,
+    :return: tuple(channels_full_dataset, original_global_metadata,
         original_frame_metadata, export_global_metadata,export_frame_metadata)
 
         * ``channels_full_dataset``: list of numpy (if mode='tiff') or zarr arrays
@@ -918,7 +918,7 @@ def import_save_dataset(name_folder, *, trim_series, mode="tiff", chunks=False):
           metadata for the collated dataset, with each element of the list
           corresponding to a channel.
 
-    :rtype: Tuple of dicts
+    :rtype: tuple[dict]
     """
     (
         channels_full_dataset,
@@ -1001,7 +1001,7 @@ def import_full_embryo(name_folder, name):
     :param str name_folder: Path to name folder containing data files.
     :param str name: Name of file pattern to look for inside the FullEmbryo folder
         (e.g. `Mid*`).
-    :return: Tuple(channels_full_dataset, original_global_metadata,
+    :return: tuple(channels_full_dataset, original_global_metadata,
            original_frame_metadata, export_global_metadata,
            export_frame_metadata)
 
@@ -1018,7 +1018,7 @@ def import_full_embryo(name_folder, name):
              metadata for the collated dataset, with each element of the list
              corresponding to a channel.
 
-    :rtype: Tuple
+    :rtype: tuple
     """
     name_folder_path = Path(name_folder)
     file_path = name_folder_path / "FullEmbryo" / name

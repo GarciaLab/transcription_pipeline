@@ -13,9 +13,9 @@ def gaussian3d_sym_xy(coordinates, *, centroid, sigma_x_y, sigma_z, amplitude, o
     centroid at specified coordinates.
 
     :param coordinates: Coordinates at which to evaluate the Gaussian.
-    :type coordinates: Array-like.
+    :type coordinates: np.ndarray
     :param centroid: Coordinates of centroid of Gaussian function to evaluate.
-    :type centroid: Array-like.
+    :type centroid: np.ndarray
     :param float sigma_x_y: Standard deviation of Gaussian function in the x- and y-
         coordinate direction.
     :param float sigma_z: Standard deviation of Gaussian function in the z-coordinate.
@@ -42,9 +42,9 @@ def generate_gaussian_3d_sym_xy(
     centroid at specified coordinates.
 
     :param box_shape: Shape of bounding box containing the generated Gaussian.
-    :type box_shape: Array-like.
+    :type box_shape: np.ndarray
     :param centroid: Coordinates of centroid of Gaussian function to evaluate.
-    :type centroid: Array-like.
+    :type centroid: np.ndarray
     :param float sigma_x_y: Standard deviation of Gaussian function in the x- and y-
         coordinate direction.
     :param float sigma_z: Standard deviation of Gaussian function in the z-coordinate.
@@ -53,9 +53,9 @@ def generate_gaussian_3d_sym_xy(
     :param coordinate_array: If `None`, it is assumed that the pixel data is ordered by
         the usual `tzyx` axes. Otherwise, an array of coordinates of the same shape
         as `data` can be passed to specify the coordinates of each pixel.
-    :type coordinate_array: Numpy array.
+    :type coordinate_array: np.ndarray
     :return: Generated Gaussian inside bounding box.
-    :rtype: Numpy array
+    :rtype: np.ndarray
     """
     if coordinate_array is None:
         coordinate_array = np.indices(box_shape) + 0.5
@@ -111,10 +111,10 @@ def fit_gaussian_3d_sym_xy(
 
     :param data: 3-dimensional array (with the usual spatial axis ordering 'zyx')
         containing a single putative spot to fit with a 3D Gaussian.
-    :type data: Numpy array.
+    :type data: np.ndarray
     :param centroid_guess: Initial guess for Gaussian centroid to feed to least
         squares minimization.
-    :type centroid_guess: Array-like.
+    :type centroid_guess: np.ndarray
     :param float sigma_x_y_guess: Initial guess for standard deviation of Gaussian
         fit in x- and y-coordinates, assumed to be symmetric.
     :param float sigma_z_guess: Initial guess for standard deviation of Gaussian
@@ -122,7 +122,7 @@ def fit_gaussian_3d_sym_xy(
     :param coordinate_array: If `None`, it is assumed that the pixel data is ordered by
         the usual `tzyx` axes. Otherwise, an array of coordinates of the same shape
         as `data` can be passed to specify the coordinates of each pixel.
-    :type coordinate_array: Numpy array.
+    :type coordinate_array: np.ndarray
     :param float amplitude_guess: Initial guess for amplitude of Gaussian fit. If
         None (default), an initial guess will be computed from the data by taking the
         maximum.
@@ -144,7 +144,7 @@ def fit_gaussian_3d_sym_xy(
         * `offset`: Offset of fitted 3D Gaussian.
         * `cost`: Value of cost function at the solution.
 
-    :rtype: Tuple
+    :rtype: tuple
 
     .. note:: This function can also pass through any kwargs accepted by
         `scipy.optimization.least_squares`.
@@ -382,7 +382,7 @@ def add_fits_spots_dataframe(
         already be a reasonable estimate of background).
     :param image_size: Shape of the array corresponding to a frame. This is used to
         check whether the proposed spot centroids are within the image bounds.
-    :type image_size: Numpy array.
+    :type image_size: np.ndarray
     :param str method: Method to use for least-squares optimization (see
         `scipy.optimize.least_squares`).
     :param bool inplace: If True, the input `spot_df` is modified in-place to add the
@@ -570,7 +570,7 @@ def extract_spot_shell(
 
     :param raw_spot: Cuboidal neighborhood around a spot as extracted by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type raw_spot: Numpy array.
+    :type raw_spot: np.ndarray
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
@@ -585,7 +585,7 @@ def extract_spot_shell(
     :return: (spot_values, background_values) where `spot` is an array of the pixel values
         inside the ellipsoid neighborhood around the spot, and `background` is an
         array of the pixel values in the shell around the neighborhood.
-    :rtype: Tuple(Numpy array, Numpy array)
+    :rtype: tuple[np.ndarray, np.ndarray]
     """
     # Compute distance in pixel space
     indices = np.indices(raw_spot.shape, dtype=float) + 0.5
@@ -631,7 +631,7 @@ def simple_bootstrap_intensity(
 
     :param raw_spot: Cuboidal neighborhood around a spot as extracted by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type raw_spot: Numpy array.
+    :type raw_spot: np.ndarray
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
@@ -650,7 +650,7 @@ def simple_bootstrap_intensity(
         background intensity per pixel from the shell around the ellipsoid mask, and
         averaged over `num_bootstraps` bootstrap samples. `intensity_err` is the standard
         deviation of the same.
-    :rtype: Tuple
+    :rtype: tuple
 
     .. note:: If the imaging settings are fast relative to the diffusion time of
         transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
@@ -704,7 +704,7 @@ def extract_spot_mask(
 
     :param raw_spot: Cuboidal neighborhood around a spot as extracted by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type raw_spot: Numpy array.
+    :type raw_spot: np.ndarray
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
@@ -719,7 +719,7 @@ def extract_spot_mask(
     :return: (ball_mask, shell_mask) where `ball_mask` is a mask of the ellipsoid
         neighborhood around the spot, and `background` is a mask of the shell around the
         neighborhood.
-    :rtype: Tuple(Numpy array, Numpy array)
+    :rtype: tuple[np.ndarray, np.ndarray]
     """
     # Compute distance in pixel space
     indices = np.indices(raw_spot.shape, dtype=float) + 0.5
@@ -752,10 +752,10 @@ def create_blocks(
 
     :param spot_mask: Cuboidal neighborhood around a spot as extracted by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type raw_spot: Numpy array.
+    :type raw_spot: np.ndarray
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
-    :type centroid: Numpy array.
-    :return: List of boolean Numpy arrays.
+    :type centroid: np.ndarray
+    :return: list
     """
     # We iterate over xy planes and pick out pixel-thick rings to use as IID
     # sample blocks for bootstrapping. We first define an xy-distance array
@@ -798,6 +798,8 @@ def bootstrap_intensity(
     aspect_ratio,
     num_bootstraps=1000,
     background="mean",
+    background_pixels=None,
+    background_pixels_weights=None,
 ):
     """
     Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
@@ -812,8 +814,9 @@ def bootstrap_intensity(
 
     :param raw_spot: Cuboidal neighborhood around a spot as extracted by
         :func:`~spot_analysis.detection.detect_and_gather_spots`.
-    :type raw_spot: Numpy array.
+    :type raw_spot: np.ndarray
     :param centroid: Centroid of spot, usually obtained by Gaussian fitting.
+    :type centroid: np.ndarray
     :param float mppZ: Microns per pixel in z.
     :param float mppYX: Microns per pixel in the xy plane, assumed to be symmetrical.
     :param float ball_diameter_um: Diameter of ellipsoid neighborhood in the  xy plane.
@@ -829,12 +832,20 @@ def bootstrap_intensity(
     :param background: Choose whether the background returned is the mean background
         intensity per pixel or the total background subtracted over the spot.
     :type background: {"mean", "total"}
+    :param background_pixels: Array of background pixels used for background estimation.
+        If `None` (default), the background will be estimated from a shell around the
+        spot in each frame.
+    :type background_pixels: np.ndarray
+    :param background_pixels_weights: Weight to apply to the background pixels in the
+        mean background intensity per pixel estimation procedure. This must be of the
+        same shape as `background_pixels`.
+    :type background_pixels_weights: np.ndarray
     :return: (intensity, intensity_err) where `intensity` is the sum of pixel values
         inside the ellipsoid spot mask, background-subtracted by estimating the average
         background intensity per pixel from the shell around the ellipsoid mask, and
         averaged over `num_bootstraps` bootstrap samples. `intensity_err` is the standard
         deviation of the same.
-    :rtype: Tuple
+    :rtype: tuple
 
     .. note:: If the imaging settings are fast relative to the diffusion time of
         transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
@@ -872,8 +883,11 @@ def bootstrap_intensity(
 
     spot_bootstrap = spot_bootstrap_samples.T
 
+    if background_pixels is None:
+        background_pixels = raw_spot[background_mask]
+
     background_bootstrap = np.random.choice(
-        raw_spot[background_mask], size=(num_bootstraps, background_mask.sum())
+        background_pixels, size=(num_bootstraps, background_pixels.size)
     )
 
     # Estimate intensity and error

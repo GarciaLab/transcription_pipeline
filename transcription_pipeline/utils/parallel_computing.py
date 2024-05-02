@@ -146,7 +146,7 @@ def parallelize(
         collected.
     :param int num_chunks: Number of chunks to split input movie into if fed as Numpy
         array. Defaults to same as number of worker processes in the Dask `client`.
-    :return: Tuple(processed_movie, processed_movie_futures, scattered_data) where
+    :return: tuple(processed_movie, processed_movie_futures, scattered_data) where
 
         * processed_movie is the fully evaluated result of the computation
         * processed_movie_futures is the list of futures objects resulting from the
@@ -178,10 +178,10 @@ def parse_parallelize_kwargs(kwargs):
     Parses optional kwargs dict for relevant :func:`~parallelize` arguments.
 
     :param dict kwargs: Dictionary of keyword arguments.
-    :return: Tuple(evaluate, futures_in, futures_out) corresponding to the values
+    :return: tuple(evaluate, futures_in, futures_out) corresponding to the values
         of the optional keyword arguments for :func:`~parallelize` with the same
         defaults (all True).
-    :rtype: Tuple of booleans
+    :rtype: tuple[bool]
     """
     try:
         evaluate = kwargs["evaluate"]
@@ -207,7 +207,7 @@ def number_of_frames(movie, client):
     array or a list of Futures corresponding to chunks of `movie`.
 
     :param movie: Input movie as passed wrapped in list to `parallelize`.
-    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :type movie: {np.ndarray, list}
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return: Number of frames in input movie.

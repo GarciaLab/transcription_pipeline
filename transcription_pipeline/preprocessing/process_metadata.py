@@ -9,11 +9,11 @@ def extract_time(frame_metadata):
 
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
-    :return: Tuple of function object taking frame number and z-position as arguments
+    :return: tuple of function object taking frame number and z-position as arguments
         and returning an imaging time in seconds, and time between frames i.e. of
-        form Tuple(function of form time_func(frame_number, z_position),
+        form tuple(function of form time_func(frame_number, z_position),
         time_between_frames).
-    :rtype: Tuple(function, float)
+    :rtype: tuple
 
     .. note::
 

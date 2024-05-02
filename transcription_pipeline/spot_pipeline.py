@@ -129,7 +129,7 @@ def choose_spot_analysis_parameters(
     :param extract_sigma_multiple: Multiple of the proposed `spot_sigmas` in each axis
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
-    :type extract_sigma_multiple: Array-like
+    :type extract_sigma_multiple: np.ndarray
     :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
         `nuclear_labels` is provided.
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
@@ -310,7 +310,7 @@ class Spot:
     up with reasonable default parameters.
 
     :param data: Spot channel data, in the usual axis ordering ('tzyx').
-    :type data: Numpy array.
+    :type data: np.ndarray
     :param dict global_metadata: Dictionary of global metadata for the spot
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for the spot
@@ -320,7 +320,7 @@ class Spot:
         the labelled mask in Dask worker memories. Setting to `None` results in
         independent tracking and fitting of the spots, without the filtering steps
         that would require a nuclear mask.
-    :type labels: Numpy array, list of Dask Futures objects, or `None`
+    :type labels: {np.ndarray, list, None}
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :param spot_sigmas: Standard deviations in each coordinate axis of diffraction-
@@ -351,7 +351,7 @@ class Spot:
     :param extract_sigma_multiple: Multiple of the proposed `spot_sigmas` in each axis
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
-    :type extract_sigma_multiple: Array-like
+    :type extract_sigma_multiple: np.ndarray
     :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
         `nuclear_labels` is provided.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the

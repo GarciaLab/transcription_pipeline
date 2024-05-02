@@ -488,7 +488,7 @@ to visualize tracks.</p></li>
 used to visualize tracks in napari.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>{Tuple, None}</p>
+<dd class="field-odd"><p>{tuple, None}</p>
 </dd>
 </dl>
 </dd></dl>
@@ -664,7 +664,7 @@ during nuclear divisions. Setting to 1 is equivalent to no threshold.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(division_frames, nuclear_cycle)</p>
+<dd class="field-even"><p><p>tuple(division_frames, nuclear_cycle)</p>
 <ul class="simple">
 <li><p><cite>division_frames</cite>: Numpy array of frame number (not index - the frames are
 1-indexed as per <cite>trackpy</cite>’s convention) of the detected division windows.</p></li>
@@ -675,7 +675,7 @@ since we obviously don’t see division out of the last cycle observed.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of Numpy arrays.</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -703,8 +703,8 @@ on the setting for <cite>invert</cite>.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>frame_array</strong> (<em>Numpy array</em>) – Sorted array corresponding to the frame numbers.</p></li>
-<li><p><strong>property_array</strong> (<em>Numpy array.</em>) – Array corresponding to the image feature being used to determine
+<li><p><strong>frame_array</strong> (<em>np.ndarray</em>) – Sorted array corresponding to the frame numbers.</p></li>
+<li><p><strong>property_array</strong> (<em>np.ndarray</em>) – Array corresponding to the image feature being used to determine
 the division frames - as of this version, this can number of detected features in
 each frame of <cite>frame_array</cite> (e.g. with a histone marker) or nuclear-localized
 fluorescence (e.g. with a fluorescently-tagged transcription factor).</p></li>
@@ -719,7 +719,7 @@ of nuclear fluorescence.</p></li>
 <dd class="field-even"><p>Array of the frames with detected division waves.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -804,7 +804,7 @@ over.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>segmentation_mask</strong> (<em>Numpy array.</em>) – A labeled array, with each label corresponding to a mask
+<li><p><strong>segmentation_mask</strong> (<em>np.ndarray</em>) – A labeled array, with each label corresponding to a mask
 for a single feature.</p></li>
 <li><p><strong>linked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
 <code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
@@ -815,7 +815,7 @@ for a single feature.</p></li>
 particles.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -829,8 +829,7 @@ a Dask LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>segmentation_mask</strong> (Numpy array of integers or list of Futures corresponding
-to chunks of <cite>segmentation_mask</cite>.) – A labeled array, with each label corresponding to a mask
+<li><p><strong>segmentation_mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – A labeled array, with each label corresponding to a mask
 for a single feature.</p></li>
 <li><p><strong>linked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
 <code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
@@ -840,7 +839,7 @@ to the first and last indices of the corresponding chunk in <cite>segmentation_m
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>reordered_labels</cite>, <cite>reordered_labels_futures</cite>, <cite>scattered_movies</cite>)
+<dd class="field-even"><p><p>tuple(<cite>reordered_labels</cite>, <cite>reordered_labels_futures</cite>, <cite>scattered_movies</cite>)
 where</p>
 <ul class="simple">
 <li><p><cite>reordered_labels</cite> is the fully evaluated segmentation mask reordered as per
@@ -874,14 +873,14 @@ to <cite>assign_nuclear_cycle</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>segmentation_mask</strong> (<em>Numpy array</em><em> of </em><em>integers.</em>) – Integer-labelled segmentation, as returned by
+<li><p><strong>segmentation_mask</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Integer-labelled segmentation, as returned by
 <cite>scikit.segmentation.watershed</cite>.</p></li>
 <li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
 series in a dataset.</p></li>
 <li><p><strong>initial_frame_index</strong> (<em>int</em>) – Index of first frame, used to offset the recorded
 frame numbers. This is useful if execution is being parallelized by mapping onto
 chunks of a movie.</p></li>
-<li><p><strong>intensity_image</strong> (<em>Numpy array.</em>) – Intensity (i.e., input) image with same size as
+<li><p><strong>intensity_image</strong> (<em>np.ndarray</em>) – Intensity (i.e., input) image with same size as
 labeled image.</p></li>
 <li><p><strong>num_nuclei_per_fov</strong> (<em>dict</em>) – Dictionary specifying the acceptable range of median
 number of detected objects per FOV for a contiguous series of frames bounded
@@ -890,7 +889,7 @@ by detected division waves. The ranges are specified in the form
 to skip assigning nuclear cycles.</p></li>
 <li><p><strong>fluorescence_field</strong> (<em>str</em>) – Name of field used to quantify fluorescence for division
 frame assignment. Only used if <cite>trigger_property</cite> is set to “nuclear_fluorescence”.</p></li>
-<li><p><strong>extra_properties</strong> (<em>Tuple</em><em> of </em><em>strings</em><em>, </em><em>optional.</em>) – Properties of each labelled region in the segmentation
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
 mask to measure and add to the DataFrame. With no extra properties, the
 DataFrame will have columns only for the frame, label, and centroid
 coordinates.</p></li>
@@ -902,7 +901,7 @@ isotropic.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(mitosis_dataframe, division_frames, nuclear_cycle) where</p>
+<dd class="field-even"><p><p>tuple(mitosis_dataframe, division_frames, nuclear_cycle) where</p>
 <ul class="simple">
 <li><p><cite>mitosis_dataframe</cite>: pandas DataFrame of frame, label, centroids, and imaging time
 <cite>t_s</cite> for each labelled region in the segmentation mask (along with other measurements
@@ -920,7 +919,7 @@ since we obviously don’t see division out of the last cycle observed.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple(pandas DataFrame, numpy array, numpy array)</p>
+<dd class="field-odd"><p>tuple[pd.DataFrame, np.ndarray, np.ndarray]</p>
 </dd>
 </dl>
 </dd></dl>

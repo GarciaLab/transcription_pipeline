@@ -552,7 +552,7 @@ and scope metadata to come up with reasonable default parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>Numpy array.</em>) – Nuclear channel data, in the usual axis ordering (‘tzyx’).</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – Nuclear channel data, in the usual axis ordering (‘tzyx’).</p></li>
 <li><p><strong>global_metadata</strong> (<em>dict</em>) – Dictionary of global metadata for the nuclear
 channel, as output by <cite>preprocessing.import_data.import_save_dataset</cite>.</p></li>
 <li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for the nuclear
@@ -932,12 +932,12 @@ up with reasonable default parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>Numpy array.</em>) – Spot channel data, in the usual axis ordering (‘tzyx’).</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – Spot channel data, in the usual axis ordering (‘tzyx’).</p></li>
 <li><p><strong>global_metadata</strong> (<em>dict</em>) – Dictionary of global metadata for the spot
 channel, as output by <cite>preprocessing.import_data.import_save_dataset</cite>.</p></li>
 <li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for the spot
 channel, as output by <cite>preprocessing.import_data.import_save_dataset</cite>.</p></li>
-<li><p><strong>labels</strong> (Numpy array, list of Dask Futures objects, or <cite>None</cite>) – Labelled mask, with each label assigned a unique integer value and
+<li><p><strong>labels</strong> (<em>{np.ndarray</em><em>, </em><em>list</em><em>, </em><em>None}</em>) – Labelled mask, with each label assigned a unique integer value and
 containing a single spot. Can also be passed as a list of futures corresponding to
 the labelled mask in Dask worker memories. Setting to <cite>None</cite> results in
 independent tracking and fitting of the spots, without the filtering steps
@@ -964,7 +964,7 @@ thresholding using the triangle method.</p></li>
 <li><p><strong>threshold_factor</strong> (<em>float</em>) – If using automated thresholding, this factor is multiplied
 by the proposed threshold value. This gives some degree of control over the stringency
 of thresholding while still getting a ballpark value using the automated method.</p></li>
-<li><p><strong>extract_sigma_multiple</strong> (<em>Array-like</em>) – Multiple of the proposed <cite>spot_sigmas</cite> in each axis
+<li><p><strong>extract_sigma_multiple</strong> (<em>np.ndarray</em>) – Multiple of the proposed <cite>spot_sigmas</cite> in each axis
 used to set the dimensions of the volume that gets extracted out of the spot data
 array into <cite>spot_dataframe</cite> for Gaussian fitting.</p></li>
 <li><p><strong>max_num_spots</strong> (<em>int</em>) – Maximum number of allowed spots per nuclear label, if a
@@ -1198,7 +1198,7 @@ standard deviation in microns in z-axis in order for a spot to be considered in
 downstream analysis. Like <cite>spot_sigmas</cite>, this is best estimated experimentally but
 a ballpark can be estimates from the theoretical PSF of the microscope for a
 first pass.</p></li>
-<li><p><strong>extract_sigma_multiple</strong> (<em>Array-like</em>) – Multiple of the proposed <cite>spot_sigmas</cite> in each axis
+<li><p><strong>extract_sigma_multiple</strong> (<em>np.ndarray</em>) – Multiple of the proposed <cite>spot_sigmas</cite> in each axis
 used to set the dimensions of the volume that gets extracted out of the spot data
 array into <cite>spot_dataframe</cite> for Gaussian fitting.</p></li>
 <li><p><strong>max_num_spots</strong> (<em>int</em>) – Maximum number of allowed spots per nuclear label, if a

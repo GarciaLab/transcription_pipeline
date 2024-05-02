@@ -40,7 +40,7 @@ def generate_trace_plot_list(compiled_dataframe):
     :type compiled_dataframe: pandas DataFrame
     :return: List of tuples of the form `(time, intensity, particle, nc)` where `time`
         and `intensity` are vectors corresponding to the trace for `particle`.
-    :rtype: List of tuples
+    :rtype: list[tuple]
     """
     particle_indices = compiled_dataframe.index.values
     trace_list = []

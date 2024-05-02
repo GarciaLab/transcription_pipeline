@@ -44,7 +44,7 @@ def transfer_nuclear_labels(
         output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
     :type spot_dataframe: pandas DataFrame
     :param nuclear_labels: Labelled movie of nuclear masks.
-    :type nuclear_labels: Numpy array of integers
+    :type nuclear_labels: np.ndarray[np.int]
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
     :param pos_columns: Name of columns in `spot_dataframe` containing a pixel-space
@@ -101,16 +101,16 @@ def filter_spots_by_sigma(
     :param spot_dataframe: DataFrame containing information about putative spots as
         output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
     :type spot_dataframe: pandas DataFrame
-    :param sigma_x_y_bounds: Tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+    :param sigma_x_y_bounds: tuple(sigma_x_y lower bound, sigma_x_y upper bound)
         setting the acceptable range for inclusion of spots, with spots falling outside
         that ranged being marked with a `False` value in the added `include_spot_by_sigma`
         column.
-    :type sigma_x_y_bounds: Tuple of floats.
-    :param sigma_z_bounds: Tuple(sigma_z lower bound, sigma_z upper bound)
+    :type sigma_x_y_bounds: tuple[float]
+    :param sigma_z_bounds: tuple(sigma_z lower bound, sigma_z upper bound)
         setting the acceptable range for inclusion of spots, with spots falling outside
         that ranged being marked with a `False` value in the added `include_spot_by_sigma`
         column.
-    :type sigma_z_bounds: Tuple of floats.
+    :type sigma_z_bounds: tuple[float]
     :return: None
     :rtype: None
 
@@ -361,7 +361,7 @@ def compile_successive_differences(
         when compiling successive differences along a trace. Defaults to
         `intensity_from_neighborhood`.
     :return: Pooled array of all successive differences along all traces.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Find all unique particles
     particles = np.sort(np.trim_zeros(tracked_dataframe["particle"].unique()))
@@ -406,7 +406,7 @@ def successive_differences_quartile(
         when compiling successive differences along a trace. Defaults to
         `intensity_from_neighborhood`.
     :return: Pooled array of all successive differences along all traces.
-    :rtype: Numpy array
+    :rtype: np.ndarray
     """
     all_differences = compile_successive_differences(
         tracked_dataframe, min_points=min_points, quantification=quantification
@@ -503,18 +503,18 @@ def track_and_filter_spots(
     :param spot_dataframe: DataFrame containing information about putative spots as
         output by :func:`~spot_analysis.detection.detect_and_gather_spots`.
     :type spot_dataframe: pandas DataFrame
-    :param sigma_x_y_bounds: Tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+    :param sigma_x_y_bounds: tuple(sigma_x_y lower bound, sigma_x_y upper bound)
         setting the acceptable range for inclusion of spots, with spots falling outside
         that ranged being marked with a `False` value in the added `include_spot_by_sigma`
         column.
-    :type sigma_x_y_bounds: Tuple of floats.
-    :param sigma_z_bounds: Tuple(sigma_z lower bound, sigma_z upper bound)
+    :type sigma_x_y_bounds: tuple[float]
+    :param sigma_z_bounds: tuple(sigma_z lower bound, sigma_z upper bound)
         setting the acceptable range for inclusion of spots, with spots falling outside
         that ranged being marked with a `False` value in the added `include_spot_by_sigma`
         column.
-    :type sigma_z_bounds: Tuple of floats.
+    :type sigma_z_bounds: tuple[float]
     :param nuclear_labels: Labelled movie of nuclear masks.
-    :type nuclear_labels: Numpy array of integers
+    :type nuclear_labels: np.ndarray[np.int]
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
     :param float search_range: The maximum distance features can move between frames.

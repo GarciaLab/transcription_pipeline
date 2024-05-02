@@ -226,7 +226,7 @@ class Nuclear:
     and scope metadata to come up with reasonable default parameters.
 
     :param data: Nuclear channel data, in the usual axis ordering ('tzyx').
-    :type data: Numpy array.
+    :type data: np.ndarray
     :param dict global_metadata: Dictionary of global metadata for the nuclear
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for the nuclear

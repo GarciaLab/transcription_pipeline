@@ -162,6 +162,10 @@
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">transcription_pipeline.preprocessing package</a></li>
 </ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Tracking:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a></li>
+</ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Nuclear analysis:</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html">transcription_pipeline.nuclear_analysis package</a></li>
@@ -493,13 +497,13 @@ z-stack.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple(output_global_metadata, output_frame_metadata) of
+<dd class="field-even"><p>tuple(output_global_metadata, output_frame_metadata) of
 lists of dictionaries, each list element corresponding to a channel,
 matching the global and frame-by-frame metadata respectively of the
 collated dataset.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of lists of dictionaries.</p>
+<dd class="field-odd"><p>tuple of lists of dictionaries.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -559,7 +563,7 @@ memory size of each chunk being approximately set by this parameter in memory si
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(channels_full_dataset, original_global_metadata,
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
 original_frame_metadata, export_global_metadata,
 export_frame_metadata)</p>
 <ul class="simple">
@@ -586,7 +590,7 @@ z-stack.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -607,7 +611,7 @@ channels.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(channels_full_dataset, original_global_metadata,
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
 original_frame_metadata, export_global_metadata,
 export_frame_metadata)</p>
 <ul class="simple">
@@ -627,7 +631,7 @@ corresponding to a channel.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -656,7 +660,7 @@ value of chunks. Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(channels_full_dataset, original_global_metadata,
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
 original_frame_metadata, export_global_metadata,export_frame_metadata)</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">channels_full_dataset</span></code>: list of numpy (if mode=’tiff’) or zarr arrays
@@ -676,7 +680,7 @@ corresponding to a channel.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of dicts</p>
+<dd class="field-odd"><p>tuple[dict]</p>
 </dd>
 </dl>
 <div class="deprecated">
@@ -692,9 +696,9 @@ two z-stacks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>stack1</strong> (<em>Numpy array.</em>) – Z-stack overlapping with <cite>stack2</cite> such that the normalized correlation
+<li><p><strong>stack1</strong> (<em>np.ndarray</em>) – Z-stack overlapping with <cite>stack2</cite> such that the normalized correlation
 peak can be used to estimate the shift in z between <cite>stack1</cite> and <cite>stack2</cite>.</p></li>
-<li><p><strong>stack2</strong> (<em>Numpy array</em>) – Z-stack overlapping with <cite>stack1</cite> such that the normalized correlation
+<li><p><strong>stack2</strong> (<em>np.ndarray</em>) – Z-stack overlapping with <cite>stack1</cite> such that the normalized correlation
 peak can be used to estimate the shift in z between <cite>stack1</cite> and <cite>stack2</cite>.</p></li>
 <li><p><strong>peak_window</strong> (<em>int</em>) – Window around proposed peak index in normalized correlation
 computed for different z-shifts to consider when computing the centroid of the
@@ -758,13 +762,13 @@ imaged.</p>
 series in a dataset.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of function object taking frame number and z-position as arguments
+<dd class="field-even"><p>tuple of function object taking frame number and z-position as arguments
 and returning an imaging time in seconds, and time between frames i.e. of
-form Tuple(function of form time_func(frame_number, z_position),
+form tuple(function of form time_func(frame_number, z_position),
 time_between_frames).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple(function, float)</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <div class="admonition note">

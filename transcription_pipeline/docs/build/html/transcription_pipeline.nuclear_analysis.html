@@ -162,6 +162,10 @@
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a></li>
 </ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Tracking:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a></li>
+</ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Nuclear analysis:</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">transcription_pipeline.nuclear_analysis package</a></li>
@@ -365,7 +369,7 @@ foreground and background.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>stack</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
 <li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
 for binarizing the stack, between global and local Otsu threholding, and
 Li’s cross-entropy minimization method.</p>
@@ -374,28 +378,28 @@ Li’s cross-entropy minimization method.</p>
 the footprint used for the local Otsu thresholding.</p></li>
 </ul>
 </p></li>
-<li><p><strong>opening_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
-<li><p><strong>closing_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
-<li><p><strong>cc_min_span</strong> (<em>Array-like</em>) – Minimum span in each axis that the largest connected component
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
 in a binarized image must have to be considered possible background noise. The
 key here is that large x- and y-axis span (more than a few nuclei) indicates
 either a region of high-intensity surface noise or a low signal-to-noise image
 that causes nuclei to appear connected when binarized. This flags the image for
 further processing and possible background removal.</p></li>
-<li><p><strong>background_max_span</strong> (<em>Array-like</em>) – Maximum span in each axis that a connected component
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
 flagged as surface noise can have and still be consisdered surface noise (i.e.
 if a large part of the stack is surface noise, the data might not be usable
 in the first place and will be very difficult to segment in 3D so we stop the
 analysis). Connected blurred regions with bounding boxes spanning this parameter
 will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
-<li><p><strong>background_sigma</strong> (<em>Array-like</em>) – Standard deviation to use in each axis for Gaussian blurring
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
 of image prior to segmenting out the surface noise. This should be small in z
 so as not to bleed through the z-stack, and much larger than the nuclei in x- and
 y- so as to only keep low-frequency noise.</p></li>
 <li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
 blurred image for surface noise detection. Only global Otsu and Li methods
 are implemented.</p></li>
-<li><p><strong>background_dilation_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Structuring element used for binary dilation
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
 of the background surface noise mask when removing background noise.</p></li>
 <li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
 image for binarization.</p></li>
@@ -406,7 +410,7 @@ image for binarization.</p></li>
 corresponding to the foreground and False to the background.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -419,7 +423,7 @@ between foreground and background.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
 <li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
 for binarizing the stack, between global and local Otsu threholding, and
 Li’s cross-entropy minimization method.</p>
@@ -428,29 +432,29 @@ Li’s cross-entropy minimization method.</p>
 the footprint used for the local Otsu thresholding.</p></li>
 </ul>
 </p></li>
-<li><p><strong>cc_min_span</strong> (<em>Array-like</em>) – Minimum span in each axis that the largest connected component
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
 in a binarized image must have to be considered possible background noise. The
 key here is that large x- and y-axis span (more than a few nuclei) indicates
 either a region of high-intensity surface noise or a low signal-to-noise image
 that causes nuclei to appear connected when binarized. This flags the image for
 further processing and possible background removal.</p></li>
-<li><p><strong>background_max_span</strong> (<em>Array-like</em>) – Maximum span in each axis that a connected component
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
 flagged as surface noise can have and still be consisdered surface noise (i.e.
 if a large part of the stack is surface noise, the data might not be usable
 in the first place and will be very difficult to segment in 3D so we stop the
 analysis). Connected blurred regions with bounding boxes spanning this parameter
 will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
-<li><p><strong>background_sigma</strong> (<em>Array-like</em>) – Standard deviation to use in each axis for Gaussian blurring
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
 of image prior to segmenting out the surface noise. This should be small in z
 so as not to bleed through the z-stack, and much larger than the nuclei in x- and
 y- so as to only keep low-frequency noise.</p></li>
 <li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
 blurred image for surface noise detection. Only global Otsu and Li methods
 are implemented.</p></li>
-<li><p><strong>background_dilation_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Structuring element used for binary dilation
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
 of the background surface noise mask when removing background noise.</p></li>
-<li><p><strong>opening_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
-<li><p><strong>closing_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
 <li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
 image for binarization.</p></li>
 </ul>
@@ -460,7 +464,7 @@ image for binarization.</p></li>
 corresponding to the foreground and False to the background.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -474,7 +478,7 @@ LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
 <li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
 for binarizing the stack, between global and local Otsu threholding, and
 Li’s cross-entropy minimization method.</p>
@@ -483,28 +487,28 @@ Li’s cross-entropy minimization method.</p>
 the footprint used for the local Otsu thresholding.</p></li>
 </ul>
 </p></li>
-<li><p><strong>opening_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
-<li><p><strong>closing_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used for closing operation.</p></li>
-<li><p><strong>cc_min_span</strong> (<em>Array-like</em>) – Minimum span in each axis that the largest connected component
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
 in a binarized image must have to be considered possible background noise. The
 key here is that large x- and y-axis span (more than a few nuclei) indicates
 either a region of high-intensity surface noise or a low signal-to-noise image
 that causes nuclei to appear connected when binarized. This flags the image for
 further processing and possible background removal.</p></li>
-<li><p><strong>background_max_span</strong> (<em>Array-like</em>) – Maximum span in each axis that a connected component
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
 flagged as surface noise can have and still be consisdered surface noise (i.e.
 if a large part of the stack is surface noise, the data might not be usable
 in the first place and will be very difficult to segment in 3D so we stop the
 analysis). Connected blurred regions with bounding boxes spanning this parameter
 will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
-<li><p><strong>background_sigma</strong> (<em>Array-like</em>) – Standard deviation to use in each axis for Gaussian blurring
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
 of image prior to segmenting out the surface noise. This should be small in z
 so as not to bleed through the z-stack, and much larger than the nuclei in x- and
 y- so as to only keep low-frequency noise.</p></li>
 <li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
 blurred image for surface noise detection. Only global Otsu and Li methods
 are implemented.</p></li>
-<li><p><strong>background_dilation_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Structuring element used for binary dilation
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
 of the background surface noise mask when removing background noise.</p></li>
 <li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
 image for binarization.</p></li>
@@ -512,7 +516,7 @@ image for binarization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>binarized_movie</cite>, <cite>binarized_movie_futures</cite>, <cite>scattered_movie</cite>)
+<dd class="field-even"><p><p>tuple(<cite>binarized_movie</cite>, <cite>binarized_movie_futures</cite>, <cite>scattered_movie</cite>)
 where</p>
 <ul class="simple">
 <li><p><cite>binarized_movie</cite> is the fully evaluated binarized movie as an ndarray of
@@ -543,7 +547,7 @@ the workers’ memory, wrapped in a list.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>stack</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
 <li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
 image (before any filtering or morphological operations) between a gaussian
 filter and a median filter.</p>
@@ -554,8 +558,7 @@ the sigma parameter for the gaussian filter.</p></li>
 the footprint used for the median filter.</p></li>
 </ul>
 </p></li>
-<li><p><strong>median_footprint</strong> (Numpy array of booleans, only required if using
-<code class="docutils literal notranslate"><span class="pre">denoising='median'</span></code>.) – Footprint used for median filter denoising of the image
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
 prior to any morphological operations or other filtering.</p></li>
 </ul>
 </dd>
@@ -563,7 +566,7 @@ prior to any morphological operations or other filtering.</p></li>
 <dd class="field-even"><p>Denoised stack.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -576,7 +579,7 @@ filtering).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
 <li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
 image (before any filtering or morphological operations) between a gaussian
 filter and a median filter.</p>
@@ -587,8 +590,7 @@ the sigma parameter for the gaussian filter.</p></li>
 the footprint used for the median filter.</p></li>
 </ul>
 </p></li>
-<li><p><strong>median_footprint</strong> (Numpy array of booleans, only required if using
-<code class="docutils literal notranslate"><span class="pre">denoising='median'</span></code>.) – Footprint used for median filter denoising of the image
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
 prior to any morphological operations or other filtering.</p></li>
 </ul>
 </dd>
@@ -596,7 +598,7 @@ prior to any morphological operations or other filtering.</p></li>
 <dd class="field-even"><p>Denoised movie.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -609,7 +611,7 @@ filtering). This is parallelized across a Dask LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (Numpy array or list of Futures corresponding to chunks of <cite>movie</cite>.) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
 <li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
 image (before any filtering or morphological operations) between a gaussian
 filter and a median filter.</p>
@@ -620,14 +622,13 @@ the sigma parameter for the gaussian filter.</p></li>
 the footprint used for the median filter.</p></li>
 </ul>
 </p></li>
-<li><p><strong>median_footprint</strong> (Numpy array of booleans, only required if using
-<code class="docutils literal notranslate"><span class="pre">denoising='median'</span></code>.) – Footprint used for median filter denoising of the image
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
 prior to any morphological operations or other filtering.</p></li>
 <li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>denoised_movie</cite>, <cite>denoised_movie_futures</cite>, <cite>scattered_movie</cite>)
+<dd class="field-even"><p><p>tuple(<cite>denoised_movie</cite>, <cite>denoised_movie_futures</cite>, <cite>scattered_movie</cite>)
 where</p>
 <ul class="simple">
 <li><p><cite>denoised_movie</cite> is the fully evaluated denoised movie as an ndarray of the
@@ -657,19 +658,19 @@ the workers’ memory, wrapped in a list.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker (usually used
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker (usually used
 on pre-processed images, for instance with a DoG filter).</p></li>
-<li><p><strong>footprint</strong> (<em>{ndarray</em><em>, </em><em>Tuple</em><em>(</em><em>int</em><em>, </em><em>ndarray</em><em>)</em><em>, </em><em>Tuple</em><em>(</em><em>(</em><em>int</em><em>, </em><em>int</em><em>)</em><em>, </em><em>ndarray</em><em>)</em><em>}</em>) – Footprint used during maximum dilation. This sets the minimum
+<li><p><strong>footprint</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>np.ndarray</em><em>]</em><em>, </em><em>tuple</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em><em>}</em>) – Footprint used during maximum dilation. This sets the minimum
 distance between peaks, with a single maximum within the net footprint of
 iterated maximum dilations. Can be given as a Numpy array of booleans that
 gets used as a footprint for a single maximum dilation, as a
-Tuple(num_iter, footprint) where the footprint is used for maximum diation
-num_iter times, as Tuple((num_iter_lower, num_iter_upper), footprint)
+tuple(num_iter, footprint) where the footprint is used for maximum diation
+num_iter times, as tuple((num_iter_lower, num_iter_upper), footprint)
 where num_iter_lower and num_iter_upper are the lowest and highest number of
 iterations respectively that the function will try when looking for a
 stationary point in the number of detected maxima for each frame so that no
 frame is over- or under-segmented.</p></li>
-<li><p><strong>mask</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations).</p></li>
@@ -688,7 +689,7 @@ detection. Defaults to 3, only used as fallback if plateau finding fails.</p></l
 <dd class="field-even"><p>Boolean mask labeling local maxima.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -703,8 +704,8 @@ be done post-segmentation using the size and morphology of the segmented objects
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>stack</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
-<li><p><strong>mask</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations).</p></li>
@@ -716,7 +717,7 @@ background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
 sigma along of the image axes).</p></li>
-<li><p><strong>max_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
 during maximum dilation. This sets the minimum distance between peaks.</p></li>
 <li><p><strong>frame_index</strong> (<em>int</em><em>, </em><em>optional</em>) – Index of frame being processed, used to make warning
 about footprint more descriptive.</p></li>
@@ -733,7 +734,7 @@ detection. Defaults to 3, only used as fallback if plateau finding fails.</p></l
 <dd class="field-even"><p>Array of integer labels of the same shape as image.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -748,8 +749,8 @@ be done post-segmentation using the size and morphology of the segmented objects
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
-<li><p><strong>mask</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations). Same shape as movie.</p></li>
@@ -761,7 +762,7 @@ background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
 sigma along of the image axes).</p></li>
-<li><p><strong>max_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
 during maximum dilation. This sets the minimum distance between peaks.</p></li>
 <li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
 considered a plateau when looking for a stationary value of the number
@@ -773,14 +774,14 @@ detection. Defaults to 3, only used as fallback if plateau finding fails.</p></l
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple(<cite>dog</cite>, <cite>marker_coordinates</cite>, <cite>markers</cite>) where dog is the
+<dd class="field-even"><p>tuple(<cite>dog</cite>, <cite>marker_coordinates</cite>, <cite>markers</cite>) where dog is the
 bandpass-filtered image, marker_coordinates is an array of the nuclear
 locations in the image indexed as per the image (this can be used for
 visualization) and markers is a boolean array of the same shape as image, with
 the marker positions given by a True value.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of numpy arrays.</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -796,21 +797,20 @@ This is parallelized across a Dask LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (Numpy array or list of Futures corresponding to chunks of <cite>movie</cite>.) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
-<li><p><strong>mask</strong> (Numpy array of booleans or list of Futures corresponding to chunks
-of <cite>mask</cite>.) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations). Same shape as <cite>movie</cite>.</p></li>
-<li><p><strong>low_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the low-pass filter (mainly filters out
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
 noise). Can be given as float (assumes isotropic sigma) or as sequence/array
 (each element corresponsing the sigma along of the image axes).</p></li>
-<li><p><strong>high_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the high-pass filter (removes structured
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
 background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
 sigma along of the image axes).</p></li>
-<li><p><strong>max_footprint</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
 during maximum dilation. This sets the minimum distance between peaks.</p></li>
 <li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
 considered a plateau when looking for a stationary value of the number
@@ -823,7 +823,7 @@ detection. Defaults to 3, only used as fallback if plateau finding fails.</p></l
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>marked_movie</cite>, <cite>marked_movie_futures</cite>, <cite>scattered_movies</cite>) where</p>
+<dd class="field-even"><p><p>tuple(<cite>marked_movie</cite>, <cite>marked_movie_futures</cite>, <cite>scattered_movies</cite>) where</p>
 <ul class="simple">
 <li><p><cite>marked_movie</cite> is the fully evaluated marked movie as an ndarray of
 booleans of the same shape as movie, with each nucleus containing a single
@@ -855,11 +855,11 @@ markers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>stack</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
-<li><p><strong>markers</strong> (<em>Numpy array</em><em> of </em><em>integers.</em>) – Boolean array of dimensions matching movie, with nuclei containing
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Boolean array of dimensions matching movie, with nuclei containing
 (ideally) a single unique integer value, and all other values being 0. This is
 used to perform the watershed segmentation.</p></li>
-<li><p><strong>mask</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations).</p></li>
@@ -875,7 +875,7 @@ sobel gradient of the image.</p></li>
 corresponding to a mask for a single nucleus, assigned to an integer value.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -887,11 +887,11 @@ corresponding to a mask for a single nucleus, assigned to an integer value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (<em>Numpy array.</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
-<li><p><strong>markers</strong> (<em>Numpy array</em><em> of </em><em>integers.</em>) – Boolean array of dimensions matching movie, with nuclei containing
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Boolean array of dimensions matching movie, with nuclei containing
 (ideally) a single unique integer value, and all other values being 0. This is
 used to perform the watershed segmentation.</p></li>
-<li><p><strong>mask</strong> (<em>Numpy array</em><em> of </em><em>booleans.</em>) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations). Same shape as movie.</p></li>
@@ -905,13 +905,11 @@ frames of movie.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple(<cite>markers</cite>, <cite>labels</cite>) where markers is a boolean array  with the
-marker positions used for the watershed transform given by a True value and
-labels is an array with each label corresponding to a mask for a single
+<dd class="field-even"><p>Array with each label corresponding to a mask for a single
 nucleus, assigned to an integer value (both of the same shape as movie).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of Numpy arrays.</p>
+<dd class="field-odd"><p>np.ndarray[np.int]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -924,13 +922,11 @@ LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> – 2D (projected) or 3D movie of a nuclear marker.</p></li>
-<li><p><strong>markers</strong> (Numpy array of integers or list of Futures corresponding to chunks
-of <cite>markers</cite>.) – Boolean array of dimensions matching movie, with nuclei containing
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Boolean array of dimensions matching movie, with nuclei containing
 (ideally) a single unique integer value, and all other values being 0. This is
 used to perform the watershed segmentation.</p></li>
-<li><p><strong>mask</strong> (Numpy array of booleans or list of Futures corresponding to chunks
-of <cite>mask</cite>.) – Mask labelling regions of interest, used to screen out spurious
+<li><p><strong>mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Mask labelling regions of interest, used to screen out spurious
 peaks when counting detected maxima (important for searching for a
 stationary value of the detected maxima with respect to the number of
 iterations). Same shape as movie.</p></li>
@@ -943,7 +939,7 @@ sobel gradient of the image.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>segmented_movie</cite>, <cite>segmented_movie_futures</cite>, <cite>scattered_movies</cite>)
+<dd class="field-even"><p><p>tuple(<cite>segmented_movie</cite>, <cite>segmented_movie_futures</cite>, <cite>scattered_movies</cite>)
 where</p>
 <ul class="simple">
 <li><p><cite>segmented_movie</cite> is the fully evaluated segmented movie as an ndarray of

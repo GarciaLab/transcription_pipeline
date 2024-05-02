@@ -454,7 +454,7 @@ with a time delay between the end of a series and the start of the next).</p></l
 <dd class="field-even"><p>Padded array containing compiled traces.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -472,18 +472,18 @@ filtering and thresholding will be parallelized across the client.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spot_movie</strong> (<em>Numpy array.</em>) – Movie of spot channel.</p></li>
-<li><p><strong>low_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the low-pass filter (mainly filters out
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
 noise). Can be given as float (assumes isotropic sigma) or as sequence/array
 (each element corresponsing the sigma along of the image axes).</p></li>
-<li><p><strong>high_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the high-pass filter (removes structured
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
 background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
 sigma along of the image axes).</p></li>
 <li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
 series in a dataset.</p></li>
-<li><p><strong>span</strong> (<em>Array-like.</em>) – Size of neighborhood to extract (rounded in each axis to the largest
+<li><p><strong>span</strong> (<em>np.ndarray</em>) – Size of neighborhood to extract (rounded in each axis to the largest
 odd number below <cite>span</cite> if even).</p></li>
 <li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in DataFrame measurement table obtained from
 spot label array containing a position coordinate, in order of indexing of
@@ -514,7 +514,7 @@ labelled spots as first output (otherwise returns <cite>None</cite>).</p></li>
 spots as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
 <li><p><strong>keep_futures_spots_movie</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of input <cite>spot_movie</cite>
 as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
-<li><p><strong>extra_properties</strong> (<em>Tuple</em><em> of </em><em>strings</em><em>, </em><em>optional.</em>) – Properties of each labelled region in the segmentation
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
 mask to measure and add to the DataFrame. With no extra properties, the
 DataFrame will have columns only for the frame, label, and centroid
 coordinates.</p></li>
@@ -541,7 +541,7 @@ bandpassed-filtered movie <cite>Futures</cite> (see below).</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -556,11 +556,11 @@ parallelized across the client.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spot_movie</strong> (<em>Numpy array.</em>) – Movie of spot channel.</p></li>
-<li><p><strong>low_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the low-pass filter (mainly filters out
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
 noise). Can be given as float (assumes isotropic sigma) or as sequence/array
 (each element corresponding the sigma along of the image axes).</p></li>
-<li><p><strong>high_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the high-pass filter (removes structured
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
 background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
@@ -593,7 +593,7 @@ labelled spots as first output (otherwise returns <cite>None</cite>).</p></li>
 spots as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
 <li><p><strong>keep_futures_spots_movie</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of input <cite>spot_movie</cite>
 as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
-<li><p><strong>extra_properties</strong> (<em>Tuple</em><em> of </em><em>strings</em><em>, </em><em>optional.</em>) – Properties of each labelled region in the segmentation
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
 mask to measure and add to the DataFrame. With no extra properties, the
 DataFrame will have columns only for the frame, label, and centroid
 coordinates.</p></li>
@@ -620,7 +620,7 @@ bandpassed-filtered movie <cite>Futures</cite> (see below).</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -635,11 +635,11 @@ thresholding will be parallelized across the client.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spot_movie</strong> (<em>Numpy array.</em>) – Movie of spot channel.</p></li>
-<li><p><strong>low_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the low-pass filter (mainly filters out
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{float</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
 noise). Can be given as float (assumes isotropic sigma) or as sequence/array
 (each element corresponsing the sigma along of the image axes).</p></li>
-<li><p><strong>high_sigma</strong> (<em>scalar</em><em> or </em><em>tuple</em><em> of </em><em>scalars</em>) – Sigma to use as the high-pass filter (removes structured
+<li><p><strong>high_sigma</strong> (<em>{float</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
 background and dims down areas where nuclei are close together that might
 start to coalesce under other morphological operations). Can be given as float
 (assumes isotropic sigma) or as sequence/array (each element corresponsing the
@@ -670,12 +670,12 @@ first element of output. Otherwise returns none as first output.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple(Labelled mask of spots in <cite>spot_movie</cite>, labelled mask as list of
+<dd class="field-even"><p>tuple(Labelled mask of spots in <cite>spot_movie</cite>, labelled mask as list of
 <cite>Futures</cite>, bandpass-filtered movie, bandpass-filtered movie as a list of <cite>Futures</cite>,
 input <cite>spot_movie</cite> as list of <cite>Futures</cite>)</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of Numpy array of integers.</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -720,7 +720,7 @@ useful for estimating the background for the detected spot. If None (default),
 an initial guess will be computed from the data by taking the mean value of
 the voxels on the surface of the <cite>data</cite> array (incidentally, this seems to
 already be a reasonable estimate of background).</p></li>
-<li><p><strong>image_size</strong> (<em>Numpy array.</em>) – Shape of the array corresponding to a frame. This is used to
+<li><p><strong>image_size</strong> (<em>np.ndarray</em>) – Shape of the array corresponding to a frame. This is used to
 check whether the proposed spot centroids are within the image bounds.</p></li>
 <li><p><strong>method</strong> (<em>str</em>) – Method to use for least-squares optimization (see
 <cite>scipy.optimize.least_squares</cite>).</p></li>
@@ -902,7 +902,7 @@ be used.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.bootstrap_intensity">
-<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">bootstrap_intensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">bootstrap_intensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_pixels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_pixels_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity" title="Link to this definition">#</a></dt>
 <dd><p>Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
 pixel values in a shell around that neighborhood for spot and background
 quantification respectively, then estimates the intensity as the sum of spot
@@ -915,9 +915,9 @@ this may not be appropriate for non-scanning microscopy images.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>raw_spot</strong> (<em>Numpy array.</em>) – Cuboidal neighborhood around a spot as extracted by
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
-<li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
 <li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
 <li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
 <li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
@@ -932,6 +932,12 @@ system, this is empirically very close to 0.5.</p></li>
 extracted pixel values to generate for intensity estimation.</p></li>
 <li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
 intensity per pixel or the total background subtracted over the spot.</p></li>
+<li><p><strong>background_pixels</strong> (<em>np.ndarray</em>) – Array of background pixels used for background estimation.
+If <cite>None</cite> (default), the background will be estimated from a shell around the
+spot in each frame.</p></li>
+<li><p><strong>background_pixels_weights</strong> (<em>np.ndarray</em>) – Weight to apply to the background pixels in the
+mean background intensity per pixel estimation procedure. This must be of the
+same shape as <cite>background_pixels</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -942,7 +948,7 @@ averaged over <cite>num_bootstraps</cite> bootstrap samples. <cite>intensity_err
 deviation of the same.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <div class="admonition note">
@@ -967,11 +973,11 @@ be applicable for non-scanning microscopy.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spot_mask</strong> – Cuboidal neighborhood around a spot as extracted by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
-<li><p><strong>centroid</strong> (<em>Numpy array.</em>) – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>List of boolean Numpy arrays.</p>
+<dd class="field-even"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -984,7 +990,7 @@ to a shell around that neighborhood for spot and background quantification respe
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>raw_spot</strong> (<em>Numpy array.</em>) – Cuboidal neighborhood around a spot as extracted by
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
 <li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
 <li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
@@ -1005,7 +1011,7 @@ neighborhood around the spot, and <cite>background</cite> is a mask of the shell
 neighborhood.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple(Numpy array, Numpy array)</p>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1019,7 +1025,7 @@ quantification respectively.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>raw_spot</strong> (<em>Numpy array.</em>) – Cuboidal neighborhood around a spot as extracted by
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
 <li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
 <li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
@@ -1040,7 +1046,7 @@ inside the ellipsoid neighborhood around the spot, and <cite>background</cite> i
 array of the pixel values in the shell around the neighborhood.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple(Numpy array, Numpy array)</p>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1053,15 +1059,15 @@ relevant fit information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>Numpy array.</em>) – 3-dimensional array (with the usual spatial axis ordering ‘zyx’)
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – 3-dimensional array (with the usual spatial axis ordering ‘zyx’)
 containing a single putative spot to fit with a 3D Gaussian.</p></li>
-<li><p><strong>centroid_guess</strong> (<em>Array-like.</em>) – Initial guess for Gaussian centroid to feed to least
+<li><p><strong>centroid_guess</strong> (<em>np.ndarray</em>) – Initial guess for Gaussian centroid to feed to least
 squares minimization.</p></li>
 <li><p><strong>sigma_x_y_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
 fit in x- and y-coordinates, assumed to be symmetric.</p></li>
 <li><p><strong>sigma_z_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
 fit in z-coordinate.</p></li>
-<li><p><strong>coordinate_array</strong> (<em>Numpy array.</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
+<li><p><strong>coordinate_array</strong> (<em>np.ndarray</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
 the usual <cite>tzyx</cite> axes. Otherwise, an array of coordinates of the same shape
 as <cite>data</cite> can be passed to specify the coordinates of each pixel.</p></li>
 <li><p><strong>amplitude_guess</strong> (<em>float</em>) – Initial guess for amplitude of Gaussian fit. If
@@ -1091,7 +1097,7 @@ is consistent with that used in <cite>gaussian3d_sym_xy</cite>.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <div class="admonition note">
@@ -1109,8 +1115,8 @@ centroid at specified coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>coordinates</strong> (<em>Array-like.</em>) – Coordinates at which to evaluate the Gaussian.</p></li>
-<li><p><strong>centroid</strong> (<em>Array-like.</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
+<li><p><strong>coordinates</strong> (<em>np.ndarray</em>) – Coordinates at which to evaluate the Gaussian.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
 <li><p><strong>sigma_x_y</strong> (<em>float</em>) – Standard deviation of Gaussian function in the x- and y-
 coordinate direction.</p></li>
 <li><p><strong>sigma_z</strong> (<em>float</em>) – Standard deviation of Gaussian function in the z-coordinate.</p></li>
@@ -1135,14 +1141,14 @@ centroid at specified coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>box_shape</strong> (<em>Array-like.</em>) – Shape of bounding box containing the generated Gaussian.</p></li>
-<li><p><strong>centroid</strong> (<em>Array-like.</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
+<li><p><strong>box_shape</strong> (<em>np.ndarray</em>) – Shape of bounding box containing the generated Gaussian.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
 <li><p><strong>sigma_x_y</strong> (<em>float</em>) – Standard deviation of Gaussian function in the x- and y-
 coordinate direction.</p></li>
 <li><p><strong>sigma_z</strong> (<em>float</em>) – Standard deviation of Gaussian function in the z-coordinate.</p></li>
 <li><p><strong>amplitude</strong> (<em>float</em>) – Amplitude of Gaussian function.</p></li>
 <li><p><strong>offset</strong> (<em>float</em>) – Offset (limit away from centroid) of Gaussian.</p></li>
-<li><p><strong>coordinate_array</strong> (<em>Numpy array.</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
+<li><p><strong>coordinate_array</strong> (<em>np.ndarray</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
 the usual <cite>tzyx</cite> axes. Otherwise, an array of coordinates of the same shape
 as <cite>data</cite> can be passed to specify the coordinates of each pixel.</p></li>
 </ul>
@@ -1151,7 +1157,7 @@ as <cite>data</cite> can be passed to specify the coordinates of each pixel.</p>
 <dd class="field-even"><p>Generated Gaussian inside bounding box.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1211,7 +1217,7 @@ and used to estimate the error on the intensity.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>raw_spot</strong> (<em>Numpy array.</em>) – Cuboidal neighborhood around a spot as extracted by
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
 <li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
 <li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
@@ -1236,7 +1242,7 @@ averaged over <cite>num_bootstraps</cite> bootstrap samples. <cite>intensity_err
 deviation of the same.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <div class="admonition note">
@@ -1277,7 +1283,7 @@ when compiling successive differences along a trace. Defaults to
 <dd class="field-even"><p>Pooled array of all successive differences along all traces.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1327,11 +1333,11 @@ based on the fit sigmas falling within specified ranges <cite>sigma_x_y_bounds</
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
 output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
-<li><p><strong>sigma_x_y_bounds</strong> (<em>Tuple</em><em> of </em><em>floats.</em>) – Tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+<li><p><strong>sigma_x_y_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_x_y lower bound, sigma_x_y upper bound)
 setting the acceptable range for inclusion of spots, with spots falling outside
 that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
 column.</p></li>
-<li><p><strong>sigma_z_bounds</strong> (<em>Tuple</em><em> of </em><em>floats.</em>) – Tuple(sigma_z lower bound, sigma_z upper bound)
+<li><p><strong>sigma_z_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_z lower bound, sigma_z upper bound)
 setting the acceptable range for inclusion of spots, with spots falling outside
 that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
 column.</p></li>
@@ -1435,7 +1441,7 @@ when compiling successive differences along a trace. Defaults to
 <dd class="field-even"><p>Pooled array of all successive differences along all traces.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1458,15 +1464,15 @@ is modified in-place to add a <cite>particle</cite> column.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
 output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
-<li><p><strong>sigma_x_y_bounds</strong> (<em>Tuple</em><em> of </em><em>floats.</em>) – Tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+<li><p><strong>sigma_x_y_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_x_y lower bound, sigma_x_y upper bound)
 setting the acceptable range for inclusion of spots, with spots falling outside
 that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
 column.</p></li>
-<li><p><strong>sigma_z_bounds</strong> (<em>Tuple</em><em> of </em><em>floats.</em>) – Tuple(sigma_z lower bound, sigma_z upper bound)
+<li><p><strong>sigma_z_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_z lower bound, sigma_z upper bound)
 setting the acceptable range for inclusion of spots, with spots falling outside
 that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
 column.</p></li>
-<li><p><strong>nuclear_labels</strong> (<em>Numpy array</em><em> of </em><em>integers</em>) – Labelled movie of nuclear masks.</p></li>
+<li><p><strong>nuclear_labels</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Labelled movie of nuclear masks.</p></li>
 <li><p><strong>expand_distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
 defaults to 1.</p></li>
 <li><p><strong>search_range</strong> (<em>float</em>) – The maximum distance features can move between frames.</p></li>
@@ -1603,7 +1609,7 @@ corresponding labels.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
 output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
-<li><p><strong>nuclear_labels</strong> (<em>Numpy array</em><em> of </em><em>integers</em>) – Labelled movie of nuclear masks.</p></li>
+<li><p><strong>nuclear_labels</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Labelled movie of nuclear masks.</p></li>
 <li><p><strong>expand_distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
 defaults to 1.</p></li>
 <li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>spot_dataframe</cite> containing a pixel-space

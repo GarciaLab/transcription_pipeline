@@ -381,8 +381,8 @@ its own bin, which improves speed and intensity-resolution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>Numpy array.</em>) – Image for which the histogram is to be computed.</p></li>
-<li><p><strong>bins</strong> (<em>{int</em><em>, </em><em>Numpy array}</em>) – The number of histogram bins. For images with integer dtype, an array
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Image for which the histogram is to be computed.</p></li>
+<li><p><strong>bins</strong> (<em>{int</em><em>, </em><em>np.ndarray}</em>) – The number of histogram bins. For images with integer dtype, an array
 containing the bin centers can also be provided. For images with floating point
 dtype, this can be an array of bin_edges for use by <cite>np.histogram</cite>.</p></li>
 <li><p><strong>hist_range</strong> (<em>2-tuple</em><em> of </em><em>scalars</em>) – Range of values covered by the histogram bins.</p></li>
@@ -402,7 +402,7 @@ dtype, this can be an array of bin_edges for use by <cite>np.histogram</cite>.</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>label_movie</strong> (<em>Numpy array</em><em> of </em><em>integers</em>) – Labelled movie.</p></li>
+<li><p><strong>label_movie</strong> (<em>np.ndarray</em>) – Labelled movie.</p></li>
 <li><p><strong>distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
 defaults to 1.</p></li>
 </ul>
@@ -411,7 +411,7 @@ defaults to 1.</p></li>
 <dd class="field-even"><p>Labelled movie array with connected regions enlarged frame-by-frame.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array of integers.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -424,14 +424,14 @@ parallelized across a Dask LocalCluster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>label_movie</strong> (<em>Numpy array</em><em> of </em><em>integers</em>) – Labelled movie.</p></li>
+<li><p><strong>label_movie</strong> (<em>np.ndarray</em>) – Labelled movie.</p></li>
 <li><p><strong>distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
 defaults to 1.</p></li>
 <li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(<cite>expanded_labels</cite>, <cite>expanded_labels_futures</cite>, <cite>scattered_label_movie</cite>)
+<dd class="field-even"><p><p>tuple(<cite>expanded_labels</cite>, <cite>expanded_labels_futures</cite>, <cite>scattered_label_movie</cite>)
 where</p>
 <ul class="simple">
 <li><p><cite>expanded_labels</cite> is the fully evaluated labelled movie array with connected
@@ -491,10 +491,10 @@ proposed spots from the raw data for Gaussian fitting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>Numpy array</em>) – Input image to extract neighborhood from.</p></li>
-<li><p><strong>coordinates</strong> (<em>Array-like.</em>) – Coordinates that locate the pixel in <cite>image</cite> around which to
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Input image to extract neighborhood from.</p></li>
+<li><p><strong>coordinates</strong> (<em>np.ndarray</em>) – Coordinates that locate the pixel in <cite>image</cite> around which to
 extract <cite>neighborhood</cite>.</p></li>
-<li><p><strong>span</strong> (<em>Array-like.</em>) – Size of neighborhood to extract (rounded in each axis to the largest
+<li><p><strong>span</strong> (<em>np.ndarray</em>) – Size of neighborhood to extract (rounded in each axis to the largest
 odd number below <cite>span</cite> if even).</p></li>
 </ul>
 </dd>
@@ -502,7 +502,7 @@ odd number below <cite>span</cite> if even).</p></li>
 <dd class="field-even"><p>Extracted neighborhood in same dimensionality as <cite>image</cite>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Numpy array.</p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -519,11 +519,11 @@ during spot curation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image</strong> (<em>Numpy array</em>) – Input image to inject neighborhood in.</p></li>
-<li><p><strong>coordinates_start</strong> (<em>Array-like.</em>) – Coordinates that locate the position at which to inject
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Input image to inject neighborhood in.</p></li>
+<li><p><strong>coordinates_start</strong> (<em>np.ndarray</em>) – Coordinates that locate the position at which to inject
 <cite>neighborhood</cite>, with the 0-indexed corner of <cite>neighborhood</cite> being injected
 at the pixel specified by this parameter.</p></li>
-<li><p><strong>neighborhood</strong> (<em>Numpy array.</em>) – Neighborhood to inject, same dimensionality as <cite>image</cite>.</p></li>
+<li><p><strong>neighborhood</strong> (<em>np.ndarray</em>) – Neighborhood to inject, same dimensionality as <cite>image</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -568,7 +568,7 @@ array or a list of Futures corresponding to chunks of <cite>movie</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>movie</strong> (Numpy array or list of Futures corresponding to chunks of <cite>movie</cite>.) – Input movie as passed wrapped in list to <cite>parallelize</cite>.</p></li>
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Input movie as passed wrapped in list to <cite>parallelize</cite>.</p></li>
 <li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
 </ul>
 </dd>
@@ -616,7 +616,7 @@ array. Defaults to same as number of worker processes in the Dask <cite>client</
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Tuple(processed_movie, processed_movie_futures, scattered_data) where</p>
+<dd class="field-even"><p><p>tuple(processed_movie, processed_movie_futures, scattered_data) where</p>
 <ul class="simple">
 <li><p>processed_movie is the fully evaluated result of the computation</p></li>
 <li><p>processed_movie_futures is the list of futures objects resulting from the
@@ -641,12 +641,12 @@ movies_list in the workers’ memory</p></li>
 <dd class="field-odd"><p><strong>kwargs</strong> (<em>dict</em>) – Dictionary of keyword arguments.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple(evaluate, futures_in, futures_out) corresponding to the values
+<dd class="field-even"><p>tuple(evaluate, futures_in, futures_out) corresponding to the values
 of the optional keyword arguments for <a class="reference internal" href="#transcription_pipeline.utils.parallel_computing.parallelize" title="transcription_pipeline.utils.parallel_computing.parallelize"><code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code></a> with the same
 defaults (all True).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple of booleans</p>
+<dd class="field-odd"><p>tuple[bool]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -675,7 +675,7 @@ and the particle ID and assigned nuclear cycle of the trace.</p>
 and <cite>intensity</cite> are vectors corresponding to the trace for <cite>particle</cite>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List of tuples</p>
+<dd class="field-odd"><p>list[tuple]</p>
 </dd>
 </dl>
 </dd></dl>

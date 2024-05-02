@@ -627,7 +627,7 @@ def tracks_to_napari(viewer, dataframe, name="tracks", output=False):
         to visualize tracks.
     :return: If `output = True`, returns lineage dictionary and parent properties
         used to visualize tracks in napari.
-    :rtype: {Tuple, None}
+    :rtype: {tuple, None}
     """
     mitosis_dataframe = dataframe.copy()
     mitosis_dataframe["frame"] = mitosis_dataframe["frame"] - 1

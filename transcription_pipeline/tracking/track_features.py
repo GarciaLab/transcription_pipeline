@@ -71,12 +71,12 @@ def determine_nuclear_cycle_frames(
           on the setting for `invert`.
 
     :param frame_array: Sorted array corresponding to the frame numbers.
-    :type frame_array: Numpy array
+    :type frame_array: np.ndarray
     :param property_array: Array corresponding to the image feature being used to determine
         the division frames - as of this version, this can number of detected features in
         each frame of `frame_array` (e.g. with a histone marker) or nuclear-localized
         fluorescence (e.g. with a fluorescently-tagged transcription factor).
-    :type property_array: Numpy array.
+    :type property_array: np.ndarray
     :param trigger_property: Image feature to use to determine the division frames.
     :type trigger_property: {'num_objects', 'nuclear_fluorescence'}
     :param bool invert: Invert `property_array` before using peak detection to mark
@@ -84,7 +84,7 @@ def determine_nuclear_cycle_frames(
         fluorescence during divisions. As of now this is only used if triggering off
         of nuclear fluorescence.
     :return: Array of the frames with detected division waves.
-    :rtype: Numpy array
+    :rtype: np.ndarray
     """
     property_array = np.copy(property_array)
     if trigger_property == "num_objects":
@@ -182,7 +182,7 @@ def assign_nuclear_cycle(
     :param float ignore_fluo_threshold: Fraction of peak nuclear fluorescence below
         which to ignore frames counting objects to avoid including spurious segmentation
         during nuclear divisions. Setting to 1 is equivalent to no threshold.
-    :return: Tuple(division_frames, nuclear_cycle)
+    :return: tuple(division_frames, nuclear_cycle)
 
         * `division_frames`: Numpy array of frame number (not index - the frames are
           1-indexed as per `trackpy`'s convention) of the detected division windows.
@@ -190,7 +190,7 @@ def assign_nuclear_cycle(
           entry of `division_frames` - this will be one entry larger than `division_frames`
           since we obviously don't see division out of the last cycle observed.
 
-    :rtype: Tuple of Numpy arrays.
+    :rtype: tuple
     """
     frames, num_objects = _number_detected_objects(feature_dataframe)
 
@@ -298,7 +298,7 @@ def segmentation_df(
 
     :param segmentation_mask: Integer-labelled segmentation, as returned by
         `scikit.segmentation.watershed`.
-    :type segmentation_mask: Numpy array of integers.
+    :type segmentation_mask: np.ndarray[np.int]
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :param int initial_frame_index: Index of first frame, used to offset the recorded
@@ -306,7 +306,7 @@ def segmentation_df(
         chunks of a movie.
     :param intensity_image: Intensity (i.e., input) image with same size as
         labeled image.
-    :type intensity_image: Numpy array.
+    :type intensity_image: np.ndarray
     :param dict num_nuclei_per_fov: Dictionary specifying the acceptable range of median
         number of detected objects per FOV for a contiguous series of frames bounded
         by detected division waves. The ranges are specified in the form
@@ -318,7 +318,7 @@ def segmentation_df(
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
-    :type extra_properties: Tuple of strings, optional.
+    :type extra_properties: tuple[str]
     :param extra_properties_callable: Properties of each labelled region in the segmentation
         mask to measure and add to the DataFrame, using an iterable of callables for properties
         not included with skimage.
@@ -326,7 +326,7 @@ def segmentation_df(
     :param spacing: The pixel spacing along each axis of the image. `None` defaults to
         isotropic.
     :type spacing: tuple of float
-    :return: Tuple(mitosis_dataframe, division_frames, nuclear_cycle) where
+    :return: tuple(mitosis_dataframe, division_frames, nuclear_cycle) where
 
         * `mitosis_dataframe`: pandas DataFrame of frame, label, centroids, and imaging time
           `t_s` for each labelled region in the segmentation mask (along with other measurements
@@ -341,7 +341,7 @@ def segmentation_df(
           entry of `division_frames` - this will be one entry larger than `division_frames`
           since we obviously don't see division out of the last cycle observed.
 
-    :rtype: Tuple(pandas DataFrame, numpy array, numpy array)
+    :rtype: tuple[pd.DataFrame, np.ndarray, np.ndarray]
     """
     # Go over every frame and make a pandas-compatible dict for each labelled object
     # in the segmentation.
@@ -698,13 +698,13 @@ def reorder_labels(segmentation_mask, linked_dataframe):
 
     :param segmentation_mask: A labeled array, with each label corresponding to a mask
         for a single feature.
-    :type segmentation_mask: Numpy array.
+    :type segmentation_mask: np.ndarray
     :param linked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
     :return: Segmentation mask for a movie with labels consistent between linked
         particles.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     reordered_mask = np.zeros(segmentation_mask.shape, dtype=segmentation_mask.dtype)
     # Remove filtered particles to avoid unnecessary switches
@@ -743,8 +743,7 @@ def reorder_labels_parallel(
 
     :param segmentation_mask: A labeled array, with each label corresponding to a mask
         for a single feature.
-    :type segmentation_mask: Numpy array of integers or list of Futures corresponding
-        to chunks of `segmentation_mask`.
+    :type segmentation_mask: {np.ndarray, list}
     :param linked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
     :type linked_dataframe: pandas DataFrame
@@ -752,7 +751,7 @@ def reorder_labels_parallel(
         to the first and last indices of the corresponding chunk in `segmentation_mask`.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(`reordered_labels`, `reordered_labels_futures`, `scattered_movies`)
+    :return: tuple(`reordered_labels`, `reordered_labels_futures`, `scattered_movies`)
         where
 
         * `reordered_labels` is the fully evaluated segmentation mask reordered as per

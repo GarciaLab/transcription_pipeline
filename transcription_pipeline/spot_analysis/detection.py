@@ -231,17 +231,17 @@ def make_spot_mask(
     thresholding will be parallelized across the client.
 
     :param spot_movie: Movie of spot channel.
-    :type spot_movie: Numpy array.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {float, tuple[float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {float, tuple[float]}
     :param int nbins: Number of bins used to construct image histogram for automatic
         thresholding.
     :param threshold: Threshold below which to clip `spot_movie` after bandpass filter.
@@ -267,10 +267,10 @@ def make_spot_mask(
         `Futures` in the Dask worker memories, returning as a list in fifth output.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
+    :return: tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
         `Futures`, bandpass-filtered movie, bandpass-filtered movie as a list of `Futures`,
         input `spot_movie` as list of `Futures`)
-    :rtype: Tuple of Numpy array of integers.
+    :rtype: tuple
     """
     if client is None:
         bandpassed_movie = _bandpass_movie(spot_movie, low_sigma, high_sigma)
@@ -391,17 +391,17 @@ def detect_spots(
     parallelized across the client.
 
     :param spot_movie: Movie of spot channel.
-    :type spot_movie: Numpy array.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponding the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {np.float, tuple[np.float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {np.float, tuple[np.float]}
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :param int nbins: Number of bins used to construct image histogram for automatic
@@ -435,7 +435,7 @@ def detect_spots(
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
-    :type extra_properties: Tuple of strings, optional.
+    :type extra_properties: tuple[str]
     :param bool drop_reverse_time: If True, drops the columns with reversed frame
         numbers added to facilitate tracking (if you are using nuclear tracking to
         track your spots instead of tracking the spots independently, you might not
@@ -455,7 +455,7 @@ def detect_spots(
         * bandpass-filtered movie as a list of `Futures`
         * input `spot_movie` as list of `Futures`
 
-    :rtype: Tuple
+    :rtype: tuple
     """
     if client is not None:
         evaluate_make_spot_mask = return_spot_labels
@@ -656,22 +656,22 @@ def detect_and_gather_spots(
     filtering and thresholding will be parallelized across the client.
 
     :param spot_movie: Movie of spot channel.
-    :type spot_movie: Numpy array.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {np.float, tuple[np.float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {np.float, tuple[np.float]}
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :param span: Size of neighborhood to extract (rounded in each axis to the largest
         odd number below `span` if even).
-    :type span: Array-like.
+    :type span: np.ndarray
     :param pos_columns: Name of columns in DataFrame measurement table obtained from
         spot label array containing a position coordinate, in order of indexing of
         the input `spot_movie`.
@@ -707,7 +707,7 @@ def detect_and_gather_spots(
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
-    :type extra_properties: Tuple of strings, optional.
+    :type extra_properties: tuple[str]
     :param bool drop_reverse_time: If True, drops the columns with reversed frame
         numbers added to facilitate tracking (if you are using nuclear tracking to
         track your spots instead of tracking the spots independently, you might not
@@ -727,7 +727,7 @@ def detect_and_gather_spots(
         * bandpass-filtered movie as a list of `Futures`
         * input `spot_movie` as list of `Futures`
 
-    :rtype: Tuple
+    :rtype: tuple
     """
     if client is not None:
         detect_spots_return_spot_dataframe = False

@@ -49,11 +49,11 @@ def _bincount_histogram(image, hist_range, bin_centers=None):
     works only on images of integers. It is based on np.bincount.
 
     :param image: Input image.
-    :type image: Numpy array.
+    :type image: np.ndarray
     :param hist_range: Range of values covered by the histogram bins.
     :type hist_range: 2-tuple of int
     :return: The values of the histogram and the values at the center of the bins.
-    :rtype: Tuple of numpy arrays.
+    :rtype: tuple[np.ndarray, np.ndarray]
     """
     if bin_centers is None:
         bin_centers = _bincount_histogram_centers(hist_range)
@@ -128,11 +128,11 @@ def histogram(image, bins, hist_range, normalize):
     its own bin, which improves speed and intensity-resolution.
 
     :param image: Image for which the histogram is to be computed.
-    :type image: Numpy array.
+    :type image: np.ndarray
     :param bins: The number of histogram bins. For images with integer dtype, an array
         containing the bin centers can also be provided. For images with floating point
         dtype, this can be an array of bin_edges for use by `np.histogram`.
-    :type bins: {int, Numpy array}
+    :type bins: {int, np.ndarray}
     :param hist_range: Range of values covered by the histogram bins.
     :type hist_range: 2-tuple of scalars
     :param bool normalize: If True, normalize the histogram by the sum of its values.
