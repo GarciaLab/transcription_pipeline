@@ -63,7 +63,7 @@ def compile_traces(
         goes negative - as long as we are looking at background-subtracted intensity,
         negative values are clear mistrackings/misquantifications.
     :return: DataFrame of compiled data indexed by particle.
-    :rtype: pandas DataFrame
+    :rtype: pd.DataFrame
     """
     if ignore_negative_spots:
         try:

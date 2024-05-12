@@ -28,6 +28,14 @@ transcription\_pipeline.spot\_analysis.fitting module
    :undoc-members:
    :show-inheritance:
 
+transcription\_pipeline.spot\_analysis.refine\_traces module
+------------------------------------------------------------
+
+.. automodule:: transcription_pipeline.spot_analysis.refine_traces
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transcription\_pipeline.spot\_analysis.track\_filtering module
 --------------------------------------------------------------
 
