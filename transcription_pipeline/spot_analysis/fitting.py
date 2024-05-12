@@ -42,9 +42,9 @@ def generate_gaussian_3d_sym_xy(
     centroid at specified coordinates.
 
     :param box_shape: Shape of bounding box containing the generated Gaussian.
-    :type box_shape: np.ndarray
+    :type box_shape: {np.ndarray, tuple[int], list[int]}
     :param centroid: Coordinates of centroid of Gaussian function to evaluate.
-    :type centroid: np.ndarray
+    :type centroid: {np.ndarray, tuple[float], list[float]}
     :param float sigma_x_y: Standard deviation of Gaussian function in the x- and y-
         coordinate direction.
     :param float sigma_z: Standard deviation of Gaussian function in the z-coordinate.
@@ -549,7 +549,7 @@ def add_fits_spots_dataframe_parallel(
     )
 
     if evaluate:
-        spot_dataframe_dask = spot_dataframe_dask.compute()
+        spot_dataframe_dask = client.compute(spot_dataframe_dask)
 
     if inplace:
         spot_dataframe[:] = spot_dataframe_dask
@@ -671,8 +671,10 @@ def simple_bootstrap_intensity(
     )
 
     # Generate bootstrap resamples
-    spot_bootstrap = np.random.choice(spot, size=(num_bootstraps, *spot.shape))
-    background_bootstrap = np.random.choice(
+    spot_bootstrap = np.random.default_rng().choice(
+        spot, size=(num_bootstraps, *spot.shape)
+    )
+    background_bootstrap = np.random.default_rng().choice(
         background, size=(num_bootstraps, *background.shape)
     )
 
@@ -830,8 +832,9 @@ def bootstrap_intensity(
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
     :param background: Choose whether the background returned is the mean background
-        intensity per pixel or the total background subtracted over the spot.
-    :type background: {"mean", "total"}
+        intensity per pixel or the total background subtracted over the spot. `None`
+        disables background subtraction altogether.
+    :type background: {"mean", "total", `None`}
     :param background_pixels: Array of background pixels used for background estimation.
         If `None` (default), the background will be estimated from a shell around the
         spot in each frame.
@@ -883,18 +886,29 @@ def bootstrap_intensity(
 
     spot_bootstrap = spot_bootstrap_samples.T
 
-    if background_pixels is None:
-        background_pixels = raw_spot[background_mask]
+    if background is not None:
+        if background_pixels is None:
+            background_pixels = raw_spot[background_mask]
 
-    background_bootstrap = np.random.choice(
-        background_pixels, size=(num_bootstraps, background_pixels.size)
-    )
+        # Make sure weights are normalized to a probability
+        if background_pixels_weights is not None:
+            background_pixels_weights /= background_pixels_weights.sum()
+
+        background_bootstrap = np.random.choice(
+            background_pixels,
+            size=(num_bootstraps, background_pixels.size),
+            p=background_pixels_weights,
+        )
+
+        mean_background_bootstrap = np.mean(background_bootstrap, axis=1)
+
+    else:
+        mean_background_bootstrap = 0
 
     # Estimate intensity and error
     num_spot_pixels = spot_mask.sum()
 
     spot_sum_bootstrap = np.sum(spot_bootstrap, axis=1)
-    mean_background_bootstrap = np.mean(background_bootstrap, axis=1)
 
     background_intensity = num_spot_pixels * mean_background_bootstrap
 
@@ -907,12 +921,16 @@ def bootstrap_intensity(
 
     if background == "mean":
         background_intensity = mean_background_bootstrap.mean()
+        background_intensity_err = mean_background_bootstrap.std()
     elif background == "total":
         background_intensity = background_intensity.mean()
+        background_intensity_err = background_intensity.std()
+    elif background is None:
+        background_intensity_err = 0
     else:
-        raise ValueError("`background` option must be 'mean' or 'total'.")
+        raise ValueError("`background` option must be 'mean', 'total' or `None`.")
 
-    return intensity, intensity_err, background_intensity
+    return intensity, intensity_err, background_intensity, background_intensity_err
 
 
 def _add_neighborhood_intensity_row(
@@ -935,23 +953,26 @@ def _add_neighborhood_intensity_row(
     centroid = spot_row[["z", "y", "x"]] - spot_row["coordinates_start"][1:]
 
     if raw_spot is not None:
-        intensity, intensity_err, background_intensity = bootstrap_intensity(
-            raw_spot,
-            centroid=centroid,
-            mppYX=mppYX,
-            mppZ=mppZ,
-            ball_diameter_um=ball_diameter_um,
-            shell_width_um=shell_width_um,
-            aspect_ratio=aspect_ratio,
-            num_bootstraps=num_bootstraps,
-            background=background,
+        intensity, intensity_err, background_intensity, background_intensity_err = (
+            bootstrap_intensity(
+                raw_spot,
+                centroid=centroid,
+                mppYX=mppYX,
+                mppZ=mppZ,
+                ball_diameter_um=ball_diameter_um,
+                shell_width_um=shell_width_um,
+                aspect_ratio=aspect_ratio,
+                num_bootstraps=num_bootstraps,
+                background=background,
+            )
         )
     else:
         intensity = np.nan
         intensity_err = np.nan
         background_intensity = np.nan
+        background_intensity_err = np.nan
 
-    return intensity, intensity_err, background_intensity
+    return intensity, intensity_err, background_intensity, background_intensity_err
 
 
 def add_neighborhood_intensity_spot_dataframe(
@@ -1036,6 +1057,7 @@ def add_neighborhood_intensity_spot_dataframe(
             "intensity_from_neighborhood",
             "intensity_std_error_from_neighborhood",
             "background_intensity_from_neighborhood",
+            "background_intensity_std_error_from_neighborhood",
         ]
     ] = spot_dataframe.apply(bootstrap_intensity_row_func, axis=1, result_type="expand")
 
@@ -1124,7 +1146,7 @@ def add_neighborhood_intensity_spot_dataframe_parallel(
     )
 
     if evaluate:
-        spot_dataframe_dask = spot_dataframe_dask.compute()
+        spot_dataframe_dask = client.compute(spot_dataframe_dask)
 
     if inplace:
         spot_dataframe[:] = spot_dataframe_dask

@@ -106,7 +106,7 @@ def inject_neighborhood(image, neighborhood, coordinates_start):
     :param coordinates_start: Coordinates that locate the position at which to inject
         `neighborhood`, with the 0-indexed corner of `neighborhood` being injected
         at the pixel specified by this parameter.
-    :type coordinates_start: np.ndarray
+    :type coordinates_start: {np.ndarray, int}
     :param neighborhood: Neighborhood to inject, same dimensionality as `image`.
     :type neighborhood: np.ndarray
     :return: None

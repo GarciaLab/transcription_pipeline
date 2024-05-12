@@ -514,7 +514,7 @@ def track_and_filter_spots(
         column.
     :type sigma_z_bounds: tuple[float]
     :param nuclear_labels: Labelled movie of nuclear masks.
-    :type nuclear_labels: np.ndarray[np.int]
+    :type nuclear_labels: {np.ndarray[np.int], None}
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
         defaults to 1.
     :param float search_range: The maximum distance features can move between frames.

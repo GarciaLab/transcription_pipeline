@@ -930,8 +930,9 @@ of the gaussian approximation to the PSF of the microscope in microns - for our
 system, this is empirically very close to 0.5.</p></li>
 <li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
 extracted pixel values to generate for intensity estimation.</p></li>
-<li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
-intensity per pixel or the total background subtracted over the spot.</p></li>
+<li><p><strong>background</strong> ({“mean”, “total”, <cite>None</cite>}) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot. <cite>None</cite>
+disables background subtraction altogether.</p></li>
 <li><p><strong>background_pixels</strong> (<em>np.ndarray</em>) – Array of background pixels used for background estimation.
 If <cite>None</cite> (default), the background will be estimated from a shell around the
 spot in each frame.</p></li>
@@ -1141,8 +1142,8 @@ centroid at specified coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>box_shape</strong> (<em>np.ndarray</em>) – Shape of bounding box containing the generated Gaussian.</p></li>
-<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
+<li><p><strong>box_shape</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>int</em><em>]</em><em>, </em><em>list</em><em>[</em><em>int</em><em>]</em><em>}</em>) – Shape of bounding box containing the generated Gaussian.</p></li>
+<li><p><strong>centroid</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>, </em><em>list</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
 <li><p><strong>sigma_x_y</strong> (<em>float</em>) – Standard deviation of Gaussian function in the x- and y-
 coordinate direction.</p></li>
 <li><p><strong>sigma_z</strong> (<em>float</em>) – Standard deviation of Gaussian function in the z-coordinate.</p></li>
@@ -1472,7 +1473,7 @@ column.</p></li>
 setting the acceptable range for inclusion of spots, with spots falling outside
 that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
 column.</p></li>
-<li><p><strong>nuclear_labels</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Labelled movie of nuclear masks.</p></li>
+<li><p><strong>nuclear_labels</strong> (<em>{np.ndarray</em><em>[</em><em>np.int</em><em>]</em><em>, </em><em>None}</em>) – Labelled movie of nuclear masks.</p></li>
 <li><p><strong>expand_distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
 defaults to 1.</p></li>
 <li><p><strong>search_range</strong> (<em>float</em>) – The maximum distance features can move between frames.</p></li>

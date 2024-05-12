@@ -617,7 +617,6 @@ class Nuclear:
                 self.stitch_max_distance,
                 self.stitch_max_frame_distance,
                 self.stitch_frames_mean,
-                quantification="intensity_mean",
                 inplace=True,
             )
 

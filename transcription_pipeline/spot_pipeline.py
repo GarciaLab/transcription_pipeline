@@ -129,7 +129,7 @@ def choose_spot_analysis_parameters(
     :param extract_sigma_multiple: Multiple of the proposed `spot_sigmas` in each axis
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
-    :type extract_sigma_multiple: np.ndarray
+    :type extract_sigma_multiple: {np.ndarray, list[int], tuple[int]}
     :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
         `nuclear_labels` is provided.
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
@@ -351,7 +351,7 @@ class Spot:
     :param extract_sigma_multiple: Multiple of the proposed `spot_sigmas` in each axis
         used to set the dimensions of the volume that gets extracted out of the spot data
         array into `spot_dataframe` for Gaussian fitting.
-    :type extract_sigma_multiple: np.ndarray
+    :type extract_sigma_multiple: {np.ndarray, tuple[int], list[int]}
     :param int max_num_spots: Maximum number of allowed spots per nuclear label, if a
         `nuclear_labels` is provided.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the

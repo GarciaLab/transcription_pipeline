@@ -15,6 +15,11 @@ def _corr_traces(
     win_kwargs={},
     **kwargs,
 ):
+    # Since cross-correlation is not necessarily even and symmetric around zero-lag,
+    # we also have to account for negative-lag cross-correlation calculations.
+    if (delta_t < 0) & (corr_traces_array is not None):
+        traces_array, corr_traces_array = corr_traces_array, traces_array
+
     if difference:
         traces_df = pd.DataFrame(traces_array, copy=True)
         diff_traces_df = traces_df.diff(axis=1)
@@ -96,7 +101,8 @@ def corr_traces(
         Single traces can be passed as a 1D array.
     :type traces_array: np.ndarray
     :param corr_traces_array: If provided, the cross-correlation with the traces in
-        `traces_array` is computed.
+        `traces_array` is computed. Must be the same shape as `traces_array`, padded with `np.nan`
+        as necessary.
     :type corr_traces_array: np.ndarray
     :param corr_type: The type of correlation to compute (this chooses the normalization).
         This changes the normalization of the correlation function, with `"pearson"`
@@ -124,16 +130,26 @@ def corr_traces(
         on keyword arguments accepted by :func:`~pandas.DataFrame.rolling`, additional parameters
         matching the keywords specified in the Scipy window type method may need to be passed
         in this argument as a dictionary.
-    :return: Array of correlation function with respect to lag time for each trace, in the same
-        shape as `traces_array`.
-    :rtype: numpy.ndarray
+    :return: Tuple of array of correlation function with respect to lag time for each trace, in the same
+        shape as `traces_array`, and array of the corresponding lag time.
+    :rtype: tuple[np.ndarray]
 
     .. note::
-        If you have an array of traces that you want individual correlation functions for, it is
-        better to pass the full array after padding rather than do it on individual traces in
-        a loop - the padding adds some overhead, but that ends up being much less costly than
-        the advantage we gain from leveraging Numpy's vectorized methods on arrays instead of
-        looping in Python.
+        * If you have an array of traces that you want individual correlation functions for, it is
+          better to pass the full array after padding rather than do it on individual traces in
+          a loop - the padding adds some overhead, but that ends up being much less costly than
+          the advantage we gain from leveraging Numpy's vectorized methods on arrays instead of
+          looping in Python.
+
+        * If you're calculating a cross-correlation, keep in mind that the cross-correlation is
+          also calculated with negative lag time since the cross-correlation (unlike autocorrelation)
+          is not necessarily symmetric around 0.
+
+        * In the autocorrelation case, we ignore the 0-lag autocorrelation since that's just a sum of
+          squares of the signal (with some normalization) and therefore still includes shot noise that
+          immediately decorrelates at non-zero lag times, but there's no need to ignore the 0-lag
+          cross-correlation since the noise in the cross-correlation is already uncorrelated (and if not,
+          that's something that needs to be preserved).
     """
     # Check to make sure we have a consolidated array - if we have a single trace, we
     # have to wrap it in a new axis for the helper function `_corr_traces` to work.
@@ -144,7 +160,11 @@ def corr_traces(
         warnings.warn("Pearson correlation used with `subtract_mean=False`.")
 
     num_timepoints = traces_array.shape[1]
-    delta_t_array = np.arange(1, num_timepoints - 2)
+    if corr_traces_array is None:
+        delta_t_array = np.arange(1, num_timepoints - 2)
+    else:
+        delta_t_array = np.arange(-(num_timepoints - 1), (num_timepoints - 2))
+
     corr_array = np.empty((traces_array.shape[0], delta_t_array.shape[0]), dtype=float)
     corr_array[:] = np.nan
 
@@ -167,7 +187,7 @@ def corr_traces(
                 **kwargs,
             )
 
-    return corr_array
+    return corr_array, delta_t_array
 
 
 def mean_corr_traces(
@@ -216,9 +236,9 @@ def mean_corr_traces(
         on keyword arguments accepted by :func:`~pandas.DataFrame.rolling`, additional parameters
         matching the keywords specified in the Scipy window type method may need to be passed
         in this argument as a dictionary.
-    :return: Array of mean correlation function with respect to lag time averaged over all
-        traces.
-    :rtype: numpy.ndarray
+    :return: Arrays of mean correlation function with respect to lag time averaged over all
+        traces, standard error of the same, and corresponding lag-times respectively.
+    :rtype: tuple[np..ndarray]
 
     .. note::
         This is left here as a convenience function, but should almost never be used for
@@ -228,7 +248,7 @@ def mean_corr_traces(
         instance if there's some bursty behavior. Instead, use :func:`corr_traces` and
         manually curate the correlograms before averaging in your own script.
     """
-    corr = corr_traces(
+    delta_t_array, corr = corr_traces(
         traces_array,
         corr_traces_array=corr_traces_array,
         corr_type=corr_type,
@@ -245,4 +265,4 @@ def mean_corr_traces(
         mean_corr = np.nanmean(corr, axis=0)
         stderr_corr = np.nanstd(corr, axis=0) / np.sqrt(~np.isnan(corr).sum(axis=0))
 
-    return mean_corr, stderr_corr
+    return mean_corr, stderr_corr, delta_t_array
