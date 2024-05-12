@@ -19,6 +19,7 @@ def _corr_traces(
     # we also have to account for negative-lag cross-correlation calculations.
     if (delta_t < 0) & (corr_traces_array is not None):
         traces_array, corr_traces_array = corr_traces_array, traces_array
+        delta_t = np.abs(delta_t)
 
     if difference:
         traces_df = pd.DataFrame(traces_array, copy=True)
