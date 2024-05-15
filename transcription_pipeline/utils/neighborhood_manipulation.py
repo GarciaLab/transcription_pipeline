@@ -9,7 +9,7 @@ def ellipsoid(diameter, height):
     in our images are typically anisotropic.
 
     :param int diameter: Diameter in xy-plane of ellipsoid footprint.
-    :param int heigh: Height in z-axis of ellipsoid footprint.
+    :param int height: Height in z-axis of ellipsoid footprint.
     :return: Ellipsoid footprint.
     :rtype: bool
     """
@@ -25,7 +25,12 @@ def ellipsoid(diameter, height):
             )
         )
 
-    round_odd = lambda x: int(((x + 1) // 2) * 2 - 1)
+    def round_odd(num):
+        """
+        Helper function to round to the nearest odd integer.
+        """
+        return int(((num + 1) // 2) * 2 - 1)
+
     diameter = round_odd(diameter)
     height = round_odd(height)
 
@@ -48,22 +53,22 @@ def ellipsoid(diameter, height):
 def extract_neighborhood(image, coordinates, span):
     """
     Extracts a view of a neighborhood of size `span` (or the largest odd number under
-    `span` if `span` is even) centered around the pixel corresponding to position 
+    `span` if `span` is even) centered around the pixel corresponding to position
     specified by `coordinates` from an input `image` in arbitrary dimensions, with
     `span` and `coordinates` both having size matching the dimensions of `image` and
     specifying the neighborhood in respective axes. This is useful when extracting
     proposed spots from the raw data for Gaussian fitting.
 
     :param image: Input image to extract neighborhood from.
-    :type image: Numpy array
+    :type image: np.ndarray
     :param coordinates: Coordinates that locate the pixel in `image` around which to
         extract `neighborhood`.
-    :type coordinates: Array-like.
+    :type coordinates: np.ndarray
     :param span: Size of neighborhood to extract (rounded in each axis to the largest
         odd number below `span` if even).
-    :type span: Array-like.
+    :type span: np.ndarray
     :return: Extracted neighborhood in same dimensionality as `image`.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     pixel_coordinates = np.floor(np.asarray(coordinates)).astype(int)
     pixel_span = np.floor(np.asarray(span) / 2).astype(int)
@@ -72,16 +77,20 @@ def extract_neighborhood(image, coordinates, span):
     if np.all(coordinates_start >= 0):
         box_dimensions = pixel_span * 2 + 1
         box_indices = tuple((np.indices(box_dimensions).T + coordinates_start).T)
-    
+
         try:
             neighborhood = image[box_indices]
+            # The NaN handling is done for padded or masked movies.
+            # `.sum()` is faster than `.any` on multidimensional arrays.
+            if np.isnan(neighborhood).sum():
+                neighborhood = None
         except IndexError:
             neighborhood = None
     else:
         neighborhood = None
 
     return neighborhood, coordinates_start
-    
+
 
 def inject_neighborhood(image, neighborhood, coordinates_start):
     """
@@ -93,13 +102,13 @@ def inject_neighborhood(image, neighborhood, coordinates_start):
     during spot curation.
 
     :param image: Input image to inject neighborhood in.
-    :type image: Numpy array
+    :type image: np.ndarray
     :param coordinates_start: Coordinates that locate the position at which to inject
         `neighborhood`, with the 0-indexed corner of `neighborhood` being injected
         at the pixel specified by this parameter.
-    :type coordinates_start: Array-like.
+    :type coordinates_start: {np.ndarray, int}
     :param neighborhood: Neighborhood to inject, same dimensionality as `image`.
-    :type neighborhood: Numpy array.
+    :type neighborhood: np.ndarray
     :return: None
     :rtype: None
     """

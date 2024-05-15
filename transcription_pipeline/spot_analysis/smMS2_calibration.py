@@ -9,7 +9,7 @@ def log_likelihood_step(
     sigma_intensity,
 ):
     """
-    Computes the log-likelihood 
+    Computes the log-likelihood
     """
     # We sum over steps up to 6 sigmas away from the highest intensity data
     # point.

@@ -1,5 +1,4 @@
 import numpy as np
-from skimage.util import dtype_limits
 
 
 """
@@ -13,7 +12,7 @@ simplification.
 """
 
 
-def _bincount_histogram_centers(image, hist_range):
+def _bincount_histogram_centers(hist_range):
     """
     Compute bin centers for bincount-based histogram.
     """
@@ -26,6 +25,22 @@ def _bincount_histogram_centers(image, hist_range):
     return bin_centers
 
 
+def _offset_array(arr, low_boundary, high_boundary):
+    """Offset the array to get the lowest value at 0 if negative."""
+    if low_boundary < 0:
+        offset = low_boundary
+        dyn_range = high_boundary - low_boundary
+        # get smallest dtype that can hold both minimum and offset maximum
+        offset_dtype = np.promote_types(
+            np.min_scalar_type(dyn_range), np.min_scalar_type(low_boundary)
+        )
+        if arr.dtype != offset_dtype:
+            # prevent overflow errors when offsetting
+            arr = arr.astype(offset_dtype)
+        arr = arr - offset
+    return arr
+
+
 def _bincount_histogram(image, hist_range, bin_centers=None):
     """
     Efficient histogram calculation for an image of integers.
@@ -34,18 +49,20 @@ def _bincount_histogram(image, hist_range, bin_centers=None):
     works only on images of integers. It is based on np.bincount.
 
     :param image: Input image.
-    :type image: Numpy array.
+    :type image: np.ndarray
     :param hist_range: Range of values covered by the histogram bins.
     :type hist_range: 2-tuple of int
     :return: The values of the histogram and the values at the center of the bins.
-    :rtype: Tuple of numpy arrays.
+    :rtype: tuple[np.ndarray, np.ndarray]
     """
     if bin_centers is None:
-        bin_centers = _bincount_histogram_centers(image, hist_range)
+        bin_centers = _bincount_histogram_centers(hist_range)
     image_min, image_max = bin_centers[0], bin_centers[-1]
     image = _offset_array(image, image_min, image_max)
+    # noinspection PyTypeChecker
     hist = np.bincount(image.ravel(), minlength=image_max - min(image_min, 0) + 1)
 
+    # noinspection PyTypeChecker
     idx = max(image_min, 0)
     hist = hist[idx:]
     return hist, bin_centers
@@ -111,11 +128,11 @@ def histogram(image, bins, hist_range, normalize):
     its own bin, which improves speed and intensity-resolution.
 
     :param image: Image for which the histogram is to be computed.
-    :type image: Numpy array.
+    :type image: np.ndarray
     :param bins: The number of histogram bins. For images with integer dtype, an array
         containing the bin centers can also be provided. For images with floating point
         dtype, this can be an array of bin_edges for use by `np.histogram`.
-    :type bins: {int, Numpy array}
+    :type bins: {int, np.ndarray}
     :param hist_range: Range of values covered by the histogram bins.
     :type hist_range: 2-tuple of scalars
     :param bool normalize: If True, normalize the histogram by the sum of its values.

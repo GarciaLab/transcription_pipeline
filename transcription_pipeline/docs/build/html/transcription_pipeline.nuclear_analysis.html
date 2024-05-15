@@ -1,0 +1,1092 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>transcription_pipeline.nuclear_analysis package &#8212; transcription_pipeline 0.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=384b581d" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
+
+    <script src="_static/documentation_options.js?v=e645c8fa"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=efea14e4"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'transcription_pipeline.nuclear_analysis';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="transcription_pipeline.preprocessing package" href="transcription_pipeline.preprocessing.html" />
+    <link rel="prev" title="transcription_pipeline package" href="transcription_pipeline.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">transcription_pipeline 0.0.1 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="modules.html">transcription_pipeline</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="transcription_pipeline.html">transcription_pipeline package</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">transcription_pipeline.nuclear_analysis package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Data import and preprocessing:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Tracking:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Nuclear analysis:</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">transcription_pipeline.nuclear_analysis package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Spot analysis:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Utilities:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/transcription_pipeline.nuclear_analysis.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>transcription_pipeline.nuclear_analysis package</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.nuclear_analysis.segmentation">transcription_pipeline.nuclear_analysis.segmentation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_frame"><code class="docutils literal notranslate"><span class="pre">binarize_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie"><code class="docutils literal notranslate"><span class="pre">binarize_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie_parallel"><code class="docutils literal notranslate"><span class="pre">binarize_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_frame"><code class="docutils literal notranslate"><span class="pre">denoise_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie"><code class="docutils literal notranslate"><span class="pre">denoise_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie_parallel"><code class="docutils literal notranslate"><span class="pre">denoise_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_frame"><code class="docutils literal notranslate"><span class="pre">mark_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie"><code class="docutils literal notranslate"><span class="pre">mark_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie_parallel"><code class="docutils literal notranslate"><span class="pre">mark_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_frame"><code class="docutils literal notranslate"><span class="pre">segment_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie"><code class="docutils literal notranslate"><span class="pre">segment_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie_parallel"><code class="docutils literal notranslate"><span class="pre">segment_movie_parallel()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.nuclear_analysis">Module contents</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="transcription-pipeline-nuclear-analysis-package">
+<h1>transcription_pipeline.nuclear_analysis package<a class="headerlink" href="#transcription-pipeline-nuclear-analysis-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-transcription_pipeline.nuclear_analysis.segmentation">
+<span id="transcription-pipeline-nuclear-analysis-segmentation-module"></span><h2>transcription_pipeline.nuclear_analysis.segmentation module<a class="headerlink" href="#module-transcription_pipeline.nuclear_analysis.segmentation" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.binarize_frame">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">binarize_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stack</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresholding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closing_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_min_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_max_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_threshold_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_dilation_footprint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_frame" title="Link to this definition">#</a></dt>
+<dd><p>Binarizes a z-stack using specified thresholding method, separating between
+foreground and background.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
+for binarizing the stack, between global and local Otsu threholding, and
+Li’s cross-entropy minimization method.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">local_otsu</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">otsu_footprint</span></code> keyword argument to determine
+the footprint used for the local Otsu thresholding.</p></li>
+</ul>
+</p></li>
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
+in a binarized image must have to be considered possible background noise. The
+key here is that large x- and y-axis span (more than a few nuclei) indicates
+either a region of high-intensity surface noise or a low signal-to-noise image
+that causes nuclei to appear connected when binarized. This flags the image for
+further processing and possible background removal.</p></li>
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
+flagged as surface noise can have and still be consisdered surface noise (i.e.
+if a large part of the stack is surface noise, the data might not be usable
+in the first place and will be very difficult to segment in 3D so we stop the
+analysis). Connected blurred regions with bounding boxes spanning this parameter
+will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
+of image prior to segmenting out the surface noise. This should be small in z
+so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+y- so as to only keep low-frequency noise.</p></li>
+<li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
+blurred image for surface noise detection. Only global Otsu and Li methods
+are implemented.</p></li>
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
+of the background surface noise mask when removing background noise.</p></li>
+<li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
+image for binarization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A boolean array of the same type and shape as stack, with True values
+corresponding to the foreground and False to the background.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.binarize_movie">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">binarize_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresholding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closing_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_min_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_max_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_threshold_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_dilation_footprint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie" title="Link to this definition">#</a></dt>
+<dd><p>Binarizes a movie frame-by-frame using specified thresholding method, separating
+between foreground and background.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
+for binarizing the stack, between global and local Otsu threholding, and
+Li’s cross-entropy minimization method.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">local_otsu</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">otsu_footprint</span></code> keyword argument to determine
+the footprint used for the local Otsu thresholding.</p></li>
+</ul>
+</p></li>
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
+in a binarized image must have to be considered possible background noise. The
+key here is that large x- and y-axis span (more than a few nuclei) indicates
+either a region of high-intensity surface noise or a low signal-to-noise image
+that causes nuclei to appear connected when binarized. This flags the image for
+further processing and possible background removal.</p></li>
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
+flagged as surface noise can have and still be consisdered surface noise (i.e.
+if a large part of the stack is surface noise, the data might not be usable
+in the first place and will be very difficult to segment in 3D so we stop the
+analysis). Connected blurred regions with bounding boxes spanning this parameter
+will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
+of image prior to segmenting out the surface noise. This should be small in z
+so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+y- so as to only keep low-frequency noise.</p></li>
+<li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
+blurred image for surface noise detection. Only global Otsu and Li methods
+are implemented.</p></li>
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
+of the background surface noise mask when removing background noise.</p></li>
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
+image for binarization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A boolean array of the same type and shape as stack, with True values
+corresponding to the foreground and False to the background.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.binarize_movie_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">binarize_movie_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresholding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closing_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_min_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_max_span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_threshold_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_dilation_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Binarizes a movie frame-by-frame using specified thresholding method, separating
+between foreground and background. This is parallelized across a Dask
+LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>thresholding</strong> (<em>{'global_otsu'</em><em>, </em><em>'local_otsu'</em><em>, </em><em>'li'}</em>) – <p>Determines which method to use to determine a threshold
+for binarizing the stack, between global and local Otsu threholding, and
+Li’s cross-entropy minimization method.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">local_otsu</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">otsu_footprint</span></code> keyword argument to determine
+the footprint used for the local Otsu thresholding.</p></li>
+</ul>
+</p></li>
+<li><p><strong>opening_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>closing_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for closing operation.</p></li>
+<li><p><strong>cc_min_span</strong> (<em>np.ndarray</em>) – Minimum span in each axis that the largest connected component
+in a binarized image must have to be considered possible background noise. The
+key here is that large x- and y-axis span (more than a few nuclei) indicates
+either a region of high-intensity surface noise or a low signal-to-noise image
+that causes nuclei to appear connected when binarized. This flags the image for
+further processing and possible background removal.</p></li>
+<li><p><strong>background_max_span</strong> (<em>np.ndarray</em>) – Maximum span in each axis that a connected component
+flagged as surface noise can have and still be consisdered surface noise (i.e.
+if a large part of the stack is surface noise, the data might not be usable
+in the first place and will be very difficult to segment in 3D so we stop the
+analysis). Connected blurred regions with bounding boxes spanning this parameter
+will be removed from consideration when thresholding to obtain a nuclear mask.</p></li>
+<li><p><strong>background_sigma</strong> (<em>np.ndarray</em>) – Standard deviation to use in each axis for Gaussian blurring
+of image prior to segmenting out the surface noise. This should be small in z
+so as not to bleed through the z-stack, and much larger than the nuclei in x- and
+y- so as to only keep low-frequency noise.</p></li>
+<li><p><strong>background_threshold_method</strong> (<em>{&quot;otsu&quot;</em><em>, </em><em>&quot;li&quot;}</em>) – Method to use for thresholding the Gaussian-
+blurred image for surface noise detection. Only global Otsu and Li methods
+are implemented.</p></li>
+<li><p><strong>background_dilation_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Structuring element used for binary dilation
+of the background surface noise mask when removing background noise.</p></li>
+<li><p><strong>otsu_footprint</strong> – Footprint used for local (rank) Otsu thresholding of the
+image for binarization.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>binarized_movie</cite>, <cite>binarized_movie_futures</cite>, <cite>scattered_movie</cite>)
+where</p>
+<ul class="simple">
+<li><p><cite>binarized_movie</cite> is the fully evaluated binarized movie as an ndarray of
+booleans of the same shape as movie, with only the pixels in the foreground
+corresponding to a <cite>True</cite> value.</p></li>
+<li><p><cite>binarized_movie_futures</cite> is the list of futures objects resulting from the
+binarization in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_movie</cite> is a list of futures pointing to the input movie in
+the workers’ memory, wrapped in a list.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.denoise_frame">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">denoise_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denoising</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_frame" title="Link to this definition">#</a></dt>
+<dd><p>Denoises a z-stack using specified method (gaussian or median filtering).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
+image (before any filtering or morphological operations) between a gaussian
+filter and a median filter.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">denoising_sigma</span></code> keyword argument to determine
+the sigma parameter for the gaussian filter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">median</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">median_footprint</span></code> keyword argument to determine
+the footprint used for the median filter.</p></li>
+</ul>
+</p></li>
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
+prior to any morphological operations or other filtering.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Denoised stack.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.denoise_movie">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">denoise_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denoising</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie" title="Link to this definition">#</a></dt>
+<dd><p>Denoises a movie frame-by-frame using specified method (gaussian or median
+filtering).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
+image (before any filtering or morphological operations) between a gaussian
+filter and a median filter.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">denoising_sigma</span></code> keyword argument to determine
+the sigma parameter for the gaussian filter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">median</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">median_footprint</span></code> keyword argument to determine
+the footprint used for the median filter.</p></li>
+</ul>
+</p></li>
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
+prior to any morphological operations or other filtering.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Denoised movie.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.denoise_movie_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">denoise_movie_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denoising</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Denoises a movie frame-by-frame using specified method (gaussian or median
+filtering). This is parallelized across a Dask LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>denoising</strong> (<em>{'gaussian'</em><em>, </em><em>'median'}</em>) – <p>Determines which method to use for initial denoising of the
+image (before any filtering or morphological operations) between a gaussian
+filter and a median filter.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">denoising_sigma</span></code> keyword argument to determine
+the sigma parameter for the gaussian filter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">median</span></code>: requires a <code class="docutils literal notranslate"><span class="pre">median_footprint</span></code> keyword argument to determine
+the footprint used for the median filter.</p></li>
+</ul>
+</p></li>
+<li><p><strong>median_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used for median filter denoising of the image
+prior to any morphological operations or other filtering.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>denoised_movie</cite>, <cite>denoised_movie_futures</cite>, <cite>scattered_movie</cite>)
+where</p>
+<ul class="simple">
+<li><p><cite>denoised_movie</cite> is the fully evaluated denoised movie as an ndarray of the
+same shape and <cite>dtype</cite> as <cite>movie</cite>.</p></li>
+<li><p><cite>denoised_movie_futures</cite> is the list of futures objects resulting from the
+denoising in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_movie</cite> is a list of futures pointing to the input movie in
+the workers’ memory, wrapped in a list.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">iterative_peak_local_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">footprint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_index</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="Link to this definition">#</a></dt>
+<dd><p>Find peaks in an image as coordinate list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker (usually used
+on pre-processed images, for instance with a DoG filter).</p></li>
+<li><p><strong>footprint</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>np.ndarray</em><em>]</em><em>, </em><em>tuple</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em><em>}</em>) – Footprint used during maximum dilation. This sets the minimum
+distance between peaks, with a single maximum within the net footprint of
+iterated maximum dilations. Can be given as a Numpy array of booleans that
+gets used as a footprint for a single maximum dilation, as a
+tuple(num_iter, footprint) where the footprint is used for maximum diation
+num_iter times, as tuple((num_iter_lower, num_iter_upper), footprint)
+where num_iter_lower and num_iter_upper are the lowest and highest number of
+iterations respectively that the function will try when looking for a
+stationary point in the number of detected maxima for each frame so that no
+frame is over- or under-segmented.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations).</p></li>
+<li><p><strong>frame_index</strong> (<em>int</em>) – Index of frame being processed, used to make warning
+about footprint more descriptive.</p></li>
+<li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
+considered a plateau when looking for a stationary value of the number
+of detected nuclei with respect to the distance between peaks as set by
+the number of iterations of the footprint. Defaults to 1.</p></li>
+<li><p><strong>averaging_window</strong> (<em>int</em>) – Size of averaging window used to perform moving
+average of number of detected peaks when selecting the ‘elbow’ in the
+detection. Defaults to 3, only used as fallback if plateau finding fails.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean mask labeling local maxima.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.mark_frame">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">mark_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_footprint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_frame" title="Link to this definition">#</a></dt>
+<dd><p>Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
+maximum to find markers for each nucleus. Being permissive with the filtering at
+this stage is recommended, since further filtering of the nuclear localization can
+be done post-segmentation using the size and morphology of the segmented objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations).</p></li>
+<li><p><strong>low_sigma</strong> – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponsing the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+during maximum dilation. This sets the minimum distance between peaks.</p></li>
+<li><p><strong>frame_index</strong> (<em>int</em><em>, </em><em>optional</em>) – Index of frame being processed, used to make warning
+about footprint more descriptive.</p></li>
+<li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
+considered a plateau when looking for a stationary value of the number
+of detected nuclei with respect to the distance between peaks as set by
+the number of iterations of the footprint. Defaults to 1.</p></li>
+<li><p><strong>averaging_window</strong> (<em>int</em>) – Size of averaging window used to perform moving
+average of number of detected peaks when selecting the ‘elbow’ in the
+detection. Defaults to 3, only used as fallback if plateau finding fails.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of integer labels of the same shape as image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.mark_movie">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">mark_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_footprint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie" title="Link to this definition">#</a></dt>
+<dd><p>Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
+maximum to find markers for each nucleus. Being permissive with the filtering at
+this stage is recommended, since further filtering of the nuclear localization can
+be done post-segmentation using the size and morphology of the segmented objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations). Same shape as movie.</p></li>
+<li><p><strong>low_sigma</strong> – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponsing the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+during maximum dilation. This sets the minimum distance between peaks.</p></li>
+<li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
+considered a plateau when looking for a stationary value of the number
+of detected nuclei with respect to the distance between peaks as set by
+the number of iterations of the footprint. Defaults to 1.</p></li>
+<li><p><strong>averaging_window</strong> (<em>int</em>) – Size of averaging window used to perform moving
+average of number of detected peaks when selecting the ‘elbow’ in the
+detection. Defaults to 3, only used as fallback if plateau finding fails.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple(<cite>dog</cite>, <cite>marker_coordinates</cite>, <cite>markers</cite>) where dog is the
+bandpass-filtered image, marker_coordinates is an array of the nuclear
+locations in the image indexed as per the image (this can be used for
+visualization) and markers is a boolean array of the same shape as image, with
+the marker positions given by a True value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.mark_movie_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">mark_movie_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_footprint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
+maximum to find markers for each nucleus. Being permissive with the filtering at
+this stage is recommended, since further filtering of the nuclear localization can
+be done post-segmentation using the size and morphology of the segmented objects.
+This is parallelized across a Dask LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations). Same shape as <cite>movie</cite>.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponsing the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>max_footprint</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Footprint used by <a class="reference internal" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max" title="transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="xref py py-func docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a>
+during maximum dilation. This sets the minimum distance between peaks.</p></li>
+<li><p><strong>max_diff</strong> (<em>int</em>) – Maximum difference allowed for contiguous points to be
+considered a plateau when looking for a stationary value of the number
+of detected nuclei with respect to the distance between peaks as set by
+the number of iterations of the footprint. Defaults to 1.</p></li>
+<li><p><strong>averaging_window</strong> (<em>int</em>) – Size of averaging window used to perform moving
+average of number of detected peaks when selecting the ‘elbow’ in the
+detection. Defaults to 3, only used as fallback if plateau finding fails.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>marked_movie</cite>, <cite>marked_movie_futures</cite>, <cite>scattered_movies</cite>) where</p>
+<ul class="simple">
+<li><p><cite>marked_movie</cite> is the fully evaluated marked movie as an ndarray of
+booleans of the same shape as movie, with each nucleus containing a single
+<cite>True</cite> value.</p></li>
+<li><p><cite>marked_movie_futures</cite> is the list of futures objects resulting from the
+marking in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_movies</cite> is a list with each element corresponding to a list of
+futures pointing to the input movie and mask in the workers’ memory
+respectively.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.segment_frame">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">segment_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">watershed_method</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_frame" title="Link to this definition">#</a></dt>
+<dd><p>Segments nuclei in a z-stack using watershed method, starting from a set of
+markers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stack</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D image of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Boolean array of dimensions matching movie, with nuclei containing
+(ideally) a single unique integer value, and all other values being 0. This is
+used to perform the watershed segmentation.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations).</p></li>
+<li><p><strong>watershed_method</strong> (<em>{'raw'</em><em>, </em><em>'distance_transform'</em><em>, </em><em>'sobel'}</em>) – Determines what to use as basins for the watershed
+segmentation, between the inverted denoised image itself (works well for
+bright nuclear markers), the distance-transformed binarized image, and the
+sobel gradient of the image.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Smallest allowable object size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A labeled array of the same type and shape as markers, with each label
+corresponding to a mask for a single nucleus, assigned to an integer value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.segment_movie">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">segment_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">watershed_method</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie" title="Link to this definition">#</a></dt>
+<dd><p>Segments nuclei in a movie using watershed method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Boolean array of dimensions matching movie, with nuclei containing
+(ideally) a single unique integer value, and all other values being 0. This is
+used to perform the watershed segmentation.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em><em>[</em><em>np.bool</em><em>]</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations). Same shape as movie.</p></li>
+<li><p><strong>watershed_method</strong> (<em>{'raw'</em><em>, </em><em>'distance_transform'</em><em>, </em><em>'sobel'}</em>) – Determines what to use as basins for the watershed
+segmentation, between the inverted denoised image itself (works well for
+bright nuclear markers), the distance-transformed binarized image, and the
+sobel gradient of the image.</p></li>
+<li><p><strong>num_processes</strong> (<em>int</em>) – Number of worker processes used in parallel loop over
+frames of movie.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Smallest allowable object size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array with each label corresponding to a mask for a single
+nucleus, assigned to an integer value (both of the same shape as movie).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray[np.int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.nuclear_analysis.segmentation.segment_movie_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.nuclear_analysis.segmentation.</span></span><span class="sig-name descname"><span class="pre">segment_movie_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">watershed_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Segments nuclei in a movie using watershed method, parallelizing on a Dask
+LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>np.ndarray</em>) – 2D (projected) or 3D movie of a nuclear marker.</p></li>
+<li><p><strong>markers</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Boolean array of dimensions matching movie, with nuclei containing
+(ideally) a single unique integer value, and all other values being 0. This is
+used to perform the watershed segmentation.</p></li>
+<li><p><strong>mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Mask labelling regions of interest, used to screen out spurious
+peaks when counting detected maxima (important for searching for a
+stationary value of the detected maxima with respect to the number of
+iterations). Same shape as movie.</p></li>
+<li><p><strong>watershed_method</strong> (<em>{'raw'</em><em>, </em><em>'distance_transform'</em><em>, </em><em>'sobel'}</em>) – Determines what to use as basins for the watershed
+segmentation, between the inverted denoised image itself (works well for
+bright nuclear markers), the distance-transformed binarized image, and the
+sobel gradient of the image.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Smallest allowable object size.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>segmented_movie</cite>, <cite>segmented_movie_futures</cite>, <cite>scattered_movies</cite>)
+where</p>
+<ul class="simple">
+<li><p><cite>segmented_movie</cite> is the fully evaluated segmented movie as an ndarray of
+the same shape as movie with <cite>dtype=np.uint32</cite>, with unique integer labels
+corresponding to each nucleus.</p></li>
+<li><p><cite>segmented_movie_futures</cite> is the list of futures objects resulting from the
+segmentation in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_movies</cite> is a list with each element corresponding to a list of
+futures pointing to the input <cite>movie</cite>, <cite>markers</cite>, and <cite>mask</cite> in the workers’
+memory respectively.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="module-transcription_pipeline.nuclear_analysis">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.nuclear_analysis" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="transcription_pipeline.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">transcription_pipeline package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="transcription_pipeline.preprocessing.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">transcription_pipeline.preprocessing package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.nuclear_analysis.segmentation">transcription_pipeline.nuclear_analysis.segmentation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_frame"><code class="docutils literal notranslate"><span class="pre">binarize_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie"><code class="docutils literal notranslate"><span class="pre">binarize_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie_parallel"><code class="docutils literal notranslate"><span class="pre">binarize_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_frame"><code class="docutils literal notranslate"><span class="pre">denoise_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie"><code class="docutils literal notranslate"><span class="pre">denoise_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie_parallel"><code class="docutils literal notranslate"><span class="pre">denoise_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_frame"><code class="docutils literal notranslate"><span class="pre">mark_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie"><code class="docutils literal notranslate"><span class="pre">mark_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.mark_movie_parallel"><code class="docutils literal notranslate"><span class="pre">mark_movie_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_frame"><code class="docutils literal notranslate"><span class="pre">segment_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie"><code class="docutils literal notranslate"><span class="pre">segment_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.nuclear_analysis.segmentation.segment_movie_parallel"><code class="docutils literal notranslate"><span class="pre">segment_movie_parallel()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.nuclear_analysis">Module contents</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Garcia Lab
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024, Garcia Lab.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

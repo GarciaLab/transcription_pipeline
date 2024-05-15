@@ -1,5 +1,4 @@
 test_data/
-build/
 .ipynb_checkpoints/
 .vscode
 APAxis.ipynb
@@ -14,3 +13,4 @@ step_detection/__pycache__/
 tracking/__pycache__/
 utils/__pycache__/
 test.ipynb
+.idea/

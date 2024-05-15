@@ -20,7 +20,6 @@ from skimage.util import img_as_ubyte, img_as_float32
 from scipy import ndimage as ndi
 from functools import partial
 from ..utils import parallel_computing
-from ..utils.neighborhood_manipulation import ellipsoid
 
 
 def _determine_num_iter(footprint):
@@ -137,7 +136,7 @@ def _find_plateau(array, **kwargs):
             "".join(
                 [
                     "No plateau found with specified max_differences, ",
-                    "defaulting to minimzing successive differences.",
+                    "defaulting to minimizing successive differences.",
                 ]
             )
         )
@@ -196,32 +195,33 @@ def _iterative_peak_warnings(
     return None
 
 
+# noinspection PyIncorrectDocstring
 def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
     """
     Find peaks in an image as coordinate list.
 
     :param image: 2D (projected) or 3D image of a nuclear marker (usually used
         on pre-processed images, for instance with a DoG filter).
-    :type image: Numpy array.
+    :type image: np.ndarray
     :param footprint: Footprint used during maximum dilation. This sets the minimum
         distance between peaks, with a single maximum within the net footprint of
         iterated maximum dilations. Can be given as a Numpy array of booleans that
         gets used as a footprint for a single maximum dilation, as a
-        Tuple(num_iter, footprint) where the footprint is used for maximum diation
-        num_iter times, as Tuple((num_iter_lower, num_iter_upper), footprint)
+        tuple(num_iter, footprint) where the footprint is used for maximum diation
+        num_iter times, as tuple((num_iter_lower, num_iter_upper), footprint)
         where num_iter_lower and num_iter_upper are the lowest and highest number of
         iterations respectively that the function will try when looking for a
         stationary point in the number of detected maxima for each frame so that no
         frame is over- or under-segmented.
-    :type footprint: {ndarray, Tuple(int, ndarray), Tuple((int, int), ndarray)}
+    :type footprint: {np.ndarray, tuple[int, np.ndarray], tuple[tuple[int, int], np.ndarray]}
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations).
-    :type mask: Numpy array of booleans.
-    :param frame_number: Index of frame being processed, used to make warning
+    :type mask: np.ndarray
+    :param frame_index: Index of frame being processed, used to make warning
         about footprint more descriptive.
-    :type frame_number: int
+    :type frame_index: int
     :param int max_diff: Maximum difference allowed for contiguous points to be
         considered a plateau when looking for a stationary value of the number
         of detected nuclei with respect to the distance between peaks as set by
@@ -230,7 +230,7 @@ def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
         average of number of detected peaks when selecting the 'elbow' in the
         detection. Defaults to 3, only used as fallback if plateau finding fails.
     :return: Boolean mask labeling local maxima.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Determine iteration parameters
     iteration_params = _determine_num_iter(footprint)
@@ -266,28 +266,30 @@ def iterative_peak_local_max(image, footprint, *, mask, frame_index, **kwargs):
     return peak_mask
 
 
+# noinspection PyIncorrectDocstring
 def denoise_frame(stack, denoising, **kwargs):
     """
     Denoises a z-stack using specified method (gaussian or median filtering).
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
-    :type stack: Numpy array.
+    :type stack: np.ndarray
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
     :param median_footprint: Footprint used for median filter denoising of the image
         prior to any morphological operations or other filtering.
-    :type median_footprint: Numpy array of booleans, only required if using
-        ``denoising='median'``.
+    :type median_footprint: np.ndarray[np.bool]
     :return: Denoised stack.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Normalize image
     stack = img_as_float32(stack)
@@ -394,6 +396,7 @@ def _background_mask(
     # If connected component from blurred image is not near surface or spans too
     # much of the stack, do not mark as background.
     if background_spans_surface and np.all(span <= max_span):
+        # noinspection PyTestUnpassedFixture
         binarized_background = labeled_background == background_regionprop.label
         binary_dilation(
             binarized_background,
@@ -406,6 +409,7 @@ def _background_mask(
     return binarized_background
 
 
+# noinspection PyIncorrectDocstring
 def binarize_frame(
     stack,
     *,
@@ -424,50 +428,51 @@ def binarize_frame(
     foreground and background.
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
-    :type stack: Numpy array.
+    :type stack: np.ndarray
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
+
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param opening_footprint: Footprint used for closing operation.
-    :type opening_footprint: Numpy array of booleans.
+    :type opening_footprint: np.ndarray
     :param closing_footprint: Footprint used for closing operation.
-    :type closing_footprint: Numpy array of booleans.
+    :type closing_footprint: np.ndarray
     :param cc_min_span: Minimum span in each axis that the largest connected component
         in a binarized image must have to be considered possible background noise. The
         key here is that large x- and y-axis span (more than a few nuclei) indicates
         either a region of high-intensity surface noise or a low signal-to-noise image
         that causes nuclei to appear connected when binarized. This flags the image for
         further processing and possible background removal.
-    :type cc_min_span: Array-like
+    :type cc_min_span: np.ndarray
     :param background_max_span: Maximum span in each axis that a connected component
         flagged as surface noise can have and still be consisdered surface noise (i.e.
         if a large part of the stack is surface noise, the data might not be usable
         in the first place and will be very difficult to segment in 3D so we stop the
         analysis). Connected blurred regions with bounding boxes spanning this parameter
         will be removed from consideration when thresholding to obtain a nuclear mask.
-    :type background_max_span: Array-like
+    :type background_max_span: np.ndarray
     :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
         of image prior to segmenting out the surface noise. This should be small in z
         so as not to bleed through the z-stack, and much larger than the nuclei in x- and
         y- so as to only keep low-frequency noise.
-    :type background_sigma: Array-like
+    :type background_sigma: np.ndarray
     :param background_threshold_method: Method to use for thresholding the Gaussian-
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
     :param background_dilation_footprint: Structuring element used for binary dilation
         of the background surface noise mask when removing background noise.
-    :type background_dilation_footprint: Numpy array of booleans.
+    :type background_dilation_footprint: np.ndarray[np.bool]
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
-    :type otsu_thresholding: Numpy array of booleans, only required if using
-        ``thresholding='local_otsu'``.
+    :type otsu_thresholding: np.ndarray[np.bool]
     :return: A boolean array of the same type and shape as stack, with True values
         corresponding to the foreground and False to the background.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
 
     # Thresholding step
@@ -515,10 +520,13 @@ def binarize_frame(
         elif thresholding == "local_otsu":
             # If thresholding is done using local Otsu, the conversion to ubyte
             # and extraction of the footprint kwarg will have already happened
+            # noinspection PyUnboundLocalVariable
             threshold = rank.otsu(stack, otsu_footprint, mask=(~background_mask))
         elif thresholding == "li":
             threshold_guess = threshold_otsu(stack[~background_mask])
-            threshold = threshold_li(stack[~background_mask])
+            threshold = threshold_li(
+                stack[~background_mask], initial_guess=threshold_guess
+            )
 
         binarized_stack = (stack >= threshold) * (~background_mask)
 
@@ -531,6 +539,7 @@ def binarize_frame(
     return binarized_stack
 
 
+# noinspection PyIncorrectDocstring
 def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
@@ -539,12 +548,12 @@ def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     be done post-segmentation using the size and morphology of the segmented objects.
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
-    :type stack: Numpy array.
+    :type stack: np.ndarray
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations).
-    :type mask: Numpy array of booleans.
+    :type mask: np.ndarray[np.bool]
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
@@ -555,7 +564,7 @@ def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
         sigma along of the image axes).
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
-    :type max_footprint: Numpy array of booleans.
+    :type max_footprint: np.ndarray[np.bool]
     :param frame_index: Index of frame being processed, used to make warning
         about footprint more descriptive.
     :type frame_index: int, optional
@@ -567,7 +576,7 @@ def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
         average of number of detected peaks when selecting the 'elbow' in the
         detection. Defaults to 3, only used as fallback if plateau finding fails.
     :return: Array of integer labels of the same shape as image.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Band-pass filter image using difference of gaussians - this seems to work
     # better than trying to do blob detection by varying sigma on an approximation of
@@ -592,22 +601,23 @@ def mark_frame(stack, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     return markers
 
 
+# noinspection PyIncorrectDocstring
 def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
     """
     Segments nuclei in a z-stack using watershed method, starting from a set of
     markers.
 
     :param stack: 2D (projected) or 3D image of a nuclear marker.
-    :type stack: Numpy array.
+    :type stack: np.ndarray
     :param markers: Boolean array of dimensions matching movie, with nuclei containing
         (ideally) a single unique integer value, and all other values being 0. This is
         used to perform the watershed segmentation.
-    :type markers: Numpy array of integers.
+    :type markers: np.ndarray[np.int]
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations).
-    :type mask: Numpy array of booleans.
+    :type mask: np.ndarray[np.bool]
     :param watershed_method: Determines what to use as basins for the watershed
         segmentation, between the inverted denoised image itself (works well for
         bright nuclear markers), the distance-transformed binarized image, and the
@@ -617,7 +627,7 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
     :type min_size: int, optional
     :return: A labeled array of the same type and shape as markers, with each label
         corresponding to a mask for a single nucleus, assigned to an integer value.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Normalize image
     stack = img_as_float32(stack)
@@ -628,7 +638,7 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
         watershed_landscape = -stack
 
     elif watershed_method == "distance_transform":
-        watershed_landscape = -(ndi.distance_transform_edt(binarized_stack))
+        watershed_landscape = -(ndi.distance_transform_edt(stack))
 
     elif watershed_method == "sobel":
         watershed_landscape = sobel(stack)
@@ -650,29 +660,31 @@ def segment_frame(stack, markers, mask, *, watershed_method, **kwargs):
     return labels
 
 
+# noinspection PyIncorrectDocstring
 def denoise_movie(movie, *, denoising, **kwargs):
     """
     Denoises a movie frame-by-frame using specified method (gaussian or median
     filtering).
 
     :param movie: 2D (projected) or 3D image of a nuclear marker.
-    :type movie: Numpy array.
+    :type movie: np.ndarray
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
     :param median_footprint: Footprint used for median filter denoising of the image
         prior to any morphological operations or other filtering.
-    :type median_footprint: Numpy array of booleans, only required if using
-        ``denoising='median'``.
+    :type median_footprint: np.ndarray[np.bool]
     :return: Denoised movie.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Store parameters for segmentation array
     movie_shape = movie.shape
@@ -686,6 +698,7 @@ def denoise_movie(movie, *, denoising, **kwargs):
     return denoised_movie
 
 
+# noinspection PyIncorrectDocstring
 def binarize_movie(
     movie,
     *,
@@ -704,12 +717,13 @@ def binarize_movie(
     between foreground and background.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type stack: Numpy array.
+    :type movie: np.ndarray
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param cc_min_span: Minimum span in each axis that the largest connected component
         in a binarized image must have to be considered possible background noise. The
@@ -717,37 +731,36 @@ def binarize_movie(
         either a region of high-intensity surface noise or a low signal-to-noise image
         that causes nuclei to appear connected when binarized. This flags the image for
         further processing and possible background removal.
-    :type cc_min_span: Array-like
+    :type cc_min_span: np.ndarray
     :param background_max_span: Maximum span in each axis that a connected component
         flagged as surface noise can have and still be consisdered surface noise (i.e.
         if a large part of the stack is surface noise, the data might not be usable
         in the first place and will be very difficult to segment in 3D so we stop the
         analysis). Connected blurred regions with bounding boxes spanning this parameter
         will be removed from consideration when thresholding to obtain a nuclear mask.
-    :type background_max_span: Array-like
+    :type background_max_span: np.ndarray
     :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
         of image prior to segmenting out the surface noise. This should be small in z
         so as not to bleed through the z-stack, and much larger than the nuclei in x- and
         y- so as to only keep low-frequency noise.
-    :type background_sigma: Array-like
+    :type background_sigma: np.ndarray
     :param background_threshold_method: Method to use for thresholding the Gaussian-
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
     :param background_dilation_footprint: Structuring element used for binary dilation
         of the background surface noise mask when removing background noise.
-    :type background_dilation_footprint: Numpy array of booleans.
+    :type background_dilation_footprint: np.ndarray[np.bool]
     :param opening_footprint: Footprint used for closing operation.
-    :type opening_footprint: Numpy array of booleans.
+    :type opening_footprint: np.ndarray[np.bool]
     :param closing_footprint: Footprint used for closing operation.
-    :type closing_footprint: Numpy array of booleans.
+    :type closing_footprint: np.ndarray[np.bool]
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
-    :type otsu_thresholding: Numpy array of booleans, only required if using
-        ``thresholding='local_otsu'``.
+    :type otsu_thresholding: np.ndarray[np.bool]
     :return: A boolean array of the same type and shape as stack, with True values
         corresponding to the foreground and False to the background.
-    :rtype: Numpy array.
+    :rtype: np.ndarray
     """
     # Store parameters for segmentation array
     movie_shape = movie.shape
@@ -772,6 +785,7 @@ def binarize_movie(
     return binarized_movie
 
 
+# noinspection PyIncorrectDocstring
 def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     """
     Uses a difference of gaussians bandpass filter to enhance nuclei, then a local
@@ -780,12 +794,12 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     be done post-segmentation using the size and morphology of the segmented objects.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type movie: Numpy array.
+    :type movie: np.ndarray
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations). Same shape as movie.
-    :type mask: Numpy array of booleans.
+    :type mask: np.ndarray[np.bool]
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
@@ -796,7 +810,7 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
         sigma along of the image axes).
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
-    :type max_footprint: Numpy array of booleans.
+    :type max_footprint: np.ndarray[np.bool]
     :param int max_diff: Maximum difference allowed for contiguous points to be
         considered a plateau when looking for a stationary value of the number
         of detected nuclei with respect to the distance between peaks as set by
@@ -804,12 +818,12 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     :param int averaging_window: Size of averaging window used to perform moving
         average of number of detected peaks when selecting the 'elbow' in the
         detection. Defaults to 3, only used as fallback if plateau finding fails.
-    :return: Tuple(`dog`, `marker_coordinates`, `markers`) where dog is the
+    :return: tuple(`dog`, `marker_coordinates`, `markers`) where dog is the
         bandpass-filtered image, marker_coordinates is an array of the nuclear
         locations in the image indexed as per the image (this can be used for
         visualization) and markers is a boolean array of the same shape as image, with
         the marker positions given by a True value.
-    :rtype: Tuple of numpy arrays.
+    :rtype: tuple
     """
     # Store parameters for segmentation array
     movie_shape = movie.shape
@@ -831,21 +845,22 @@ def mark_movie(movie, mask, *, low_sigma, high_sigma, max_footprint, **kwargs):
     return markers
 
 
+# noinspection PyIncorrectDocstring
 def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
     """
     Segments nuclei in a movie using watershed method.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type movie: Numpy array.
+    :type movie: np.ndarray
     :param markers: Boolean array of dimensions matching movie, with nuclei containing
         (ideally) a single unique integer value, and all other values being 0. This is
         used to perform the watershed segmentation.
-    :type markers: Numpy array of integers.
+    :type markers: np.ndarray[np.int]
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations). Same shape as movie.
-    :type mask: Numpy array of booleans.
+    :type mask: np.ndarray[np.bool]
     :param watershed_method: Determines what to use as basins for the watershed
         segmentation, between the inverted denoised image itself (works well for
         bright nuclear markers), the distance-transformed binarized image, and the
@@ -855,11 +870,9 @@ def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
         frames of movie.
     :param min_size: Smallest allowable object size.
     :type min_size: int, optional
-    :return: Tuple(`markers`, `labels`) where markers is a boolean array  with the
-        marker positions used for the watershed transform given by a True value and
-        labels is an array with each label corresponding to a mask for a single
+    :return: Array with each label corresponding to a mask for a single
         nucleus, assigned to an integer value (both of the same shape as movie).
-    :rtype: Tuple of Numpy arrays.
+    :rtype: np.ndarray[np.int]
     """
     # Store parameters for segmentation array
     movie_shape = movie.shape
@@ -875,41 +888,48 @@ def segment_movie(movie, markers, mask, *, watershed_method, **kwargs):
     return labels
 
 
+# noinspection PyIncorrectDocstring
 def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     """
     Denoises a movie frame-by-frame using specified method (gaussian or median
     filtering). This is parallelized across a Dask LocalCluster.
 
     :param movie: 2D (projected) or 3D image of a nuclear marker.
-    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :type movie: {np.ndarray, list}
     :param denoising: Determines which method to use for initial denoising of the
         image (before any filtering or morphological operations) between a gaussian
         filter and a median filter.
+
         * ``gaussian``: requires a ``denoising_sigma`` keyword argument to determine
-        the sigma parameter for the gaussian filter.
+          the sigma parameter for the gaussian filter.
         * ``median``: requires a ``median_footprint`` keyword argument to determine
-        the footprint used for the median filter.
+          the footprint used for the median filter.
+
     :type denoising: {'gaussian', 'median'}
     :type denoising_sigma: scalar or sequence of scalars, only required if using
         ``denoising='gaussian'``.
     :param median_footprint: Footprint used for median filter denoising of the image
         prior to any morphological operations or other filtering.
-    :type median_footprint: Numpy array of booleans, only required if using
-        ``denoising='median'``.
+    :type median_footprint: np.ndarray[np.bool]
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(`denoised_movie`, `denoised_movie_futures`, `scattered_movie`)
+    :return: tuple(`denoised_movie`, `denoised_movie_futures`, `scattered_movie`)
         where
-        *`denoised_movie` is the fully evaluated denoised movie as an ndarray of the
-        same shape and `dtype` as `movie`.
-        *`denoised_movie_futures` is the list of futures objects resulting from the
-        denoising in the worker memories before gathering and concatenation.
-        *`scattered_movie` is a list of futures pointing to the input movie in
-        the workers' memory, wrapped in a list.
+
+        * `denoised_movie` is the fully evaluated denoised movie as an ndarray of the
+          same shape and `dtype` as `movie`.
+        * `denoised_movie_futures` is the list of futures objects resulting from the
+          denoising in the worker memories before gathering and concatenation.
+        * `scattered_movie` is a list of futures pointing to the input movie in
+          the workers' memory, wrapped in a list.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     denoise_movie_func = partial(
         denoise_movie,
@@ -943,6 +963,7 @@ def denoise_movie_parallel(movie, *, denoising, client, **kwargs):
     return denoised_movie, denoised_movie_futures, scattered_movie
 
 
+# noinspection PyIncorrectDocstring
 def binarize_movie_parallel(
     movie,
     *,
@@ -963,62 +984,70 @@ def binarize_movie_parallel(
     LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type stack: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :type movie: {np.ndarray, list}
     :param thresholding: Determines which method to use to determine a threshold
         for binarizing the stack, between global and local Otsu threholding, and
         Li's cross-entropy minimization method.
+
         * ``local_otsu``: requires a ``otsu_footprint`` keyword argument to determine
-        the footprint used for the local Otsu thresholding.
+          the footprint used for the local Otsu thresholding.
+
     :type thresholding: {'global_otsu', 'local_otsu', 'li'}
     :param opening_footprint: Footprint used for closing operation.
-    :type opening_footprint: Numpy array of booleans.
+    :type opening_footprint: np.ndarray[np.bool]
     :param closing_footprint: Footprint used for closing operation.
-    :type closing_footprint: Numpy array of booleans.
+    :type closing_footprint: np.ndarray[np.bool]
     :param cc_min_span: Minimum span in each axis that the largest connected component
         in a binarized image must have to be considered possible background noise. The
         key here is that large x- and y-axis span (more than a few nuclei) indicates
         either a region of high-intensity surface noise or a low signal-to-noise image
         that causes nuclei to appear connected when binarized. This flags the image for
         further processing and possible background removal.
-    :type cc_min_span: Array-like
+    :type cc_min_span: np.ndarray
     :param background_max_span: Maximum span in each axis that a connected component
         flagged as surface noise can have and still be consisdered surface noise (i.e.
         if a large part of the stack is surface noise, the data might not be usable
         in the first place and will be very difficult to segment in 3D so we stop the
         analysis). Connected blurred regions with bounding boxes spanning this parameter
         will be removed from consideration when thresholding to obtain a nuclear mask.
-    :type background_max_span: Array-like
+    :type background_max_span: np.ndarray
     :param background_sigma: Standard deviation to use in each axis for Gaussian blurring
         of image prior to segmenting out the surface noise. This should be small in z
         so as not to bleed through the z-stack, and much larger than the nuclei in x- and
         y- so as to only keep low-frequency noise.
-    :type background_sigma: Array-like
+    :type background_sigma: np.ndarray
     :param background_threshold_method: Method to use for thresholding the Gaussian-
         blurred image for surface noise detection. Only global Otsu and Li methods
         are implemented.
     :type background_threshold_method: {"otsu", "li"}
     :param background_dilation_footprint: Structuring element used for binary dilation
         of the background surface noise mask when removing background noise.
-    :type background_dilation_footprint: Numpy array of booleans.
+    :type background_dilation_footprint: np.ndarray[np.bool]
     :param otsu_footprint: Footprint used for local (rank) Otsu thresholding of the
         image for binarization.
-    :type otsu_thresholding: Numpy array of booleans, only required if using
-        ``thresholding='local_otsu'``.
+    :type otsu_thresholding: np.ndarray[np.bool]
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(`binarized_movie`, `binarized_movie_futures`, `scattered_movie`)
+    :return: tuple(`binarized_movie`, `binarized_movie_futures`, `scattered_movie`)
         where
-        *`binarized_movie` is the fully evaluated binarized movie as an ndarray of
-        booleans of the same shape as movie, with only the pixels in the foreground
-        corresponding to a `True` value.
-        *`binarized_movie_futures` is the list of futures objects resulting from the
-        binarization in the worker memories before gathering and concatenation.
-        *`scattered_movie` is a list of futures pointing to the input movie in
-        the workers' memory, wrapped in a list.
+
+        * `binarized_movie` is the fully evaluated binarized movie as an ndarray of
+          booleans of the same shape as movie, with only the pixels in the foreground
+          corresponding to a `True` value.
+
+        * `binarized_movie_futures` is the list of futures objects resulting from the
+          binarization in the worker memories before gathering and concatenation.
+
+        * `scattered_movie` is a list of futures pointing to the input movie in
+          the workers' memory, wrapped in a list.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     binarize_movie_func = partial(
         binarize_movie,
@@ -1059,6 +1088,7 @@ def binarize_movie_parallel(
     return binarized_movie, binarized_movie_futures, scattered_movie
 
 
+# noinspection PyIncorrectDocstring
 def mark_movie_parallel(
     movie, mask, *, low_sigma, high_sigma, max_footprint, client, **kwargs
 ):
@@ -1070,26 +1100,25 @@ def mark_movie_parallel(
     This is parallelized across a Dask LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :type movie: {np.ndarray, list}
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations). Same shape as `movie`.
-    :type mask: Numpy array of booleans or list of Futures corresponding to chunks
-        of `mask`.
+    :type mask: {np.ndarray, list}
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {np.float, tuple[np.float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {np.float, tuple[np.float]}
     :param max_footprint: Footprint used by :func:`~iterative_peak_local_max`
         during maximum dilation. This sets the minimum distance between peaks.
-    :type max_footprint: Numpy array of booleans.
+    :type max_footprint: np.ndarray[np.bool]
     :param int max_diff: Maximum difference allowed for contiguous points to be
         considered a plateau when looking for a stationary value of the number
         of detected nuclei with respect to the distance between peaks as set by
@@ -1099,19 +1128,24 @@ def mark_movie_parallel(
         detection. Defaults to 3, only used as fallback if plateau finding fails.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(`marked_movie`, `marked_movie_futures`, `scattered_movies`) where
-        *`marked_movie` is the fully evaluated marked movie as an ndarray of
-        booleans of the same shape as movie, with each nucleus containing a single
-        `True` value.
-        *`marked_movie_futures` is the list of futures objects resulting from the
-        marking in the worker memories before gathering and concatenation.
-        *`scattered_movies` is a list with each element corresponding to a list of
-        futures pointing to the input movie and mask in the workers' memory
-        respectively.
+    :return: tuple(`marked_movie`, `marked_movie_futures`, `scattered_movies`) where
+
+        * `marked_movie` is the fully evaluated marked movie as an ndarray of
+          booleans of the same shape as movie, with each nucleus containing a single
+          `True` value.
+        * `marked_movie_futures` is the list of futures objects resulting from the
+          marking in the worker memories before gathering and concatenation.
+        * `scattered_movies` is a list with each element corresponding to a list of
+          futures pointing to the input movie and mask in the workers' memory
+          respectively.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     mark_movie_func = partial(
         mark_movie,
@@ -1147,24 +1181,23 @@ def mark_movie_parallel(
     return marked_movie, marked_movie_futures, scattered_movies
 
 
+# noinspection PyIncorrectDocstring
 def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **kwargs):
     """
     Segments nuclei in a movie using watershed method, parallelizing on a Dask
     LocalCluster.
 
     :param movie: 2D (projected) or 3D movie of a nuclear marker.
-    :type stack: Numpy array.
+    :type movie: np.ndarray
     :param markers: Boolean array of dimensions matching movie, with nuclei containing
         (ideally) a single unique integer value, and all other values being 0. This is
         used to perform the watershed segmentation.
-    :type markers: Numpy array of integers or list of Futures corresponding to chunks
-        of `markers`.
+    :type markers: {np.ndarray, list}
     :param mask: Mask labelling regions of interest, used to screen out spurious
         peaks when counting detected maxima (important for searching for a
         stationary value of the detected maxima with respect to the number of
         iterations). Same shape as movie.
-    :type mask: Numpy array of booleans or list of Futures corresponding to chunks
-        of `mask`.
+    :type mask: {np.ndarray, list}
     :param watershed_method: Determines what to use as basins for the watershed
         segmentation, between the inverted denoised image itself (works well for
         bright nuclear markers), the distance-transformed binarized image, and the
@@ -1174,20 +1207,25 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     :type min_size: int, optional
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(`segmented_movie`, `segmented_movie_futures`, `scattered_movies`)
+    :return: tuple(`segmented_movie`, `segmented_movie_futures`, `scattered_movies`)
         where
-        *`segmented_movie` is the fully evaluated segmented movie as an ndarray of
-        the same shape as movie with `dtype=np.uint32`, with unique integer labels
-        corresponding to each nucleus.
-        *`segmented_movie_futures` is the list of futures objects resulting from the
-        segmentation in the worker memories before gathering and concatenation.
-        *`scattered_movies` is a list with each element corresponding to a list of
-        futures pointing to the input `movie`, `markers`, and `mask` in the workers'
-        memory respectively.
+
+        * `segmented_movie` is the fully evaluated segmented movie as an ndarray of
+          the same shape as movie with `dtype=np.uint32`, with unique integer labels
+          corresponding to each nucleus.
+        * `segmented_movie_futures` is the list of futures objects resulting from the
+          segmentation in the worker memories before gathering and concatenation.
+        * `scattered_movies` is a list with each element corresponding to a list of
+          futures pointing to the input `movie`, `markers`, and `mask` in the workers'
+          memory respectively.
+
     :rtype: tuple
+
     .. note::
+
         This function can also pass along any kwargs taken by
         :func:`~utils.parallel_computing.parallelize`.
+
     """
     segment_movie_func = partial(
         segment_movie, watershed_method=watershed_method, **kwargs
@@ -1214,6 +1252,6 @@ def segment_movie_parallel(movie, markers, mask, *, watershed_method, client, **
     else:
         segmented_movie = segment_movie_func(movie, markers, mask)
         segmented_movie_futures = None
-        scattered_movie = None
+        scattered_movies = None
 
     return segmented_movie, segmented_movie_futures, scattered_movies

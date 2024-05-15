@@ -14,12 +14,12 @@ def tracks_start(
 ):
     """
     Uses input `tracked_dataframe` with tracking information to construct
-    sub-dataframes with entries corresponing to the start of a particle track
+    sub-dataframes with entries corresponding to the start of a particle track
     (i.e. the first frame it is present in).
 
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
-    :type linked_dataframe: pandas DataFrame
+    :type tracked_dataframe: pandas DataFrame
     :param pos_columns: Name of columns in segmentation_df containing a position
         coordinate.
     :param int min_track_length: Minimum number of frames that a new track must
@@ -33,6 +33,7 @@ def tracks_start(
     :param exclude_border: Fraction of border in each position coordinate
         to exclude when searching for new particles to assign siblings to.
     :type exclude_border: float or array of floats for each coordinate.
+    :param bool output: If `False`, the function returns `None`.
     :return: All rows in the input `tracked_dataframe` corresponding to the start of
         a particle track.
     :rtype: pandas DataFrame
@@ -75,7 +76,7 @@ def tracks_start(
         tracked_dataframe.loc[new_particles, "new_particle"] = True
 
     if not output:
-        tracked_first_frames = None
+        track_first_frames = None
 
     return track_first_frames
 
@@ -102,9 +103,9 @@ def _find_sibling_threshold(
     likeliest sibling of a new particle (given by the row `track_start_row` of
     `tracked_dataframe`).cThis determines candidate siblings based on proximity
     (within a cuboid of dimensions set by `search_range_mitosis` of the particle
-    centroid) andvantiparallel velocity vectors as determined by a thresholded
+    centroid) and antiparallel velocity vectors as determined by a thresholded
     normalized dot product (an `antiparallel_threshold` value of 0 corresponds to
-    perfectlyvantiparallel vectors, 1 corresponds to orthogonal vectors). Within any
+    perfectly antiparallel vectors, 1 corresponds to orthogonal vectors). Within any
     remaining candidates, the nearest-neighbor is returned.
     """
     # Select subdataframe for first frame of this particle
@@ -308,7 +309,7 @@ def _assign_siblings_frame(
         # We can now add a coordinate that represents the rescaled velocities such that the
         # mean velocity in each coordinate direction is unity, similar to what we did for the
         # position coordinates. Now, however, invert the velocities of the new particles such
-        # that they appeak 'closer' to trackpy the more antiparallel their velocities are
+        # that they appear 'closer' to trackpy the more antiparallel their velocities are
 
         # We can construct the antiparallelism coordinates so that they represent the full
         # velocity vector (taking into consideration their magnitude) or just the directions
@@ -335,16 +336,13 @@ def _assign_siblings_frame(
 
         pos_columns = pos_columns + vel_columns
 
-    try:
-        linked_siblings = trackpy.link_df(
-            frame_df,
-            search_range=search_range,
-            pos_columns=pos_columns,
-            t_column="frame",
-            **kwargs,
-        )
-    except Exception:
-        print(frame_df)
+    linked_siblings = trackpy.link_df(
+        frame_df,
+        search_range=search_range,
+        pos_columns=pos_columns,
+        t_column="frame",
+        **kwargs,
+    )
 
     # We can finally extract pairs of siblings from the linking
     siblings_mask = linked_siblings.duplicated(subset=["particle"], keep=False)
@@ -531,7 +529,7 @@ def construct_lineage(
 
     :param tracked_dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe`.
-    :type linked_dataframe: pandas DataFrame
+    :type tracked_dataframe: pandas DataFrame
     :param pos_columns: Name of columns in segmentation_df containing a position
         coordinate.
     :type pos_columns: list of DataFrame column names
@@ -624,11 +622,12 @@ def tracks_to_napari(viewer, dataframe, name="tracks", output=False):
     :param dataframe: DataFrame of measured features after tracking with
         :func:`~link_dataframe` and lineage construction with `construct_lineage`.
     :type dataframe: pandas DataFrame
+    :param str name: Name of the `tracks` layer in napari.
     :param bool output: If True, returns the napari-compatible datastructures used
         to visualize tracks.
     :return: If `output = True`, returns lineage dictionary and parent properties
         used to visualize tracks in napari.
-    :rtype: {Tuple, None}
+    :rtype: {tuple, None}
     """
     mitosis_dataframe = dataframe.copy()
     mitosis_dataframe["frame"] = mitosis_dataframe["frame"] - 1
@@ -637,7 +636,7 @@ def tracks_to_napari(viewer, dataframe, name="tracks", output=False):
 
     lineage = {}
     for _, family in mitosis_dataframe.groupby("parent"):
-        parent = (family["parent"].values)[0]
+        parent = family["parent"].values[0]
         children = family["particle"].to_list()
         lineage[parent] = children
 

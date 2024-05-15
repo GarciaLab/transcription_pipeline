@@ -27,7 +27,7 @@ class DataImport:
     per the documentation for :func:`~preprocessing.import_data.import_dataset`.
 
     :param str name_folder: Path to name folder containing data files.
-    :param bool import_previous: If `True`, attemps to import already collated
+    :param bool import_previous: If `True`, attempts to import already collated
         data and preprocessed and pickled metadata dicts from `collated_dataset`
         subdirectory instead of using the PIMS Bioformats reader to extract
         from the original microscopy format.
@@ -40,9 +40,10 @@ class DataImport:
     :param float min_prominence: Minimum prominence of a peak for it to be considered
         a true maxima of the normalized correlation. See documentation for
         `scipy.signal.peak_prominences`.
-    :param int registration_channel: Index of channel to use for registration of z-shift
+    :param registration_channel: Index of channel to use for registration of z-shift
         between stacks - usually works better with channels with more structure. By default
         uses last channel.
+    :type registration_channel: int or `None`
 
     :ivar channels_full_dataset: list of numpy arrays, with each element of the
         list being a collated dataset for a given channel.
@@ -288,7 +289,7 @@ class DataImport:
                     collated_data_path = collated_path / filename
 
                     # Convert to zarr
-                    zarr.save(collated_data_path, channel_data)
+                    zarr.save(str(collated_data_path), channel_data)
             else:
                 raise Exception("Save mode not recognized.")
 
@@ -301,12 +302,12 @@ class FullEmbryoImport:
     for :func:`~preprocessing.import_data.import_full_embryo`.
 
     :param str name_folder: Path to name folder containing FullEmbryo directory.
-    :param bool import_previous: If `True`, attemps to import already collated
+    :param bool import_previous: If `True`, attempts to import already collated
         data and preprocessed and pickled metadata dicts from `preprocessed_full_embryo`
         subdirectory instead of using the PIMS Bioformats reader to extract
         from the original microscopy format.
 
-    :ivar channels_dataset_mid: list of numpy arrays, with each element of the
+    :ivar channels_full_dataset_mid: list of numpy arrays, with each element of the
         list being a channel of the `Mid` image.
     :ivar original_global_metadata_mid: dictionary of global metadata
            for the `Mid` image.
@@ -318,9 +319,9 @@ class FullEmbryoImport:
     :ivar export_frame_metadata_mid: list of dictionaries of frame-by-frame
         metadata for the `Mid` image, with each element of the list
         corresponding to a channel. FullEmbryo images are usually single time-points,
-        so this is redundant but kept to maintain consistency with the interfact for
+        so this is redundant but kept to maintain consistency with the interface for
         other import classes.
-    :ivar channels_dataset_surf: list of numpy arrays, with each element of the
+    :ivar channels_full_dataset_surf: list of numpy arrays, with each element of the
         list being a channel of the `Surf` image.
     :ivar original_global_metadata_surf: dictionary of global metadata
            for the `Surf` image.
@@ -517,7 +518,7 @@ class FullEmbryoImport:
                 collated_frame_path = collated_path / "".join(
                     ["collated_frame_metadata_", name, "_ch{:02d}.pkl".format(i)]
                 )
-                with open(collated_global_path, "wb") as f:
+                with open(collated_frame_path, "wb") as f:
                     pickle.dump(
                         getattr(self, "".join(["export_frame_metadata_", name]))[i], f
                     )
@@ -552,7 +553,7 @@ class FullEmbryoImport:
                     collated_data_path = collated_path / filename
 
                     # Convert to zarr
-                    zarr.save_array(collated_data_path, channel_data)
+                    zarr.save_array(str(collated_data_path), channel_data)
 
                 else:
                     raise Exception("Save mode not recognized.")

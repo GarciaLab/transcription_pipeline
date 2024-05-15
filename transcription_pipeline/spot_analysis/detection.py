@@ -1,4 +1,4 @@
-from skimage.filters import difference_of_gaussians, threshold_triangle
+from skimage.filters import gaussian, difference_of_gaussians, threshold_triangle
 from skimage.measure import label
 from skimage.morphology import remove_small_objects
 import numpy as np
@@ -8,6 +8,7 @@ from ..utils import parallel_computing
 from ..utils.image_histogram import histogram
 from ..tracking import track_features
 from ..utils import neighborhood_manipulation
+import warnings
 
 
 def _make_histogram(movie, hist_range, nbins=256):
@@ -19,11 +20,16 @@ def _make_histogram(movie, hist_range, nbins=256):
     thresholding large movie arrays.
     """
     # Taken from `skimage.filters.threshold_triangle`.
+    nan_mask = np.isnan(movie)
+    if nan_mask.any():
+        masked_movie = movie[~nan_mask]
+        warnings.warn("Movie has NaN values.")
+    else:
+        masked_movie = movie
 
-    # nbins is ignored for integer arrays
-    # so, we recalculate the effective nbins.
-    hist, bin_centers = histogram(movie.reshape(-1), nbins, hist_range, normalize=False)
-    nbins = len(hist)
+    hist, bin_centers = histogram(
+        masked_movie.reshape(-1), nbins, hist_range, normalize=False
+    )
 
     return hist, bin_centers
 
@@ -31,7 +37,7 @@ def _make_histogram(movie, hist_range, nbins=256):
 def _threshold_triangle(hist, bin_centers, nbins):
     """
     Finds an automatic threshold from a histogram using the triangle algorithm. This
-    is used as a utility functiont to split up the code in
+    is used as a utility function to split up the code in
     `skimage.filters.threshold_triangle` to allow better parallelization since
     constructing the histogram is one of the bigger bottlenecks when automatically
     thresholding large movie arrays, but computing the theshold from a histogram
@@ -81,14 +87,45 @@ def _threshold_triangle(hist, bin_centers, nbins):
 def _bandpass_movie(movie, low_sigma, high_sigma):
     """
     Runs bandpass filter using `skimage.filters.difference_of_gaussians` on each
-    frame of a movie before collating the resuls in a bandpass-filtered movie of the
+    frame of a movie before collating the results in a bandpass-filtered movie of the
     same shape as input `movie`.
     """
     bandpassed_movie = np.empty_like(movie, dtype=float)
 
     num_timepoints = movie.shape[0]
     for i in range(num_timepoints):
-        bandpassed_movie[i] = difference_of_gaussians(movie[i], low_sigma, high_sigma)
+        frame = movie[i]
+
+        if np.isnan(frame).sum():
+            # This uses the normalized convolution trick from
+            # https://stackoverflow.com/a/36307291
+            nan_mask = np.isnan(frame)
+
+            frame_cast_zero = frame.astype(float)
+            frame_cast_zero[nan_mask] = 0
+
+            frame_norm = np.ones_like(frame, dtype=float)
+            frame_norm[nan_mask] = 0
+
+            low_sigma_gaussian = gaussian(frame_cast_zero, sigma=low_sigma)
+            low_sigma_norm = gaussian(frame_norm, sigma=low_sigma)
+            # We set the normalization zeros to 1 to avoid dividing by 0.
+            # This has no side effects since this should only affect the
+            # NaN values.
+            low_sigma_norm[low_sigma_norm == 0] = 1
+            low_sigma_frame = low_sigma_gaussian / low_sigma_norm
+
+            high_sigma_gaussian = gaussian(frame_cast_zero, sigma=high_sigma)
+            high_sigma_norm = gaussian(frame_norm, sigma=high_sigma)
+            high_sigma_norm[high_sigma_norm == 0] = 1
+            high_sigma_frame = high_sigma_gaussian / high_sigma_norm
+
+            bandpassed_frame = low_sigma_frame - high_sigma_frame
+            bandpassed_frame[nan_mask] = np.nan
+            bandpassed_movie[i] = bandpassed_frame
+
+        else:
+            bandpassed_movie[i] = difference_of_gaussians(frame, low_sigma, high_sigma)
 
     return bandpassed_movie
 
@@ -145,7 +182,7 @@ def _make_spot_labels_parallel(
     """
     Thresholds `movie`, labels connected components in binarized mask as per specified
     connectivity using `skimage.measure.label` and removes objects below size `min_size`
-    parallelized across a Dask Dlient passed as `client`.
+    parallelized across a Dask Client passed as `client`.
     """
     spot_labels_func = partial(
         _make_spot_labels,
@@ -177,6 +214,7 @@ def make_spot_mask(
     high_sigma,
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -192,16 +230,18 @@ def make_spot_mask(
     If a Dask Client is passed as a `client` kwarg, the bandpass filtering and
     thresholding will be parallelized across the client.
 
+    :param spot_movie: Movie of spot channel.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {float, tuple[float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {float, tuple[float]}
     :param int nbins: Number of bins used to construct image histogram for automatic
         thresholding.
     :param threshold: Threshold below which to clip `spot_movie` after bandpass filter.
@@ -209,6 +249,9 @@ def make_spot_mask(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -224,16 +267,16 @@ def make_spot_mask(
         `Futures` in the Dask worker memories, returning as a list in fifth output.
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
-    :return: Tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
+    :return: tuple(Labelled mask of spots in `spot_movie`, labelled mask as list of
         `Futures`, bandpass-filtered movie, bandpass-filtered movie as a list of `Futures`,
         input `spot_movie` as list of `Futures`)
-    :rtype: Tuple of Numpy array of integers.
+    :rtype: tuple
     """
     if client is None:
         bandpassed_movie = _bandpass_movie(spot_movie, low_sigma, high_sigma)
 
         if threshold == "triangle":
-            spot_threshold = threshold_triangle(bandpassed_movie)
+            spot_threshold = threshold_triangle(bandpassed_movie) * threshold_factor
         else:
             spot_threshold = threshold
 
@@ -263,7 +306,7 @@ def make_spot_mask(
         if threshold == "triangle":
 
             def range_func(x):
-                return [np.min(x), np.max(x)]
+                return [np.nanmin(x), np.nanmax(x)]
 
             chunked_histogram_range = client.map(range_func, bandpassed_movie_futures)
             histogram_range_array = np.array(client.gather(chunked_histogram_range))
@@ -287,8 +330,9 @@ def make_spot_mask(
             global_bin_centers = histograms_array[:, 1][0]
             nbins = len(global_histogram)
 
-            spot_threshold = _threshold_triangle(
-                global_histogram, global_bin_centers, nbins
+            spot_threshold = (
+                _threshold_triangle(global_histogram, global_bin_centers, nbins)
+                * threshold_factor
             )
 
         else:
@@ -326,6 +370,7 @@ def detect_spots(
     frame_metadata,
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -345,16 +390,18 @@ def detect_spots(
     passed as a `client` kwarg, the bandpass filtering and thresholding will be
     parallelized across the client.
 
+    :param spot_movie: Movie of spot channel.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
-        (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+        (each element corresponding the sigma along of the image axes).
+    :type low_sigma: {np.float, tuple[np.float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {np.float, tuple[np.float]}
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :param int nbins: Number of bins used to construct image histogram for automatic
@@ -364,6 +411,9 @@ def detect_spots(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -377,7 +427,7 @@ def detect_spots(
         `Futures` in the Dask worker memories, returning as a list in second output.
     :param bool return_spot_dataframe: If True, returns fully evaluated dataframe of
         labelled spots as first output (otherwise returns `None`).
-    :param bool keep_futures_spots_dataframe: If `True`, keeps dataframe of labelled
+    :param bool keep_futures_spot_dataframe: If `True`, keeps dataframe of labelled
         spots as a list of `Futures` in the Dask worker memories.
     :param bool keep_futures_spots_movie: If `True`, keeps dataframe of input `spot_movie`
         as a list of `Futures` in the Dask worker memories.
@@ -385,7 +435,7 @@ def detect_spots(
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
-    :type extra_properties: Tuple of strings, optional.
+    :type extra_properties: tuple[str]
     :param bool drop_reverse_time: If True, drops the columns with reversed frame
         numbers added to facilitate tracking (if you are using nuclear tracking to
         track your spots instead of tracking the spots independently, you might not
@@ -393,20 +443,21 @@ def detect_spots(
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return:
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties.
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties, chunked up as list of `Futures` corresponding to labelled mask and
-        bandpassed-filtered movie `Futures` (see below).
-        *Labelled mask of spots in `spot_movie`
-        *labelled mask as list of `Futures`
-        *bandpass-filtered movie
-        *bandpass-filtered movie as a list of `Futures`
-        *input `spot_movie` as list of `Futures`
-    :rtype: Tuple
+
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties.
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties, chunked up as list of `Futures` corresponding to labelled mask and
+          bandpassed-filtered movie `Futures` (see below).
+        * labelled mask of spots in `spot_movie`
+        * labelled mask as list of `Futures`
+        * bandpass-filtered movie
+        * bandpass-filtered movie as a list of `Futures`
+        * input `spot_movie` as list of `Futures`
+
+    :rtype: tuple
     """
     if client is not None:
-        keep_futures_spots_movie = True
         evaluate_make_spot_mask = return_spot_labels
     else:
         keep_futures_spots_movie = False
@@ -424,6 +475,7 @@ def detect_spots(
         high_sigma=high_sigma,
         nbins=nbins,
         threshold=threshold,
+        threshold_factor=threshold_factor,
         min_size=min_size,
         connectivity=connectivity,
         return_spot_labels=evaluate_make_spot_mask,
@@ -447,7 +499,7 @@ def detect_spots(
                 spot_labels_chunk,
                 spot_movie_chunk,
                 frame_metadata,
-                initial_frame_index = initial_frame_index,
+                initial_frame_index=initial_frame_index,
                 extra_properties=extra_properties,
             )
 
@@ -461,7 +513,9 @@ def detect_spots(
         num_frames_chunks = client.map(lambda x: x.shape[0], spot_labels_futures)
         num_frames_chunks = client.gather(num_frames_chunks)
 
-        initial_frame_chunks = np.asarray([0] + num_frames_chunks[:-1]).cumsum().tolist()
+        initial_frame_chunks = (
+            np.asarray([0] + num_frames_chunks[:-1]).cumsum().tolist()
+        )
         spot_dataframe_futures = client.map(
             segmentation_df_func,
             spot_labels_futures,
@@ -581,6 +635,7 @@ def detect_and_gather_spots(
     pos_columns=["z", "y", "x"],
     nbins=256,
     threshold="triangle",
+    threshold_factor=1,
     min_size=0,
     connectivity=None,
     return_bandpass=False,
@@ -600,21 +655,23 @@ def detect_and_gather_spots(
     the raw spot data. If a Dask Client is passed as a `client` kwarg, the bandpass
     filtering and thresholding will be parallelized across the client.
 
+    :param spot_movie: Movie of spot channel.
+    :type spot_movie: np.ndarray
     :param low_sigma: Sigma to use as the low-pass filter (mainly filters out
         noise). Can be given as float (assumes isotropic sigma) or as sequence/array
         (each element corresponsing the sigma along of the image axes).
-    :type low_sigma: scalar or tuple of scalars
+    :type low_sigma: {np.float, tuple[np.float]}
     :param high_sigma: Sigma to use as the high-pass filter (removes structured
         background and dims down areas where nuclei are close together that might
         start to coalesce under other morphological operations). Can be given as float
         (assumes isotropic sigma) or as sequence/array (each element corresponsing the
         sigma along of the image axes).
-    :type high_sigma: scalar or tuple of scalars
+    :type high_sigma: {np.float, tuple[np.float]}
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
     :param span: Size of neighborhood to extract (rounded in each axis to the largest
         odd number below `span` if even).
-    :type span: Array-like.
+    :type span: np.ndarray
     :param pos_columns: Name of columns in DataFrame measurement table obtained from
         spot label array containing a position coordinate, in order of indexing of
         the input `spot_movie`.
@@ -626,6 +683,9 @@ def detect_and_gather_spots(
         threshold should not exceed 1. Setting `threshold="triangle"` uses automatic
         thresholding using the triangle method.
     :type threshold: {"triangle", float}
+    :param float threshold_factor: If using automated thresholding, this factor is multiplied
+        by the proposed threshold value. This gives some degree of control over the stringency
+        of thresholding while still getting a ballpark value using the automated method.
     :param int min_size: The smallest allowable object size.
     :param int connectivity: The connectivity defining the neighborhood of a pixel
         during small object removal.
@@ -639,7 +699,7 @@ def detect_and_gather_spots(
         `Futures` in the Dask worker memories, returning as a list in second output.
     :param bool return_spot_dataframe: If True, returns fully evaluated dataframe of
         labelled spots as first output (otherwise returns `None`).
-    :param bool keep_futures_spots_dataframe: If `True`, keeps dataframe of labelled
+    :param bool keep_futures_spot_dataframe: If `True`, keeps dataframe of labelled
         spots as a list of `Futures` in the Dask worker memories.
     :param bool keep_futures_spots_movie: If `True`, keeps dataframe of input `spot_movie`
         as a list of `Futures` in the Dask worker memories.
@@ -647,7 +707,7 @@ def detect_and_gather_spots(
         mask to measure and add to the DataFrame. With no extra properties, the
         DataFrame will have columns only for the frame, label, and centroid
         coordinates.
-    :type extra_properties: Tuple of strings, optional.
+    :type extra_properties: tuple[str]
     :param bool drop_reverse_time: If True, drops the columns with reversed frame
         numbers added to facilitate tracking (if you are using nuclear tracking to
         track your spots instead of tracking the spots independently, you might not
@@ -655,17 +715,19 @@ def detect_and_gather_spots(
     :param client: Dask client to send the computation to.
     :type client: `dask.distributed.client.Client` object.
     :return:
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties.
-        *trackpy-compatible pandas DataFrame of spot positions and extra requested
-        properties, chunked up as list of `Futures` corresponding to labelled mask and
-        bandpassed-filtered movie `Futures` (see below).
-        *Labelled mask of spots in `spot_movie`
-        *labelled mask as list of `Futures`
-        *bandpass-filtered movie
-        *bandpass-filtered movie as a list of `Futures`
-        *input `spot_movie` as list of `Futures`
-    :rtype: Tuple
+
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties.
+        * trackpy-compatible pandas DataFrame of spot positions and extra requested
+          properties, chunked up as list of `Futures` corresponding to labelled mask and
+          bandpassed-filtered movie `Futures` (see below).
+        * labelled mask of spots in `spot_movie`
+        * labelled mask as list of `Futures`
+        * bandpass-filtered movie
+        * bandpass-filtered movie as a list of `Futures`
+        * input `spot_movie` as list of `Futures`
+
+    :rtype: tuple
     """
     if client is not None:
         detect_spots_return_spot_dataframe = False
@@ -688,6 +750,7 @@ def detect_and_gather_spots(
         low_sigma=low_sigma,
         high_sigma=high_sigma,
         threshold=threshold,
+        threshold_factor=threshold_factor,
         min_size=min_size,
         nbins=nbins,
         connectivity=connectivity,
@@ -728,10 +791,7 @@ def detect_and_gather_spots(
 
     else:
         spot_dataframe = _add_neighborhoods_to_dataframe(
-            spot_movie,
-            span,
-            spot_dataframe,
-            pos_columns
+            spot_movie, span, spot_dataframe, pos_columns
         )
 
     return (

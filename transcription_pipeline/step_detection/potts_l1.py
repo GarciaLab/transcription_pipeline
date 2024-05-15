@@ -1,5 +1,6 @@
 import numpy as np
-from numba import jit
+
+# from numba import jit
 
 
 def _construct_histogram(trace, weights):
@@ -67,7 +68,7 @@ def l1_potts_step_detection(trace, gamma, weights=None):
     :param trace: Time-series of signal for step detection, ignoring any missing values.
         This corresponds to the data vector $(f_1, f_2,..., f_r)$ in the language of
         Weinmann et al. (2014).
-    :type trace: Numpy array
+    :type trace: np.ndarray
     :param float gamma: Parameter in L1 Potts functional - this controls the balance
         between the term in the L1 Potts loss function that pernalizes the number of
         jumps and the term that penalizes deviation from the data. Should be provided
@@ -78,9 +79,9 @@ def l1_potts_step_detection(trace, gamma, weights=None):
         errors in trace values are reliably estimated, weighing by inverse variance
         can help the step calling. Setting `weights=None` assumes data points are
         equally weighed.
-    :type weights: Numpy array, same shape as `trace`.
+    :type weights: np.ndarray
     :return: Function minimizing the L1 Potts functional.
-    :rtype: Numpy array, same shape as `trace`.
+    :rtype: np.ndarray
     """
     # Initialize weights if `None`. Normalization to unity sum is just to ensure
     # consistent order of magnitude of the gamma parameter

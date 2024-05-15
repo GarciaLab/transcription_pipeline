@@ -1,6 +1,6 @@
 import numpy as np
 import dask
-from dask.distributed import LocalCluster, Client
+from dask.distributed import LocalCluster
 
 
 def zarr_to_futures(zarr_array, client):
@@ -13,10 +13,12 @@ def zarr_to_futures(zarr_array, client):
         np.arange(int(np.floor(zarr_array.shape[0] / chunk_timepoints)))
         * chunk_timepoints
     )
-    if zarr_array.shape[0] % chunk_timepoints != 0:
-        chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
+    # if zarr_array.shape[0] % chunk_timepoints != 0:
+    chunk_boundaries = np.append(chunk_boundaries, zarr_array.shape[0])
 
-    chunk_start_stop = np.array([chunk_boundaries[:-1], chunk_boundaries[1:]]).T.tolist()
+    chunk_start_stop = np.array(
+        [chunk_boundaries[:-1], chunk_boundaries[1:]]
+    ).T.tolist()
 
     zarr_futures = client.map(lambda x: zarr_array[x[0] : x[1]], chunk_start_stop)
 
@@ -42,7 +44,7 @@ def futures_to_zarr(futures, chunk_start_stop, zarr_out, client):
 
     def _map_chunk_future_to_zarr(future, chunk_bounds):
         # This could easily be done with a lambda function, just keeping it here
-        # for readibility and to make the `None` return explicit.
+        # for readability and to make the `None` return explicit.
         zarr_out[chunk_bounds[0] : chunk_bounds[1]] = future
         return None
 
@@ -144,12 +146,14 @@ def parallelize(
         collected.
     :param int num_chunks: Number of chunks to split input movie into if fed as Numpy
         array. Defaults to same as number of worker processes in the Dask `client`.
-    :return: Tuple(processed_movie, processed_movie_futures, scattered_data) where
-        *processed_movie is the fully evaluated result of the computation
-        *processed_movie_futures is the list of futures objects resulting from the
-        computation before concatenation.
-        *scattered_data is a list of list of futures pointing to the input data in
-        movies_list in the workers' memory
+    :return: tuple(processed_movie, processed_movie_futures, scattered_data) where
+
+        * processed_movie is the fully evaluated result of the computation
+        * processed_movie_futures is the list of futures objects resulting from the
+          computation before concatenation.
+        * scattered_data is a list of list of futures pointing to the input data in
+          movies_list in the workers' memory
+
     :rtype: tuple
     """
     if not isinstance(client, dask.distributed.client.Client):
@@ -174,10 +178,10 @@ def parse_parallelize_kwargs(kwargs):
     Parses optional kwargs dict for relevant :func:`~parallelize` arguments.
 
     :param dict kwargs: Dictionary of keyword arguments.
-    :return: Tuple(evaluate, futures_in, futures_out) corresponding to the values
+    :return: tuple(evaluate, futures_in, futures_out) corresponding to the values
         of the optional keyword arguments for :func:`~parallelize` with the same
         defaults (all True).
-    :rtype Tuple of booleans
+    :rtype: tuple[bool]
     """
     try:
         evaluate = kwargs["evaluate"]
@@ -203,7 +207,9 @@ def number_of_frames(movie, client):
     array or a list of Futures corresponding to chunks of `movie`.
 
     :param movie: Input movie as passed wrapped in list to `parallelize`.
-    :type movie: Numpy array or list of Futures corresponding to chunks of `movie`.
+    :type movie: {np.ndarray, list}
+    :param client: Dask client to send the computation to.
+    :type client: `dask.distributed.client.Client` object.
     :return: Number of frames in input movie.
     :rtype: int
     """
@@ -212,8 +218,7 @@ def number_of_frames(movie, client):
 
     elif isinstance(movie, list):
         if all(isinstance(chunk, dask.distributed.client.Future) for chunk in movie):
-            count_frames = lambda x: x.shape[0]
-            frames = client.map(count_frames, movie)
+            frames = client.map(lambda x: x.shape[0], movie)
             frames = np.array(client.gather(frames))
             num_frames = int(np.sum(frames))
 

@@ -1,6 +1,6 @@
 from .nuclear_analysis import segmentation
+from .utils import neighborhood_manipulation
 from .tracking import track_features, detect_mitosis, stitch_tracks
-from .preprocessing import import_data
 from .utils import parallel_computing
 import warnings
 import numpy as np
@@ -9,7 +9,6 @@ import zarr
 from skimage.io import imsave, imread
 from pathlib import Path
 import pickle
-import glob
 
 
 def choose_nuclear_analysis_parameters(
@@ -41,13 +40,15 @@ def choose_nuclear_analysis_parameters(
         frames.
     :return: Dictionary of kwarg dicts corresponding to each function in the nuclear
         segmentation and tracking pipeline:
-        *`nuclear_analysis.segmentation.denoise_movie`
-        *`nuclear_analysis.segmentation.binarize_movie`
-        *`nuclear_analysis.segmentation.mark_movie`
-        *`nuclear_analysis.segmentation.segment_movie`
-        *`nuclear_analysis.segmentation.segmentation_df`
-        *`nuclear_analysis.segmentation.link_df`
-        *`nuclear_analysis.detect_mitosis.construct_lineage`
+
+        * `nuclear_analysis.segmentation.denoise_movie`
+        * `nuclear_analysis.segmentation.binarize_movie`
+        * `nuclear_analysis.segmentation.mark_movie`
+        * `nuclear_analysis.segmentation.segment_movie`
+        * `nuclear_analysis.segmentation.segmentation_df`
+        * `nuclear_analysis.segmentation.link_df`
+        * `nuclear_analysis.detect_mitosis.construct_lineage`
+
     :rtype: dict
     """
     # Query resolution of imaging to translate from physical size to pixels
@@ -82,7 +83,7 @@ def choose_nuclear_analysis_parameters(
     opening_footprint_dimensions = np.floor(
         np.maximum(nuclear_size_pixels / 10, 3)
     ).astype(int)
-    opening_closing_footprint = segmentation.ellipsoid(
+    opening_closing_footprint = neighborhood_manipulation.ellipsoid(
         3, opening_footprint_dimensions[0]
     )
 
@@ -93,7 +94,9 @@ def choose_nuclear_analysis_parameters(
     background_max_span[0] = nuclear_size_pixels[0] / 2
     background_sigma = nuclear_size_pixels * 2
     background_sigma[0] = nuclear_size_pixels[0] / 50
-    background_dilation_footprint = segmentation.ellipsoid(nuclear_size[1], 3)
+    background_dilation_footprint = neighborhood_manipulation.ellipsoid(
+        nuclear_size[1], 3
+    )
     binarize_params = {
         "thresholding": "global_otsu",
         "opening_footprint": opening_closing_footprint,
@@ -119,7 +122,7 @@ def choose_nuclear_analysis_parameters(
     # once for every pixel in the lengthcale of a feature since each iteration dilates
     # a maximum by 2 px.
     max_iter = np.ceil(nuclear_size_pixels[1:].max()).astype(int)
-    max_footprint = ((1, max_iter), segmentation.ellipsoid(3, 5))
+    max_footprint = ((1, max_iter), neighborhood_manipulation.ellipsoid(3, 5))
     mark_params = {
         "low_sigma": low_sigma,
         "high_sigma": high_sigma,
@@ -155,7 +158,7 @@ def choose_nuclear_analysis_parameters(
         }
     elif division_trigger == "nuclear_fluorescence":
         # Assume we are going off of loss of nuclear fluorescence during divisions.
-        # If we wish to trigger off of loss of exlusion instead (e.g. with MCP-mCherry)
+        # If we wish to trigger off of loss of exclusion instead (e.g. with MCP-mCherry)
         # this can be edited manually.
         segmentation_df_params = {
             "num_nuclei_per_fov": num_nuclei_per_fov,
@@ -164,6 +167,8 @@ def choose_nuclear_analysis_parameters(
             "invert": True,
             "prominence": 0.5,
         }
+    else:
+        raise ValueError("`division_trigger` option not recognized.")
 
     # A search range of ~3.5 um seems to work very well for tracking nuclei in the XY
     # plane. 3D tracking is not as of now handled in the defaults and has to be
@@ -221,7 +226,7 @@ class Nuclear:
     and scope metadata to come up with reasonable default parameters.
 
     :param data: Nuclear channel data, in the usual axis ordering ('tzyx').
-    :type data: Numpy array.
+    :type data: np.ndarray
     :param dict global_metadata: Dictionary of global metadata for the nuclear
         channel, as output by `preprocessing.import_data.import_save_dataset`.
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for the nuclear
@@ -230,7 +235,7 @@ class Nuclear:
     :type nuclear_size: array-like
     :param division_trigger: Image feature to use to determine the division frames.
     :type division_trigger: {'num_objects', 'nuclear_fluorescence'}
-    :param float sigma_ratio: Ratio of stndard deviations used in bandpass filtering
+    :param float sigma_ratio: Ratio of standard deviations used in bandpass filtering
         using difference of gaussians. Larger ratios widen the bandwidth of the filter.
     :param pos_columns: Name of columns in `segmentation_df` containing a position
         coordinate.
@@ -312,11 +317,12 @@ class Nuclear:
         list of scattered futures in the Dask Client worker memories.
 
     .. note::
-        *`nuclear_size` was chosen to be $8.0 \ \mu m$ in the z-axis and $4.2 \ \mu m$ in
-        the x- and y- axes to match the lengthscale of nuclei in nc13-nc14 of the early
-        Drosphila embryo, with the width of the bandpass filter set by `sigma_ratio` being
-        set to a default 5 to ensure a wide enough band that nuclei ranging from nc12 to
-        nc14 are accurately detected.
+
+        * `nuclear_size` was chosen to be 8.0 :math:`\mu m` in the z-axis and  4.2
+          :math:`\mu m` in the x- and y- axes to match the lengthscale of nuclei in
+          nc13-nc14 of the early Drosphila embryo, with the width of the bandpass
+          filter set by `sigma_ratio` being set to a default 5 to ensure a wide enough
+          band that nuclei ranging from nc12 to nc14 are accurately detected.
     """
 
     def __init__(
@@ -344,6 +350,18 @@ class Nuclear:
         """
         Constructor method. Instantiates class with no attributes if `data=None`.
         """
+        self.labels = None
+        self.reordered_labels_futures = None
+        self.reordered_labels = None
+        self.labels_futures = None
+        self.mitosis_dataframe = None
+        self.tracked_dataframe = None
+        self.markers_futures = None
+        self.mask_futures = None
+        self.denoised_future = None
+        self.data_futures = None
+        self.markers = None
+        self.mask = None
         if data is not None:
             self.global_metadata = global_metadata
             self.frame_metadata = frame_metadata
@@ -377,8 +395,10 @@ class Nuclear:
         self,
         working_memory_mode="zarr",
         working_memory_folder=None,
+        monitor_progress=True,
+        trackpy_log_path="/tmp/trackpy_log",
         rescale=True,
-        retrack=False,
+        only_retrack=False,
     ):
         """
         Runs through the nuclear segmentation and tracking pipeline using the parameters
@@ -391,36 +411,56 @@ class Nuclear:
             segmentation array) are kept in memory or committed to a `zarr` array. Note
             that using `zarr` as working memory requires the input data to also be a
             `zarr` array, whereby the chunking is inferred from the input data.
-        :type working_memory: {"zarr", None}
+        :type working_memory_mode: {"zarr", None}
         :param working_memory_folder: This parameter is required if `working_memory`
             is set to `zarr`, and should be a folder path that points to the location
             where the necessary `zarr` arrays will be stored to disk.
         :type working_memory_folder: {str, `pathlib.Path`, None}
+        :param bool monitor_progress: If True, redirects the output of `trackpy`'s
+            tracking monitoring to a `tqdm` progress bar.
+        :param str trackpy_log_path: Path to log file to redirect trackpy's stdout progress to.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
-        :param bool retrack: If `True`, only steps subsequent to tracking are re-run.
+        :param bool only_retrack: If `True`, only steps subsequent to tracking are re-run.
         """
         # If `data` is passed as a zarr array, we wrap it as a list of futures
         # that read each chunk - the parallelization is fully determined by the
         # chunking of the data, so memory management can be done by rechunking
         zarr_in_mode = isinstance(self.data, zarr.core.Array)
-        if zarr_in_mode:
-            if self.client is not None:
-                chunk_boundaries, data = parallel_computing.zarr_to_futures(
-                    self.data, self.client
-                )
-            else:
-                data = self.data[:]
-                working_memory_mode = None
-                warnings.warn("No Dask client available, working in local memory.")
-        else:
-            data = self.data
+        zarr_out_mode = (self.client is not None) & (working_memory_mode == "zarr")
+        zarr_to_futures = zarr_in_mode & zarr_out_mode
+
+        if zarr_to_futures:
+            chunk_boundaries, data = parallel_computing.zarr_to_futures(
+                self.data, self.client
+            )
+        elif zarr_in_mode:
             if working_memory_mode == "zarr":
                 raise ValueError(
-                    "Using `working_memory_mode = 'zarr'` requires the data to be fed in as a `zarr` array."
+                    "".join(
+                        [
+                            "Using `working_memory_mode = 'zarr'` requires",
+                            " use of a Dask client.",
+                        ]
+                    )
                 )
+            data = self.data[:]
+            chunk_boundaries = None
+            warnings.warn("Working in local memory.")
+        else:
+            if working_memory_mode == "zarr":
+                raise ValueError(
+                    "".join(
+                        [
+                            "Using `working_memory_mode = 'zarr'` requires",
+                            " the data to be fed in as a `zarr` array.",
+                        ]
+                    )
+                )
+            chunk_boundaries = None
+            data = self.data
 
-        if not retrack:
+        if not only_retrack:
             self.default_params["segmentation_df_params"]["extra_properties"] = (
                 "intensity_mean",
             )
@@ -468,9 +508,8 @@ class Nuclear:
 
             # If working memory set to "zarr", commit to a zarr array instead of
             # using "evaluate = True", which would pull the whole array into memory
-            if working_memory_mode == "zarr":
+            if zarr_to_futures:
                 segment_evaluate = False
-                reorder_evaluate = False
 
                 working_memory_path = Path(working_memory_folder)
                 results_path = working_memory_path / "nuclear_analysis_results"
@@ -482,19 +521,10 @@ class Nuclear:
                     store=results_path / "segmentation.zarr",
                     dtype=np.uint32,
                 )
-                reordered_labels = zarr.creation.zeros_like(
-                    self.data,
-                    overwrite=True,
-                    store=results_path / "reordered_labels.zarr",
-                    dtype=np.uint32,
-                )
-
-            elif working_memory_mode is None:
-                segment_evaluate = True
-                reorder_evaluate = True
 
             else:
-                raise ValueError("`working_memory_mode` option not recognized.")
+                labels = None
+                segment_evaluate = True
 
             self.labels, self.labels_futures, _ = segmentation.segment_movie_parallel(
                 self.denoised_futures,
@@ -507,7 +537,7 @@ class Nuclear:
                 **(self.default_params["segment_params"]),
             )
 
-            if working_memory_mode == "zarr":
+            if zarr_to_futures:
                 parallel_computing.futures_to_zarr(
                     self.labels_futures, chunk_boundaries, labels, self.client
                 )
@@ -536,28 +566,26 @@ class Nuclear:
                 **(self.default_params["segmentation_df_params"]),
             )
 
-            if rescale:
-                # Back up pixel-space (unshifted) positions
-                pixels_column_names = [
-                    "".join([pos, "_pixel"]) for pos in self.pos_columns
-                ]
-                for i, _ in enumerate(pixels_column_names):
-                    self.segmentation_dataframe[
-                        pixels_column_names[i]
-                    ] = self.segmentation_dataframe[self.pos_columns[i]].copy()
+            # Back up pixel-space (unshifted) positions
+            pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
+            for i, _ in enumerate(pixels_column_names):
+                self.segmentation_dataframe[pixels_column_names[i]] = (
+                    self.segmentation_dataframe[self.pos_columns[i]].copy()
+                )
 
-                if (self.series_shifts is not None) and ("z" in self.pos_columns):
-                    # Account for z-stack shift between series
-                    for i, shift_frame in enumerate(self.series_splits):
+            if (self.series_shifts is not None) and ("z" in self.pos_columns):
+                # Account for z-stack shift between series
+                for i, shift_frame in enumerate(self.series_splits):
+                    self.segmentation_dataframe.loc[
+                        self.segmentation_dataframe["frame"] > shift_frame, "z"
+                    ] = (
                         self.segmentation_dataframe.loc[
                             self.segmentation_dataframe["frame"] > shift_frame, "z"
-                        ] = (
-                            self.segmentation_dataframe.loc[
-                                self.segmentation_dataframe["frame"] > shift_frame, "z"
-                            ]
-                            - self.series_shifts[i]
-                        )
+                        ]
+                        - self.series_shifts[i]
+                    )
 
+            if rescale:
                 # Rescale pixel-space position columns to match real space
                 if self.global_metadata is not None:
                     mpp_pos_fields = [
@@ -574,11 +602,12 @@ class Nuclear:
 
         self.tracked_dataframe = track_features.link_df(
             self.segmentation_dataframe,
+            monitor_progress=monitor_progress,
+            trackpy_log_path=trackpy_log_path,
             **(self.default_params["link_df_params"]),
         )
 
         if self.stitch:
-            print("Stitching tracks.")
             if self.stitch_max_distance is None:
                 self.stitch_max_distance = 0.5 * self.search_range_um
 
@@ -588,7 +617,6 @@ class Nuclear:
                 self.stitch_max_distance,
                 self.stitch_max_frame_distance,
                 self.stitch_frames_mean,
-                quantification="intensity_mean",
                 inplace=True,
             )
 
@@ -597,8 +625,9 @@ class Nuclear:
             **(self.default_params["construct_lineage_params"]),
         )
 
+        # Restore dataframe to pixel-space
+        pixels_column_names = ["".join([pos, "_pixel"]) for pos in self.pos_columns]
         if (self.series_shifts is not None) and ("z" in self.pos_columns):
-            # Restore dataframe to pixel-space
             for i, _ in enumerate(self.pos_columns):
                 self.mitosis_dataframe[self.pos_columns[i]] = self.mitosis_dataframe[
                     pixels_column_names[i]
@@ -630,6 +659,24 @@ class Nuclear:
             else:
                 first_last_frames = None
 
+            if zarr_to_futures:
+                reorder_evaluate = False
+
+                working_memory_path = Path(working_memory_folder)
+                results_path = working_memory_path / "nuclear_analysis_results"
+                results_path.mkdir(exist_ok=True)
+
+                reordered_labels = zarr.creation.zeros_like(
+                    self.data,
+                    overwrite=True,
+                    store=results_path / "reordered_labels.zarr",
+                    dtype=np.uint32,
+                )
+
+            else:
+                reorder_evaluate = True
+                reordered_labels = None
+
             (
                 self.reordered_labels,
                 self.reordered_labels_futures,
@@ -644,7 +691,7 @@ class Nuclear:
                 futures_out=True,
             )
 
-            if working_memory_mode == "zarr":
+            if zarr_to_futures:
                 parallel_computing.futures_to_zarr(
                     self.reordered_labels_futures,
                     chunk_boundaries,
@@ -675,8 +722,6 @@ class Nuclear:
         Saves results of nuclear segmentation and tracking to disk as HDF5, with the
         labelled segmentation mask saved as zarr or TIFF as specified.
 
-        :param str file_name: Name to save reordered (post-tracking) labelled nuclear
-            mask under.
         :param str name_folder: Name of folder to create `nuclear_analysis_results`
             subdirectory in, in which analysis results are stored.
         :param save_array_as: Format to save reordered nuclear labels in:
@@ -712,7 +757,7 @@ class Nuclear:
                 if save_movies[movie] is not None:
                     save_name = "".join([movie, ".zarr"])
                     save_path = results_path / save_name
-                    zarr.save_array(save_path, save_movies[movie])
+                    zarr.save_array(str(save_path), save_movies[movie])
                 else:
                     warnings.warn("".join([movie, file_not_found]))
 
@@ -775,7 +820,7 @@ class Nuclear:
             # Try importing as zarr first - if there is no zarr array, this will
             # return `None`
             zarr_path = results_path / "".join([array, ".zarr"])
-            setattr(self, array, zarr.open(zarr_path))
+            setattr(self, array, zarr.open(str(zarr_path)))
 
             if getattr(self, array) is None:
                 tiff_path = results_path / "".join([array, ".tiff"])

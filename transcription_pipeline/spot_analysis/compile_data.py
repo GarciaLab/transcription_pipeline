@@ -1,11 +1,12 @@
 import pandas as pd
 import warnings
 import numpy as np
+from tqdm import tqdm
 
 
-def _compile_property(compiled_dataframe_row, original_dataframe, property, sort=True):
+def _compile_property(compiled_dataframe_row, original_dataframe, quantity, sort=True):
     """
-    Returns the values of a specified column `property` in `original_dataframe`
+    Returns the values of a specified column `quantity` in `original_dataframe`
     corresponding to a particle specified by the `particle` column of
     `compiled_dataframe_row`.
     """
@@ -16,7 +17,7 @@ def _compile_property(compiled_dataframe_row, original_dataframe, property, sort
     if sort:
         particle_df = particle_df.sort_values("t_s")
 
-    compiled_property = particle_df[property].values
+    compiled_property = particle_df[quantity].values
 
     return compiled_property
 
@@ -56,13 +57,13 @@ def compile_traces(
         `nuclear_tracking_dataframe`.
     :type compile_columns_nuclear: List of column names.
     :param int max_frames_outside_division: The maximum number of timepoints a track
-        can have outside of a nuclear cycle and still be considered exlusively part
+        can have outside of a nuclear cycle and still be considered exclusively part
         of that nuclear cycle.
     :param bool ignore_negative_spots: Ignores datapoints where the spot quantification
         goes negative - as long as we are looking at background-subtracted intensity,
         negative values are clear mistrackings/misquantifications.
     :return: DataFrame of compiled data indexed by particle.
-    :rtype: pandas DataFrame
+    :rtype: pd.DataFrame
     """
     if ignore_negative_spots:
         try:
@@ -76,21 +77,21 @@ def compile_traces(
 
     compiled_dataframe = pd.DataFrame(data=particles, columns=["particle"])
 
-    for property in compile_columns_spot:
+    for quantity in compile_columns_spot:
         # Preallocate and convert to dtype object to allow storage of arrays
-        compiled_dataframe[property] = np.nan
-        compiled_dataframe[property] = compiled_dataframe[property].astype(object)
+        compiled_dataframe[quantity] = np.nan
+        compiled_dataframe[quantity] = compiled_dataframe[quantity].astype(object)
 
         try:
-            compiled_dataframe[property] = compiled_dataframe.apply(
-                _compile_property, args=(spot_tracking_dataframe, property), axis=1
+            compiled_dataframe[quantity] = compiled_dataframe.apply(
+                _compile_property, args=(spot_tracking_dataframe, quantity), axis=1
             )
         except KeyError:
             warnings.warn(
                 "".join(
                     [
                         "Property ",
-                        property,
+                        quantity,
                         " to compile not found, check",
                         " that names of provided columns match respective DataFrame.",
                     ]
@@ -99,16 +100,16 @@ def compile_traces(
             )
 
     if nuclear_tracking_dataframe is not None:
-        for property in compile_columns_nuclear:
-            if isinstance(property, dict):
-                property_key = list(property.keys())[0]
-                property_value = property[property_key]
-                property = property_key
+        for quantity in compile_columns_nuclear:
+            if isinstance(quantity, dict):
+                property_key = list(quantity.keys())[0]
+                property_value = quantity[property_key]
+                quantity = property_key
                 column_name = property_value
             else:
-                column_name = property
+                column_name = quantity
 
-            if property != "division_time":
+            if quantity != "division_time":
                 # Preallocate and convert to dtype object to allow storage of arrays
                 compiled_dataframe[column_name] = np.nan
                 compiled_dataframe[column_name] = compiled_dataframe[
@@ -117,7 +118,7 @@ def compile_traces(
 
                 compiled_dataframe[column_name] = compiled_dataframe.apply(
                     _compile_property,
-                    args=(nuclear_tracking_dataframe, property),
+                    args=(nuclear_tracking_dataframe, quantity),
                     axis=1,
                 )
 
@@ -149,3 +150,50 @@ def compile_traces(
         )
 
     return compiled_dataframe
+
+
+def consolidate_traces(
+    traces_dataframe,
+    trace_column="background_intensity_from_neighborhood",
+    time_column="t_frame",
+):
+    """
+    Consolidates all traces from a compiled dataframe structure as output by
+    :func:`~compile_traces` into a single array with dimensions
+    `(number of traces, number of time points in the longest trace)`. All missing time points
+    are padded with `np.nan`.
+
+    :param traces_dataframe: Dataframe containing compiled traces.
+    :type traces_dataframe: pandas.DataFrame
+    :param str trace_column: Name of column in `traces_dataframe` containing the
+        traces to be consolidated (each entry being a time series array, each row
+        corresponding to a single trace).
+    :param str time_column: Name of column in `traces_dataframe` containing the
+        time points of the traces to be consolidated in units of the time resolution.
+        This must be an array of integers that map to real time (not just frame number
+        since those can be different if the data is concatenated from multiple series
+        with a time delay between the end of a series and the start of the next).
+    :return: Padded array containing compiled traces.
+    :rtype: np.ndarray
+    """
+    # Initialize as pandas object for convenient use of `apply`.
+    traces_dataframe = traces_dataframe.copy().reset_index(inplace=False, drop=True)
+    traces_time_series = traces_dataframe[time_column]
+
+    traces_length = traces_time_series.apply(lambda x: x[-1] - x[0] + 1)
+    num_traces = traces_time_series.size
+    consolidated_trace_array = np.empty((num_traces, traces_length.max()), dtype=float)
+    consolidated_trace_array[:] = np.nan
+
+    def _inject_trace(row):
+        """
+        Helper function to inject traces into consolidated numpy array, padding
+        missing timepoints with `NaN`s.
+        """
+        trace_index = row[time_column] - row[time_column][0]
+        consolidated_trace_array[row.name][trace_index] = row[trace_column]
+
+    tqdm.pandas(desc="Padding and consolidating traces")
+    traces_dataframe.progress_apply(_inject_trace, axis=1)
+
+    return consolidated_trace_array

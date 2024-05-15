@@ -1,0 +1,1076 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>transcription_pipeline.tracking package &#8212; transcription_pipeline 0.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=384b581d" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
+
+    <script src="_static/documentation_options.js?v=e645c8fa"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=efea14e4"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'transcription_pipeline.tracking';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="transcription_pipeline.utils package" href="transcription_pipeline.utils.html" />
+    <link rel="prev" title="transcription_pipeline.spot_analysis package" href="transcription_pipeline.spot_analysis.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">transcription_pipeline 0.0.1 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="modules.html">transcription_pipeline</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="transcription_pipeline.html">transcription_pipeline package</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html">transcription_pipeline.nuclear_analysis package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">transcription_pipeline.tracking package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Data import and preprocessing:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Tracking:</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">transcription_pipeline.tracking package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Nuclear analysis:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html">transcription_pipeline.nuclear_analysis package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Spot analysis:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Utilities:</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/transcription_pipeline.tracking.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>transcription_pipeline.tracking package</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.detect_mitosis">transcription_pipeline.tracking.detect_mitosis module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.construct_lineage"><code class="docutils literal notranslate"><span class="pre">construct_lineage()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_start"><code class="docutils literal notranslate"><span class="pre">tracks_start()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari"><code class="docutils literal notranslate"><span class="pre">tracks_to_napari()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.stitch_tracks">transcription_pipeline.tracking.stitch_tracks module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe"><code class="docutils literal notranslate"><span class="pre">construct_stitch_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks"><code class="docutils literal notranslate"><span class="pre">stitch_tracks()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.add_velocity"><code class="docutils literal notranslate"><span class="pre">add_velocity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.assign_nuclear_cycle"><code class="docutils literal notranslate"><span class="pre">assign_nuclear_cycle()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.determine_nuclear_cycle_frames"><code class="docutils literal notranslate"><span class="pre">determine_nuclear_cycle_frames()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.link_df"><code class="docutils literal notranslate"><span class="pre">link_df()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.read_trackpy_status"><code class="docutils literal notranslate"><span class="pre">read_trackpy_status()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.reorder_labels"><code class="docutils literal notranslate"><span class="pre">reorder_labels()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.reorder_labels_parallel"><code class="docutils literal notranslate"><span class="pre">reorder_labels_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.segmentation_df"><code class="docutils literal notranslate"><span class="pre">segmentation_df()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.tqdm_trackpy"><code class="docutils literal notranslate"><span class="pre">tqdm_trackpy()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking">Module contents</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="transcription-pipeline-tracking-package">
+<h1>transcription_pipeline.tracking package<a class="headerlink" href="#transcription-pipeline-tracking-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-transcription_pipeline.tracking.detect_mitosis">
+<span id="transcription-pipeline-tracking-detect-mitosis-module"></span><h2>transcription_pipeline.tracking.detect_mitosis module<a class="headerlink" href="#module-transcription_pipeline.tracking.detect_mitosis" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.detect_mitosis.construct_lineage">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.detect_mitosis.</span></span><span class="sig-name descname"><span class="pre">construct_lineage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_range_mitosis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antiparallel_coordinate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'direction'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antiparallel_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_track_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum_age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.detect_mitosis.construct_lineage" title="Link to this definition">#</a></dt>
+<dd><p>Constructs lineages in dividing nuclei by iterating over new tracks and identifying
+pairs of siblings after a division, then determining and assigning the parent
+identity for both siblings and clipping the parent track at the division so that
+both siblings have a new identity. Returns a copy of <cite>tracked_dataframe</cite> with
+the identities rearranges so that each nucleus has a unique identity after
+divisions and an added column to keep track of the parent identities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in segmentation_df containing a position
+coordinate.</p></li>
+<li><p><strong>search_range_mitosis</strong> (<em>float</em>) – Search range in transformed coordinate space
+(spatial coordinates in <cite>pos_columns</cite> renormalized so that the mean distance
+between nuclei in each frame is set to unity + one extra coordinate for each
+of the spatial coordinates used to evaluate how antiparallel the velocities
+of candidate siblings are, either using direction vectors or the full
+velocity vectors.</p></li>
+<li><p><strong>antiparallel_coordinate</strong> (<em>{'velocity'</em><em>, </em><em>'direction'</em><em>, </em><em>'collision'}</em>) – Selects which approach to use to construct the
+measure of anti-parallel velocities, with <cite>velocity</cite> using the full velocity
+vector (i.e. it expects siblings to move away from each other at the same
+speed in the scope frame) normalized such that the mean velocity of all
+particles in the frame in each coordinate is unity, <cite>direction</cite> using
+direction vectors, and ‘collision’ projecting velocities back a half-frame
+and linking by proximity.</p></li>
+<li><p><strong>antiparallel_weight</strong> (<em>float</em>) – Rescales the coordinate space so that an
+arbitrary weight can be placed on spatial proximity vs having
+antiparallel velocities during the search for sibling nuclei, with 1
+corresponding to no rescaling other than that described above (i.e. with
+mean separation between nuclei and velocities in all specified coordinates
+rescaled to unity).</p></li>
+<li><p><strong>min_track_length</strong> (<em>int</em>) – Minimum number of frames that a new track must
+span to be considered. This helps reduce spurious detections.</p></li>
+<li><p><strong>image_dimensions</strong> (<em>Array</em><em> of </em><em>integers.</em>) – Image dimension in each respective coordinate of
+<cite>pos_columns</cite>.</p></li>
+<li><p><strong>exclude_border</strong> (<em>float</em><em> or </em><em>array</em><em> of </em><em>floats for each coordinate.</em>) – Fraction of border in each position coordinate
+to exclude when searching for new particles to assign siblings to.</p></li>
+<li><p><strong>minimum_age</strong> (<em>int</em>) – Minimum number of frame that a particle needs to have
+existed for to be considered during the search for siblings. This helps
+cut down on single nuclei being assigned several divisions due to proximity
+with other dividing nuclei.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Copy of <cite>tracked_dataframe</cite> with particle identities corresponding to
+lineage and an added column with parent identities.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass through any of the <cite>trackpy.link_df</cite>
+arguments.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.detect_mitosis.tracks_start">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.detect_mitosis.</span></span><span class="sig-name descname"><span class="pre">tracks_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_track_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modify_df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_dimensions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.detect_mitosis.tracks_start" title="Link to this definition">#</a></dt>
+<dd><p>Uses input <cite>tracked_dataframe</cite> with tracking information to construct
+sub-dataframes with entries corresponding to the start of a particle track
+(i.e. the first frame it is present in).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
+<li><p><strong>pos_columns</strong> – Name of columns in segmentation_df containing a position
+coordinate.</p></li>
+<li><p><strong>min_track_length</strong> (<em>int</em>) – Minimum number of frames that a new track must
+span to be considered. This helps reduce spurious detections.</p></li>
+<li><p><strong>modify_df</strong> (<em>bool</em>) – If <cite>True</cite>, the input <cite>tracked_dataframe</cite> is modified
+in-place to add a column of booleans <cite>new_particle</cite> which keeps track of
+whether the particle in every row is a newly-appearing particle.</p></li>
+<li><p><strong>image_dimensions</strong> (<em>Array</em><em> of </em><em>integers.</em>) – Image dimension in each respective coordinate of
+<cite>pos_columns</cite>.</p></li>
+<li><p><strong>exclude_border</strong> (<em>float</em><em> or </em><em>array</em><em> of </em><em>floats for each coordinate.</em>) – Fraction of border in each position coordinate
+to exclude when searching for new particles to assign siblings to.</p></li>
+<li><p><strong>output</strong> (<em>bool</em>) – If <cite>False</cite>, the function returns <cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>All rows in the input <cite>tracked_dataframe</cite> corresponding to the start of
+a particle track.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.detect_mitosis.tracks_to_napari">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.detect_mitosis.</span></span><span class="sig-name descname"><span class="pre">tracks_to_napari</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tracks'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari" title="Link to this definition">#</a></dt>
+<dd><p>Uses tracking and lineage information in <cite>mitosis_dataframe</cite> to construct
+tracks datastructures compatible with napari tracks layer. If output is requested,
+will also return these data structures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>viewer</strong> (<em>napari viewer object</em>) – napari viewer.</p></li>
+<li><p><strong>dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code> and lineage construction with <cite>construct_lineage</cite>.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of the <cite>tracks</cite> layer in napari.</p></li>
+<li><p><strong>output</strong> (<em>bool</em>) – If True, returns the napari-compatible datastructures used
+to visualize tracks.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>output = True</cite>, returns lineage dictionary and parent properties
+used to visualize tracks in napari.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{tuple, None}</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-transcription_pipeline.tracking.stitch_tracks">
+<span id="transcription-pipeline-tracking-stitch-tracks-module"></span><h2>transcription_pipeline.tracking.stitch_tracks module<a class="headerlink" href="#module-transcription_pipeline.tracking.stitch_tracks" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">construct_stitch_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe" title="Link to this definition">#</a></dt>
+<dd><p>Constructs dataframe containing identities of tracks that need to be stitched
+together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em>) – Maximum distance between mean position of partial tracks
+that still allows for stitching to occur.</p></li>
+<li><p><strong>max_frame_distance</strong> (<em>int</em>) – Maximum number of frames between tracks with no
+points from either tracks that still allows for stitching to occur.</p></li>
+<li><p><strong>frames_mean</strong> (<em>int</em>) – Number of frames to average over when estimating the mean
+position of the start and end of candidate tracks to stitch together.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>DataFrame with columns {<cite>preliminary_particles</cite>, <cite>nearest_neighbor</cite>,
+<cite>distance</cite>, <cite>frame_overlap</cite>, <cite>frame_distance</cite>}.</p>
+<ul class="simple">
+<li><p><cite>preliminary_particles</cite>: Particle ID of tracked particles in <cite>tracked_dataframe</cite>.</p></li>
+<li><p><cite>nearest_neighbor</cite>: Mean-position nearest-neighbor of current particle.</p></li>
+<li><p><cite>distance</cite>: Euclidean distance (with respect to coordinates specified in
+<cite>pos_columns</cite>) to nearest neighbor.</p></li>
+<li><p><cite>frame_overlap</cite>: Number of frames that include both tracks.</p></li>
+<li><p><cite>frame_distance</cite>: Number of frames separating the end of the earlier track
+and the beginning of the later track if there is no overlapping frame.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.remove_duplicates">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">remove_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates" title="Link to this definition">#</a></dt>
+<dd><p>After a round of tracking, a stitching operation is usually carried out to link
+partial tracks that are easily resolvable by mean position, leaving some
+tracks with duplicate spots in the frame where the stitching occurs. This function
+scans through the tracked and stitched dataframe to remove duplicate spots.
+Modifies the dataframe in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots after stitching operation.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.stitch_tracks">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">stitch_tracks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks" title="Link to this definition">#</a></dt>
+<dd><p>Stitches together tracks depending on proximity in time (start time of candidate
+track to stitch relative to end time of a given track) and space (position averaged
+over a few frames at the end of given track relative to start of candidate track).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em>) – Maximum distance between mean position of partial tracks
+that still allows for stitching to occur.</p></li>
+<li><p><strong>max_frame_distance</strong> (<em>int</em>) – Maximum number of frames between tracks with no
+points from either tracks that still allows for stitching to occur.</p></li>
+<li><p><strong>frames_mean</strong> (<em>int</em>) – Number of frames to average over when estimating the mean
+position of the start and end of candidate tracks to stitch together.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If <cite>True</cite>, <cite>tracked_dataframe</cite> is modified in-place and the
+function returns <cite>None</cite>. Otherwise, a stitched copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tracked dataframe with stitched tracks.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame or <cite>None</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-transcription_pipeline.tracking.track_features">
+<span id="transcription-pipeline-tracking-track-features-module"></span><h2>transcription_pipeline.tracking.track_features module<a class="headerlink" href="#module-transcription_pipeline.tracking.track_features" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.add_velocity">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">add_velocity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">averaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.add_velocity" title="Link to this definition">#</a></dt>
+<dd><p>Returns a copy of a dataframe of tracked features (post linking with trackpy) with
+added columns for the instantaneous velocities in coordinates specified in
+<cite>pos_columns</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>t_column</strong> (DataFrame column name,
+{<cite>frame</cite>, <cite>t_frame</cite>, <cite>frame_reverse</cite>, <cite>t_frame_reverse</cite>}. For explanation of
+column names, see <a class="reference internal" href="#transcription_pipeline.tracking.track_features.segmentation_df" title="transcription_pipeline.tracking.track_features.segmentation_df"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmentation_df()</span></code></a>.) – Name of column in <cite>segmentation_df</cite> containing the time-coordinate
+for each feature.</p></li>
+<li><p><strong>averaging</strong> (<em>int</em>) – Number of frames to average velocity over.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Copy of input tracked dataframe with added columns for coordinate
+velocities.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.assign_nuclear_cycle">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">assign_nuclear_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_nuclei_per_fov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trigger_property</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'num_objects'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">invert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluorescence_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nuclear_intensity_mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_fluo_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.assign_nuclear_cycle" title="Link to this definition">#</a></dt>
+<dd><p>Traverses input <cite>feature_dataframe</cite> (usually corresponding to a nuclear marker)
+of segmented features and uses the number of features per field-of-view to assign
+a nuclear cycle to the particle as per the specifications of a dictionary
+<cite>num_nuclei_per_fov</cite>. <cite>feature_dataframe</cite> is modified in-place to add a
+“nuclear_cycle” column. Additional kwargs are passed through to the peak
+detection function used to estimate division frames (see documentation for
+<cite>determine_nuclear_cycle_frames</cite>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unless specified, a default parameter of <cite>height</cite> = 0.1, <cite>distance</cite> = 10 is
+passed through to <cite>determine_nuclear_cycle_frames</cite> if triggering off of the number
+of objects in the FOV. If triggering off of nuclear fluorescence, a default
+parameter of <cite>prominence</cite> = 0.5 is used instead for peak detection.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature_dataframe</strong> (<em>pandas DataFrame</em>) – Dataframe with each row corresponding to a detected and
+segmented feature, and a column <cite>frame</cite> containing the corresponding frame.</p></li>
+<li><p><strong>num_nuclei_per_fov</strong> (<em>dict</em>) – Dictionary specifying the acceptable range of median
+number of detected objects per FOV for a contiguous series of frames bounded
+by detected division waves. The ranges are specified in the form
+{nuclear_cycle: (lower bound, upper bound)}.</p></li>
+<li><p><strong>trigger_property</strong> (<em>{'num_objects'</em><em>, </em><em>'nuclear_fluorescence'}</em>) – Image feature to use to determine the division frames. For
+more extensive description, see documentation for <cite>determine_nuclear_cycle_frames</cite>.</p></li>
+<li><p><strong>invert</strong> (<em>bool</em>) – Invert <cite>property_array</cite> before using peak detection to mark
+division frames. This is useful e.g. if we’re triggering off of loss of nuclear
+fluorescence during divisions. As of now this is only used if triggering off
+of nuclear fluorescence.</p></li>
+<li><p><strong>fluorescence_field</strong> (<em>str</em>) – Name of field used to quantify fluorescence for division
+frame assignment. Only used if <cite>trigger_property</cite> is set to “nuclear_fluorescence”.</p></li>
+<li><p><strong>ignore_fluo_threshold</strong> (<em>float</em>) – Fraction of peak nuclear fluorescence below
+which to ignore frames counting objects to avoid including spurious segmentation
+during nuclear divisions. Setting to 1 is equivalent to no threshold.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(division_frames, nuclear_cycle)</p>
+<ul class="simple">
+<li><p><cite>division_frames</cite>: Numpy array of frame number (not index - the frames are
+1-indexed as per <cite>trackpy</cite>’s convention) of the detected division windows.</p></li>
+<li><p><cite>nuclear_cycle</cite>: Numpy array of nuclear cycle being exited at corresponding
+entry of <cite>division_frames</cite> - this will be one entry larger than <cite>division_frames</cite>
+since we obviously don’t see division out of the last cycle observed.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.determine_nuclear_cycle_frames">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">determine_nuclear_cycle_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_array</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trigger_property</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'num_objects'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">invert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.determine_nuclear_cycle_frames" title="Link to this definition">#</a></dt>
+<dd><p>Assigns frames to nuclear divisions. Additional kwargs are passed through to the peak
+detection function <cite>scipy.signal.find_peaks</cite>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>If <cite>trigger_property</cite> is set to <cite>num_objects</cite>, the function looks for maxima of
+the discrete time-derivative of the log of the number of detected nuclei to assign
+frames to nuclear divisions. The log is used so that the same peak threshold
+parameters can be used for every nuclear cycle and any zoom dataset (doubling
+of the number of detected objects corresponding to a constant additive increase in
+log-space).</p></li>
+<li><p>If <cite>trigger_property</cite> is set to <cite>nuclear_fluorescence</cite>, then the function
+goes off of increase (e.g. histone compaction) or decrease (loss of nuclear
+transcription factor) in nuclear fluorescence to estimate division frames, depending
+on the setting for <cite>invert</cite>.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frame_array</strong> (<em>np.ndarray</em>) – Sorted array corresponding to the frame numbers.</p></li>
+<li><p><strong>property_array</strong> (<em>np.ndarray</em>) – Array corresponding to the image feature being used to determine
+the division frames - as of this version, this can number of detected features in
+each frame of <cite>frame_array</cite> (e.g. with a histone marker) or nuclear-localized
+fluorescence (e.g. with a fluorescently-tagged transcription factor).</p></li>
+<li><p><strong>trigger_property</strong> (<em>{'num_objects'</em><em>, </em><em>'nuclear_fluorescence'}</em>) – Image feature to use to determine the division frames.</p></li>
+<li><p><strong>invert</strong> (<em>bool</em>) – Invert <cite>property_array</cite> before using peak detection to mark
+division frames. This is useful e.g. if we’re triggering off of loss of nuclear
+fluorescence during divisions. As of now this is only used if triggering off
+of nuclear fluorescence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of the frames with detected division waves.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.link_df">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">link_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segmentation_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_predict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_averaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_velocities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reindex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_log_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp/trackpy_log'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.link_df" title="Link to this definition">#</a></dt>
+<dd><p>Use trackpy to link particles across frames, assigning unique particles an
+identity in a <cite>particle</cite> column added in place to the input segmentation_df
+dataframe and an estimate of the instantaneous velocity of tracked features
+in each coordinate (this expects the coordinate columns to be given as
+<cite>x</cite>, <cite>y</cite> and <cite>z</cite> and if those cannot be found will fall back on coordinates
+specified in <cite>pos_columns</cite>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segmentation_dataframe</strong> (<em>pandas DataFrame</em>) – trackpy-compatible pandas DataFrame for linking particles
+across frame.</p></li>
+<li><p><strong>search_range</strong> (<em>float</em>) – The maximum distance features can move between frames.</p></li>
+<li><p><strong>memory</strong> (<em>int</em>) – The maximum number of frames during which a feature can vanish,
+then reappear nearby, and be considered the same particle.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>t_column</strong> (DataFrame column name,
+{<cite>frame</cite>, <cite>t_frame</cite>, <cite>frame_reverse</cite>, <cite>t_frame_reverse</cite>}. For explanation of
+column names, see <a class="reference internal" href="#transcription_pipeline.tracking.track_features.segmentation_df" title="transcription_pipeline.tracking.track_features.segmentation_df"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmentation_df()</span></code></a>.) – Name of column in <cite>segmentation_df</cite> containing the time coordinate
+for each feature.</p></li>
+<li><p><strong>velocity_predict</strong> (<em>bool</em>) – If True, uses trackpy’s
+<cite>predict.NearestVelocityPredict</cite> class to estimate a velocity for each feature
+at each timestep and predict its position in the next frame. This can help
+tracking, particularly of nuclei during nuclear divisions.</p></li>
+<li><p><strong>velocity_averaging</strong> (<em>int</em>) – Number of frames to average velocity over.</p></li>
+<li><p><strong>add_velocities</strong> (<em>bool</em>) – If True, adds velocities of tracked particles after
+tracking.</p></li>
+<li><p><strong>reindex</strong> (<em>bool</em>) – If <cite>True</cite>, reindexes the dataframe after linking. This is
+important for subsequent mitosis detection on the nuclear channel, but
+prevents the split-apply-combine operations on the dataframe during spot
+analysis.</p></li>
+<li><p><strong>monitor_progress</strong> (<em>bool</em>) – If True, redirects the output of <cite>trackpy</cite>’s
+tracking monitoring to a <cite>tqdm</cite> progress bar.</p></li>
+<li><p><strong>trackpy_log_path</strong> (<em>str</em>) – Path to log file to redirect trackpy’s stdout progress to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Original <cite>segmentation_df</cite> DataFrame with an added <cite>particle</cite> column
+assigning an ID to each unique feature as tracked by trackpy and velocity
+columns for each coordinate in <cite>pos_columns</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also take any kwargs accepted by <code class="docutils literal notranslate"><span class="pre">trackpy.link_df</span></code> to
+specify the tracking options.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.read_trackpy_status">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">read_trackpy_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_frames</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.read_trackpy_status" title="Link to this definition">#</a></dt>
+<dd><p>Helper function to read the trackpy progress file. Redirects trackpy’s
+logging to a specified file that is then monitored in <cite>tqdm</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<em>str</em>) – Path to file that trackpy’s logging is being
+redirected to.</p></li>
+<li><p><strong>num_frames</strong> (<em>int</em>) – Total number of frames trackpy is tracking
+over.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.reorder_labels">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">reorder_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segmentation_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linked_dataframe</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.reorder_labels" title="Link to this definition">#</a></dt>
+<dd><p>Relabels the input segmentation_mask to match the particle ID assigned by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segmentation_mask</strong> (<em>np.ndarray</em>) – A labeled array, with each label corresponding to a mask
+for a single feature.</p></li>
+<li><p><strong>linked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Segmentation mask for a movie with labels consistent between linked
+particles.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.reorder_labels_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">reorder_labels_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segmentation_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_last_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.reorder_labels_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Relabels the input segmentation_mask to match the particle ID assigned by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>, with the relabeling operation parallelized across
+a Dask LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segmentation_mask</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – A labeled array, with each label corresponding to a mask
+for a single feature.</p></li>
+<li><p><strong>linked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of measured features after tracking with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">link_dataframe()</span></code>.</p></li>
+<li><p><strong>first_last_frames</strong> (<em>list</em>) – 2D list, with each 2-element along axis 0 corresponding
+to the first and last indices of the corresponding chunk in <cite>segmentation_mask</cite>.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>reordered_labels</cite>, <cite>reordered_labels_futures</cite>, <cite>scattered_movies</cite>)
+where</p>
+<ul class="simple">
+<li><p><cite>reordered_labels</cite> is the fully evaluated segmentation mask reordered as per
+the tracking, as an ndarray of the same shape as and dtype as
+<cite>segmentation_mask</cite>, with unique integer labels corresponding to each nucleus.</p></li>
+<li><p><cite>reordered_labels_futures</cite> is the list of futures objects resulting from the
+reordering in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_data</cite> is a list with each element corresponding to a list of
+futures pointing to the input <cite>segmentation_mask</cite> and <cite>linked_dataframe</cite> in
+the workers’ memory respectively.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.segmentation_df">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">segmentation_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segmentation_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_metadata</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_frame_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_nuclei_per_fov</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluorescence_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nuclear_intensity_mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties_callable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.segmentation_df" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a trackpy-compatible pandas DataFrame for tracking from a
+frame-indexed array of segmentation masks. Additional kwargs are passed through
+to <cite>assign_nuclear_cycle</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segmentation_mask</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Integer-labelled segmentation, as returned by
+<cite>scikit.segmentation.watershed</cite>.</p></li>
+<li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
+series in a dataset.</p></li>
+<li><p><strong>initial_frame_index</strong> (<em>int</em>) – Index of first frame, used to offset the recorded
+frame numbers. This is useful if execution is being parallelized by mapping onto
+chunks of a movie.</p></li>
+<li><p><strong>intensity_image</strong> (<em>np.ndarray</em>) – Intensity (i.e., input) image with same size as
+labeled image.</p></li>
+<li><p><strong>num_nuclei_per_fov</strong> (<em>dict</em>) – Dictionary specifying the acceptable range of median
+number of detected objects per FOV for a contiguous series of frames bounded
+by detected division waves. The ranges are specified in the form
+{nuclear_cycle: (lower bound, upper bound)}. This can be passed as <cite>None</cite> (Default)
+to skip assigning nuclear cycles.</p></li>
+<li><p><strong>fluorescence_field</strong> (<em>str</em>) – Name of field used to quantify fluorescence for division
+frame assignment. Only used if <cite>trigger_property</cite> is set to “nuclear_fluorescence”.</p></li>
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
+mask to measure and add to the DataFrame. With no extra properties, the
+DataFrame will have columns only for the frame, label, and centroid
+coordinates.</p></li>
+<li><p><strong>extra_properties_callable</strong> (<em>Iterable</em><em> of </em><em>callables</em><em>, </em><em>optional.</em>) – Properties of each labelled region in the segmentation
+mask to measure and add to the DataFrame, using an iterable of callables for properties
+not included with skimage.</p></li>
+<li><p><strong>spacing</strong> (<em>tuple</em><em> of </em><em>float</em>) – The pixel spacing along each axis of the image. <cite>None</cite> defaults to
+isotropic.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(mitosis_dataframe, division_frames, nuclear_cycle) where</p>
+<ul class="simple">
+<li><p><cite>mitosis_dataframe</cite>: pandas DataFrame of frame, label, centroids, and imaging time
+<cite>t_s</cite> for each labelled region in the segmentation mask (along with other measurements
+specified by extra_properties). Also includes column <cite>t_frame</cite> for the imaging time
+in units of z-stack scanning time, and columns <cite>frame_reverse</cite> and <cite>t_frame_reverse</cite>
+with the frame numbers reversed to allow tracking in reverse (this performs better
+on high-acceleration, low-deceleration particles), along with the assigned nuclear
+cycle for the particle as per <cite>assign_nuclear_cycle</cite>.</p></li>
+<li><p><cite>division_frames</cite>: Numpy array of frame number (not index - the frames are
+1-indexed as per <cite>trackpy</cite>’s convention) of the detected division windows.</p></li>
+<li><p><cite>nuclear_cycle</cite>: Numpy array of nuclear cycle being exited at corresponding
+entry of <cite>division_frames</cite> - this will be one entry larger than <cite>division_frames</cite>
+since we obviously don’t see division out of the last cycle observed.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[pd.DataFrame, np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.track_features.tqdm_trackpy">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.track_features.</span></span><span class="sig-name descname"><span class="pre">tqdm_trackpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linking_function</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_log_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp/trackpy_log'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.track_features.tqdm_trackpy" title="Link to this definition">#</a></dt>
+<dd><p>A wrapper around <cite>trackpy</cite> linkers that redirects tracking progress to a file path
+and monitors it on a <cite>tqdm</cite> progress bar.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>linking_function</strong> (<em>function</em>) – <cite>trackpy</cite> linking function.</p></li>
+<li><p><strong>num_frames</strong> (<em>int</em>) – Total number of frames in dataframe being linked.</p></li>
+<li><p><strong>trackpy_log_path</strong> (<em>str</em>) – Path to log file to redirect trackpy’s stdout progress to.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-transcription_pipeline.tracking">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.tracking" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="transcription_pipeline.spot_analysis.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">transcription_pipeline.spot_analysis package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="transcription_pipeline.utils.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">transcription_pipeline.utils package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.detect_mitosis">transcription_pipeline.tracking.detect_mitosis module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.construct_lineage"><code class="docutils literal notranslate"><span class="pre">construct_lineage()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_start"><code class="docutils literal notranslate"><span class="pre">tracks_start()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari"><code class="docutils literal notranslate"><span class="pre">tracks_to_napari()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.stitch_tracks">transcription_pipeline.tracking.stitch_tracks module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe"><code class="docutils literal notranslate"><span class="pre">construct_stitch_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks"><code class="docutils literal notranslate"><span class="pre">stitch_tracks()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.add_velocity"><code class="docutils literal notranslate"><span class="pre">add_velocity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.assign_nuclear_cycle"><code class="docutils literal notranslate"><span class="pre">assign_nuclear_cycle()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.determine_nuclear_cycle_frames"><code class="docutils literal notranslate"><span class="pre">determine_nuclear_cycle_frames()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.link_df"><code class="docutils literal notranslate"><span class="pre">link_df()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.read_trackpy_status"><code class="docutils literal notranslate"><span class="pre">read_trackpy_status()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.reorder_labels"><code class="docutils literal notranslate"><span class="pre">reorder_labels()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.reorder_labels_parallel"><code class="docutils literal notranslate"><span class="pre">reorder_labels_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.segmentation_df"><code class="docutils literal notranslate"><span class="pre">segmentation_df()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.tqdm_trackpy"><code class="docutils literal notranslate"><span class="pre">tqdm_trackpy()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking">Module contents</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Garcia Lab
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024, Garcia Lab.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

@@ -34,3 +34,4 @@ transcription_pipeline/utils/label_manipulation.py
 transcription_pipeline/utils/neighborhood_manipulation.py
 transcription_pipeline/utils/parallel_computing.py
 transcription_pipeline/utils/plottable.py
+transcription_pipeline/utils/smMS2_calibration.py
