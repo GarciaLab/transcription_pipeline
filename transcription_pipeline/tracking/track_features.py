@@ -551,6 +551,8 @@ def tqdm_trackpy(
                     message="Could not generate velocity field for prediction: no tracks",
                 )
                 linking_result = linking_function(*args, **kwargs)
+            pool.close()
+            pool.join()
 
         return linking_result
 

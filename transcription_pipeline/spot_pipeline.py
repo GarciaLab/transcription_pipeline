@@ -87,6 +87,7 @@ def choose_spot_analysis_parameters(
     retrack_by_intensity,
     retrack_intensity_normalize_quantile,
     num_bootstraps,
+    background,
     integrate_sigma_multiple,
     keep_bandpass,
     keep_spot_labels,
@@ -174,6 +175,9 @@ def choose_spot_analysis_parameters(
         tracking is of large variations in intensity.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
+    :param background: Choose whether the background returned is the mean background
+        intensity per pixel or the total background subtracted over the spot.
+    :type background: {"mean", "total"}
     :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
         used to set the dimensions of the ellipsoid that gets integrated over for spot
         quantification.
@@ -245,7 +249,7 @@ def choose_spot_analysis_parameters(
         "shell_width_um": mppY * 1.1,  # Ensures that a continuous ring is extracted
         "aspect_ratio": spot_sigmas[1] / spot_sigmas[0],
         "num_bootstraps": num_bootstraps,
-        "background": "mean",
+        "background": background,
         "inplace": False,
     }
 
@@ -356,6 +360,9 @@ class Spot:
         `nuclear_labels` is provided.
     :param int num_bootstraps: Number of bootstrap samples of the same shape as the
         extracted pixel values to generate for intensity estimation.
+    :param background: Choose whether the background returned is the mean background
+        intensity per pixel or the total background subtracted over the spot.
+    :type background: {"mean", "total"}
     :param integrate_sigma_multiple: Multiple of the proposed `spot_sigmas` in all axes
         used to set the dimensions of the ellipsoid that gets integrated over for spot
         quantification.
@@ -481,6 +488,7 @@ class Spot:
         extract_sigma_multiple=[6, 10, 10],
         max_num_spots=1,
         num_bootstraps=1000,
+        background="mean",
         integrate_sigma_multiple=9,
         expand_distance=2,
         search_range_um=4.2,
@@ -535,6 +543,7 @@ class Spot:
             self.extract_sigma_multiple = extract_sigma_multiple
             self.max_num_spots = max_num_spots
             self.num_bootstraps = num_bootstraps
+            self.background = background
             self.integrate_sigma_multiple = integrate_sigma_multiple
             self.expand_distance = expand_distance
             self.search_range_um = search_range_um
@@ -591,6 +600,7 @@ class Spot:
                 retrack_by_intensity=self.retrack_by_intensity,
                 retrack_intensity_normalize_quantile=self.retrack_intensity_normalize_quantile,
                 num_bootstraps=self.num_bootstraps,
+                background=self.background,
                 integrate_sigma_multiple=self.integrate_sigma_multiple,
                 keep_bandpass=self.keep_bandpass,
                 keep_spot_labels=self.keep_spot_labels,
@@ -1101,7 +1111,9 @@ class Spot:
             )
             self.reordered_spot_labels_futures = None
 
-    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
+    def save_results(
+        self, *, name_folder, save_array_as="zarr", save_all=False, save_attrs=[]
+    ):
         """
         Saves results of spot segmentation and tracking to disk as HDF5, with the
         labelled segmentation mask saved as zarr or TIFF as specified.
@@ -1112,6 +1124,7 @@ class Spot:
         :type save_array_as: {"zarr", "tiff"}
         :param bool save_all: If true, saves a tiff file for each intermediate step
             of the spot analysis pipeline
+        :param list[str] save_attrs: Names of extra class attributes to pickle and save.
         """
         # Make `spot_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
@@ -1166,7 +1179,14 @@ class Spot:
         with open(spot_analysis_param_path, "wb") as f:
             pickle.dump(self.default_params, f)
 
-    def read_results(self, *, name_folder, import_all=False, import_params=False):
+        for element in save_attrs:
+            attr_path = results_path / "".join([element, ".pkl"])
+            with open(attr_path, "wb") as f:
+                pickle.dump(getattr(self, element), f)
+
+    def read_results(
+        self, *, name_folder, import_all=False, import_params=False, read_attrs=[]
+    ):
         """
         Imports results from a saved run of `extract_spot_traces` into the corresponding
         class attributes.
@@ -1179,6 +1199,7 @@ class Spot:
             directory.
         :param bool import_params: If `True`, will attempt to import parameters from
             saved `default_params` dictionary.
+        :param list[str] read_attrs: Names of extra class attributes to pickle and save.
         """
         name_path = Path(name_folder)
         results_path = name_path / "spot_analysis_results"
@@ -1218,3 +1239,13 @@ class Spot:
         if import_params:
             with open(results_path / "spot_analysis_parameters.pkl", "rb") as f:
                 self.default_params = pickle.load(f)
+
+        # Import extra saved attributes
+        for element in read_attrs:
+            attr_path = results_path / "".join([element, ".pkl"])
+            try:
+                with open(attr_path, "rb") as f:
+                    setattr(self, element, pickle.load(f))
+
+            except FileNotFoundError:
+                setattr(self, element, None)
