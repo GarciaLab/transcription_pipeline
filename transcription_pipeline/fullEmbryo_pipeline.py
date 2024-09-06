@@ -447,7 +447,7 @@ class FullEmbryo:
         onclick.count = 0  # Initialize click counter
 
         # Connect the click event handler to the figure
-        fig.canvas.mpl_connect('button_press_event', onclick)
+        # fig.canvas.mpl_connect('button_press_event', onclick)
 
         plt.show()
 
@@ -465,3 +465,59 @@ class FullEmbryo:
         print(f"AP Angle: {np.degrees(self.ap_angle):.2f} degrees")
 
         return
+
+    def xy_to_ap(self, compiled_data):
+
+        # extract the spot position arrays from compiled_data
+        x = compiled_data.x
+        y = compiled_data.y
+
+        img_window = self.img_window_dataset[self.his_channel][-1, :, :, :]
+        img_window_max = np.max(img_window, axis=0)
+
+        # Added by Josh: scale factor calculation
+        w, h = self.im_shape_scaled
+        w_0 = img_window_max.shape[1]  # width of the original image
+        h_0 = img_window_max.shape[0]  # height of the original image
+        # print(f'image size: {w_0} by {h_0}')
+        scale_factor_w = w / w_0
+        scale_factor_h = h / h_0
+        scale_factor = np.mean([scale_factor_w, scale_factor_h])
+
+        # Convert spot positions to the coordinates in the imaging window in the full embryo image
+        scaled_x = scale_factor * x
+        scaled_y = scale_factor * y
+
+        # Shift the coordinates to the full image coordinate system
+        full_image_x = scaled_x + self.max_loc[0]
+        full_image_y = scaled_y + self.max_loc[1]
+
+        # Reshape the x, y coordinates and pair them up to prep for the transformation
+        reshaped_xy = np.transpose(np.stack((full_image_x, full_image_y)),
+                                   (1, 0))  # exchange the axes so that the first axis is by particle, not by xy
+        spots_coords = [np.stack(xy_pair, axis=1) for xy_pair in reshaped_xy]  # pair the xy coordinates into 2-tuples
+
+        # Define the affine transformation matrix
+        anterior_point = self.anterior_point
+        ap_angle = self.ap_angle
+        ap_d = self.ap_d
+        ap90_d = self.ap90_d
+
+        transform_matrix1 = AffineTransform(translation=(-anterior_point[0], -anterior_point[1]))
+        transform_matrix2 = AffineTransform(rotation=-(ap_angle % np.pi))
+
+        # Apply the affine transformation to the larger image coordinates and calculate the transformed coordinates in terms of (AP, AP90) percentages
+        transformed_spots_ap_coords = [transform_matrix2(transform_matrix1(spot_coords)) / np.array([ap_d, ap90_d]) for
+                                       spot_coords in spots_coords]
+
+        # Split the coordinates back into AP and AP90 arrays and append them to a new row in compiled_data
+        transformed_ap = [transformed_spot_ap_coords[:, 0] for transformed_spot_ap_coords in
+                          transformed_spots_ap_coords]
+        transformed_ap90 = [transformed_spot_ap_coords[:, 1] for transformed_spot_ap_coords in
+                            transformed_spots_ap_coords]
+
+        new_compiled_data = compiled_data.copy()
+        new_compiled_data['ap'] = transformed_ap
+        new_compiled_data['ap90'] = transformed_ap90
+
+        return new_compiled_data
