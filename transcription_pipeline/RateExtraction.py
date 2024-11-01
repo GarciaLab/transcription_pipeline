@@ -440,23 +440,23 @@ class FitAndAverage:
         self.compiled_dataframe_fits = None
         self.compiled_dataframe_fits_checked = None
 
-        self.checked_traces_file_path = self.dataset_name + '/traces_compiled_dataframe_fits_checked.pkl'
-        self.checked_traces_previous = os.path.isfile(self.checked_traces_file_path)
+        self.checked_particle_fits_file_path = self.dataset_name + '/particle_fits_checked.pkl'
+        self.checked_particle_fits_previous = os.path.isfile(self.checked_particle_fits_file_path)
 
         (make_half_cycle, fit_half_cycle, fit_all_traces,
          fit_average_trace, fit_linear, bin_particles) = unpack_functions()
 
-        if self.checked_traces_previous:
+        if self.checked_particle_fits_previous:
             # Load the DataFrame from the .pkl file
-            print('Load previous trace checking results from "traces_compiled_dataframe_fits_checked.pkl"')
-            traces_compiled_dataframe_fits_checked = pd.read_pickle(self.checked_traces_file_path)
+            print('Load previous particle trace fit checking results from "particle_fits_checked.pkl"')
+            traces_compiled_dataframe_fits_checked = pd.read_pickle(self.checked_particle_fits_file_path)
             traces_compiled_dataframe_fits_checked_temp = traces_compiled_dataframe_fits_checked.copy()
 
             self.compiled_dataframe_fits = traces_compiled_dataframe_fits_checked_temp
             self.compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked
 
         else:
-            print('No previous trace checking results detected. Do trace fitting for the dataframe.')
+            print('No previous particle trace fit checking results detected. Do particle trace fitting for the dataframe.')
 
             # Fit to the current dataframe instead of loading from previous result
             nc14_start_frame = self.nc14_start_frame
@@ -740,29 +740,29 @@ class FitAndAverage:
         fig.canvas.mpl_connect('key_press_event', on_key)
         plt.show()
 
-    def save_checked_fits(self):
+    def save_checked_particle_fits(self):
         '''Save the checked particle fits'''
 
-        if self.checked_traces_previous:
+        if self.checked_particle_fits_previous:
             traces_compiled_dataframe_fits_checked_temp = self.compiled_dataframe_fits
             traces_compiled_dataframe_fits_checked = self.compiled_dataframe_fits_checked
             # Check if any changes is made to the approval status of the particles
             if all(traces_compiled_dataframe_fits_checked_temp.approval_status == traces_compiled_dataframe_fits_checked.approval_status):
-                print('No changes made to the trace checking results')
+                print('No changes made to the particle fit checking results')
             else:
-                answer = messagebox.askyesno('Question', 'Changes to the checked traces detected. Save the changes?')
+                answer = messagebox.askyesno('Question', 'Changes to the checked particle fits detected. Save the changes?')
                 if answer:
                     traces_compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked_temp
-                    traces_compiled_dataframe_fits_checked.to_pickle(self.checked_traces_file_path, compression=None)
-                    print('Checked traces updated')
+                    traces_compiled_dataframe_fits_checked.to_pickle(self.checked_particle_fits_file_path, compression=None)
+                    print('Checked particle fits updated')
                 else:
-                    print('No changes made to the trace checking results')
+                    print('No changes made to the particle fit checking results')
 
         else:
             traces_compiled_dataframe_fits = self.compiled_dataframe_fits
             traces_compiled_dataframe_fits_checked = traces_compiled_dataframe_fits.reset_index()
-            traces_compiled_dataframe_fits_checked.to_pickle(self.checked_traces_file_path, compression=None)
-            print('Checked traces saved')
+            traces_compiled_dataframe_fits_checked.to_pickle(self.checked_particle_fits_file_path, compression=None)
+            print('Checked particle fits saved')
 
         self.compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked
 
@@ -850,10 +850,13 @@ class FitAndAverage:
 
                     # Store the particle IDs with their rates in each bin for further analysis
                     bin_particles_rates[i] = {
-                        'bin': i,
-                        'bin_counts': bin_counts[i],
+                        'bin': i+1,
+                        'bin_ap_position': i/self.bin_num,
+                        'bin_particle_counts': bin_counts[i],
                         'particles': particles,
-                        'rates': rates
+                        'rates': rates,
+                        'mean_rate': np.nanmean(rates),
+                        'SE_rate': np.nanstd(rates) / np.sqrt(len(rates))
                     }
 
                     mean_fit_rates[i] = (np.nanmean(rates))
@@ -902,122 +905,143 @@ class AverageAndFit:
         self.bin_num = bin_num
         self.dataset_name = dataset_folder_path
 
-        dataframe_nc14 = self.compiled_dataframe[self.compiled_dataframe['frame'].apply(min)
-                                                      >= self.nc14_start_frame]
+        self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
+        self.checked_bin_fits_previous = os.path.isfile(self.checked_bin_fits_file_path)
 
         (make_half_cycle, fit_half_cycle, fit_all_traces,
          fit_average_trace, fit_linear, bin_particles) = unpack_functions()
 
-        binned_dataframe_nc14, _ = bin_particles(dataframe_nc14, self.bin_num)
+        if self.checked_bin_fits_previous:
+            # Load the DataFrame from the .pkl file
+            print('Load previous bin fit checking results from "bin_fits_checked.pkl"')
+            bin_fits_checked = pd.read_pickle(self.checked_bin_fits_file_path)
+            bin_fits_checked_temp = bin_fits_checked.copy()
 
-        binned_particles_nc14 = [None] * self.bin_num
-        for bin in range(self.bin_num):
-            binned_particles_nc14[bin] = binned_dataframe_nc14[binned_dataframe_nc14['bin'] == bin]
+            self.bin_average_fit_dataframe = bin_fits_checked_temp
+            self.bin_average_fit_dataframe_checked = bin_fits_checked
 
-        # bin_average_over_time_bins: a function taking the average of MS2 signals for each time bin along the time axis for an AP bin
+        else:
+            print('No previous bin fit checking results detected. Do bin fitting for the dataframe.')
 
-        def bin_average_over_time_bins(bin_dataframe, time_bin_width=self.time_bin_width,
-                                       shift_traces_to_same_start_time=True):
+            dataframe_nc14 = self.compiled_dataframe[self.compiled_dataframe['frame'].apply(min)
+                                                          >= self.nc14_start_frame]
 
-            '''
-            This function should be applied on a dataframe of particles for a particular bin.
-            What this function does:
-            1. Split the time axis into time bins
-            2. Average all MS2 signals in each time bin
+            binned_dataframe_nc14, _ = bin_particles(dataframe_nc14, self.bin_num)
 
-            ARGUMENT
-                bin_dataframe: a pandas dataframe for all the particles in an AP bin
-                time_bin_width: float, the width of the time bin, default is the frame duration of the dataset
-                shift_traces_to_same_start_time: bool, if true, shift the time array for each particle to start at 0.
+            binned_particles_nc14 = [None] * self.bin_num
+            for bin in range(self.bin_num):
+                binned_particles_nc14[bin] = binned_dataframe_nc14[binned_dataframe_nc14['bin'] == bin]
 
-            OUTPUT
-                1. bin_centers: an array of the time bin centers
-                2. bin_means: an array of the mean MS2 signal in each time bin
-                3. bin_stds: an array of the standard deviation for the MS2 signals in each time bin
-            '''
+            bin_particle_num = [0] * self.bin_num
+            for bin in range(self.bin_num):
+                bin_particle_num[bin] = len(binned_particles_nc14[bin])
 
-            # extract the time column
-            t_s = bin_dataframe['t_s'].values
-            if shift_traces_to_same_start_time:
-                t_s_shifted = [None] * len(t_s)
-                for i in range(len(t_s)):
-                    t_first = t_s[i][0]
-                    shifted_t_s = t_s[i] - t_first
-                    t_s_shifted[i] = shifted_t_s
-                t_s = t_s_shifted
+            # bin_average_over_time_bins: a function taking the average of MS2 signals for each time bin along the time axis for an AP bin
 
-            # extract the intensity column
-            intensity = bin_dataframe['intensity_from_neighborhood'].values
-            # intensity_err = bin_dataframe['intensity_std_error_from_neighborhood'].values
+            def bin_average_over_time_bins(bin_dataframe, time_bin_width=self.time_bin_width,
+                                           shift_traces_to_same_start_time=True):
 
-            # Take averages of all the intensity values over time bins:
-            # 1. Flatten t_s and intensity into single arrays
-            t_s_flat = np.concatenate(t_s)
-            intensity_flat = np.concatenate(intensity)
+                '''
+                This function should be applied on a dataframe of particles for a particular bin.
+                What this function does:
+                1. Split the time axis into time bins
+                2. Average all MS2 signals in each time bin
 
-            # 2. Define time bin edges with specified width
-            x_min, x_max = min(t_s_flat), max(t_s_flat)
-            time_bins = np.arange(x_min, x_max + time_bin_width, time_bin_width)
+                ARGUMENT
+                    bin_dataframe: a pandas dataframe for all the particles in an AP bin
+                    time_bin_width: float, the width of the time bin, default is the frame duration of the dataset
+                    shift_traces_to_same_start_time: bool, if true, shift the time array for each particle to start at 0.
 
-            # 3. Digitize t_s_flat into time bins
-            time_bin_indices = np.digitize(t_s_flat, time_bins)
+                OUTPUT
+                    1. bin_centers: an array of the time bin centers
+                    2. bin_means: an array of the mean MS2 signal in each time bin
+                    3. bin_stds: an array of the standard deviation for the MS2 signals in each time bin
+                '''
 
-            # 4. Compute the average and standard deviation for the intensity values in each time bin
-            time_bin_means = np.array([intensity_flat[time_bin_indices == i].mean() for i in range(1, len(time_bins))])
+                # extract the time column
+                t_s = bin_dataframe['t_s'].values
+                if shift_traces_to_same_start_time:
+                    t_s_shifted = [None] * len(t_s)
+                    for i in range(len(t_s)):
+                        t_first = t_s[i][0]
+                        shifted_t_s = t_s[i] - t_first
+                        t_s_shifted[i] = shifted_t_s
+                    t_s = t_s_shifted
 
-            time_bin_stddevs = np.array([intensity_flat[time_bin_indices == i].std() for i in range(1, len(time_bins))])
+                # extract the intensity column
+                intensity = bin_dataframe['intensity_from_neighborhood'].values
+                # intensity_err = bin_dataframe['intensity_std_error_from_neighborhood'].values
 
-            time_bin_stderrs = np.array([intensity_flat[time_bin_indices == i].std()
-                                         / np.sqrt(len(intensity_flat[time_bin_indices == i]))
-                                         for i in range(1, len(time_bins))])
+                # Take averages of all the intensity values over time bins:
+                # 1. Flatten t_s and intensity into single arrays
+                t_s_flat = np.concatenate(t_s)
+                intensity_flat = np.concatenate(intensity)
 
-            # 5. Get the time bin centers for plotting
-            time_bin_centers = (time_bins[:-1] + time_bins[1:]) / 2
+                # 2. Define time bin edges with specified width
+                x_min, x_max = min(t_s_flat), max(t_s_flat)
+                time_bins = np.arange(x_min, x_max + time_bin_width, time_bin_width)
 
-            # 6. Drop the entries with nan means
-            nan_indices = np.isnan(time_bin_means)
+                # 3. Digitize t_s_flat into time bins
+                time_bin_indices = np.digitize(t_s_flat, time_bins)
 
-            time_bin_centers = time_bin_centers[~nan_indices] / 60
-            time_bin_means = time_bin_means[~nan_indices]
-            time_bin_stddevs = time_bin_stddevs[~nan_indices]
-            time_bin_stderrs = time_bin_stderrs[~nan_indices]
+                # 4. Compute the average and standard deviation for the intensity values in each time bin
+                time_bin_means = np.array([intensity_flat[time_bin_indices == i].mean() for i in range(1, len(time_bins))])
 
-            return np.array([time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs])
+                time_bin_stddevs = np.array([intensity_flat[time_bin_indices == i].std() for i in range(1, len(time_bins))])
+
+                time_bin_stderrs = np.array([intensity_flat[time_bin_indices == i].std()
+                                             / np.sqrt(len(intensity_flat[time_bin_indices == i]))
+                                             for i in range(1, len(time_bins))])
+
+                # 5. Get the time bin centers for plotting
+                time_bin_centers = (time_bins[:-1] + time_bins[1:]) / 2
+
+                # 6. Drop the entries with nan means
+                nan_indices = np.isnan(time_bin_means)
+
+                time_bin_centers = time_bin_centers[~nan_indices] / 60
+                time_bin_means = time_bin_means[~nan_indices]
+                time_bin_stddevs = time_bin_stddevs[~nan_indices]
+                time_bin_stderrs = time_bin_stderrs[~nan_indices]
+
+                return np.array([time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs])
 
 
-        # Store the bin averages for all AP bins in a pandas dataframe
-        self.bin_average_fit_dataframe = pd.DataFrame({'time_bin_centers': [None] * self.bin_num,
-                                                  'time_bin_means': [None] * self.bin_num,
-                                                  'time_bin_stddevs': [None] * self.bin_num,
-                                                  'time_bin_stderrs': [None] * self.bin_num,
-                                                  'denoised_time_bin_means': [None] * self.bin_num,
-                                                  'bin_fit_result': [None] * self.bin_num,
-                                                  'bin_fit_slope': [np.nan for i in range(self.bin_num)],
-                                                  'bin_fit_result_modified': [None] * self.bin_num,
-                                                  'bin_fit_slope_modified': [np.nan for i in range(self.bin_num)],
-                                                  'approval_status': [0] * self.bin_num})
+            # Store the bin averages for all AP bins in a pandas dataframe
+            self.bin_average_fit_dataframe = pd.DataFrame({'time_bin_centers': [None] * self.bin_num,
+                                                      'time_bin_means': [None] * self.bin_num,
+                                                      'time_bin_stddevs': [None] * self.bin_num,
+                                                      'time_bin_stderrs': [None] * self.bin_num,
+                                                      'denoised_time_bin_means': [None] * self.bin_num,
+                                                      'bin_fit_result': [None] * self.bin_num,
+                                                      'bin_fit_slope': [np.nan for i in range(self.bin_num)],
+                                                      'bin_fit_result_modified': [None] * self.bin_num,
+                                                      'bin_fit_slope_modified': [np.nan for i in range(self.bin_num)],
+                                                      'bin_particle_number': [None] * self.bin_num,
+                                                      'approval_status': [0] * self.bin_num})
 
-        for bin in range(self.bin_num):
-            try:
-                [time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs] = bin_average_over_time_bins(
-                    binned_particles_nc14[bin])
-                self.bin_average_fit_dataframe['time_bin_centers'][bin] = time_bin_centers
-                self.bin_average_fit_dataframe['time_bin_means'][bin] = time_bin_means
-                self.bin_average_fit_dataframe['time_bin_stddevs'][bin] = time_bin_stddevs
-                self.bin_average_fit_dataframe['time_bin_stderrs'][bin] = time_bin_stderrs
-
-                denoised_time_bin_means = denoise_tv_chambolle(time_bin_means, weight=1080, max_num_iter=500)
-                self.bin_average_fit_dataframe['denoised_time_bin_means'][bin] = denoised_time_bin_means
-
+            for bin in range(self.bin_num):
+                self.bin_average_fit_dataframe['bin_particle_number'][bin] = bin_particle_num[bin]
                 try:
-                    bin_fit_result = fit_average_trace(time_bin_centers, time_bin_means, time_bin_stderrs,
-                                                       denoised_time_bin_means, bin)
-                    self.bin_average_fit_dataframe['bin_fit_result'][bin] = bin_fit_result
-                    self.bin_average_fit_dataframe['bin_fit_slope'][bin] = bin_fit_result[4][3]
+                    [time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs] = bin_average_over_time_bins(
+                        binned_particles_nc14[bin])
+                    self.bin_average_fit_dataframe['time_bin_centers'][bin] = time_bin_centers
+                    self.bin_average_fit_dataframe['time_bin_means'][bin] = time_bin_means
+                    self.bin_average_fit_dataframe['time_bin_stddevs'][bin] = time_bin_stddevs
+                    self.bin_average_fit_dataframe['time_bin_stderrs'][bin] = time_bin_stderrs
+
+                    denoised_time_bin_means = denoise_tv_chambolle(time_bin_means, weight=1080, max_num_iter=500)
+                    self.bin_average_fit_dataframe['denoised_time_bin_means'][bin] = denoised_time_bin_means
+
+                    try:
+                        bin_fit_result = fit_average_trace(time_bin_centers, time_bin_means, time_bin_stderrs,
+                                                           denoised_time_bin_means, bin)
+                        self.bin_average_fit_dataframe['bin_fit_result'][bin] = bin_fit_result
+                        self.bin_average_fit_dataframe['bin_fit_slope'][bin] = bin_fit_result[4][3]
+                    except:
+                        self.bin_average_fit_dataframe['approval_status'][bin] = -1
                 except:
                     self.bin_average_fit_dataframe['approval_status'][bin] = -1
-            except:
-                self.bin_average_fit_dataframe['approval_status'][bin] = -1
 
 
     def check_bin_fits(self, show_denoised_plot=False, show_fit=True, show_std_dev=True, show_std_err=True):
@@ -1215,3 +1239,90 @@ class AverageAndFit:
         update_plot(bin_index)
         fig.canvas.mpl_connect('key_press_event', on_key)
         plt.show()
+
+
+    def save_checked_bin_fits(self):
+        '''Save the checked bin fits'''
+
+        if self.checked_bin_fits_previous:
+            bin_fits_checked_temp = self.bin_average_fit_dataframe
+            bin_fits_checked = self.bin_average_fit_dataframe_checked
+            # Check if any changes is made to the approval status of the particles
+            if all(bin_fits_checked_temp.approval_status == bin_fits_checked.approval_status):
+                print('No changes made to the bin fit checking results')
+            else:
+                answer = messagebox.askyesno('Question', 'Changes to the checked bin fits detected. Save the changes?')
+                if answer:
+                    bin_fits_checked = bin_fits_checked_temp
+                    bin_fits_checked.to_pickle(self.checked_bin_fits_file_path, compression=None)
+                    print('Checked bin fits updated')
+                else:
+                    print('No changes made to the bin fit checking results')
+
+        else:
+            bin_fits = self.bin_average_fit_dataframe
+            bin_fits_checked = bin_fits.reset_index()
+            bin_fits_checked.to_pickle(self.checked_bin_fits_file_path, compression=None)
+            print('Checked bin fits saved')
+
+        self.bin_average_fit_dataframe_checked = bin_fits_checked
+
+
+    def plot_bin_fits(self):
+        '''
+        Plot bin slopes vs AP position
+
+        OUTPUTS
+            ap_positions: the AP positions of the bins
+            bin_slopes: the slopes of the bins
+            bin_slope_errs: the errors in the bin slopes (95% confidence level)
+        '''
+
+        bin_indices = np.arange(self.bin_num)
+
+        plot_mask = ((self.bin_average_fit_dataframe['approval_status'] == 1) |
+                     (self.bin_average_fit_dataframe['approval_status'] == 2))
+
+        modified_mask = (self.bin_average_fit_dataframe['approval_status'] == 2)
+
+        dataframe_for_plot = self.bin_average_fit_dataframe.copy()
+
+        # Extract slope
+        bin_slopes = dataframe_for_plot['bin_fit_slope'].values
+        modified_slopes = dataframe_for_plot.loc[modified_mask, 'bin_fit_slope_modified'].values
+        bin_slopes[modified_mask] = modified_slopes # replace with modified slope
+
+        # Extract slope stderr
+        bin_fit_results = dataframe_for_plot['bin_fit_result'].values
+        modified_results = dataframe_for_plot.loc[modified_mask, 'bin_fit_result_modified'].values
+        bin_fit_results[modified_mask] = modified_results
+
+        bin_slope_errs = np.zeros((self.bin_num, 2))
+        for bin in range(self.bin_num):
+            try:
+                bin_slope_err = bin_fit_results[bin][-1][-1][-1]
+                bin_slope_errs[bin] = bin_slope_err
+            except:
+                pass
+
+        bin_indices = bin_indices[plot_mask]
+        bin_slopes = bin_slopes[plot_mask]
+        bin_slope_errs = bin_slope_errs[plot_mask]
+
+        # Get the bin slope error by subtracting the bounds of the confidence intervals from the slope value
+        bin_slope_errs = np.transpose(np.abs(bin_slope_errs - bin_slopes[:, np.newaxis]))
+
+        ap_positions = bin_indices * 1 / self.bin_num
+
+        plt.figure()
+        plt.errorbar(ap_positions, bin_slopes, yerr=bin_slope_errs, capsize=2, fmt='o')
+        plt.xlabel('AP position')
+        plt.ylabel('Fit rate of average trace (AU/min)')
+        plt.title('Fit rate of average trace vs. AP position (with shifting)')
+        plt.show()
+
+        return [ap_positions, bin_slopes, bin_slope_errs]
+
+
+
+
