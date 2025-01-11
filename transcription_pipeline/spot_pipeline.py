@@ -621,6 +621,7 @@ class Spot:
         trackpy_log_path="/tmp/trackpy_log",
         rescale=True,
         verbose=False,
+        zero_index=True,
     ):
         """
         Runs through the spot segmentation, tracking, fitting and quantification
@@ -651,6 +652,7 @@ class Spot:
             flag indicating where the spot may have been filtered out.
         :param bool verbose: If `True`, marks each row of the spot dataframe with the boolean
             flag indicating where the spot may have been filtered out.
+        :param bool zero_index: If `True`, the frames are 0-indexed instead of 1-indexed.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         """
@@ -1110,6 +1112,9 @@ class Spot:
                 self.spot_labels, self.spot_dataframe
             )
             self.reordered_spot_labels_futures = None
+
+        if zero_index:
+            self.spot_dataframe["frame"] -= 1
 
     def save_results(
         self, *, name_folder, save_array_as="zarr", save_all=False, save_attrs=[]
