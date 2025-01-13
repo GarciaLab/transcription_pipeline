@@ -166,7 +166,8 @@ class CheckSpots(QWidget):
 
         # Initialize approval column for manual curation. Needs to be initialized before UI.
         self.compiled_data = compiled_data
-        self.compiled_data["Selected"] = True
+        if "Selected" not in self.compiled_data.columns:
+            self.compiled_data["Selected"] = True
 
         self._initialize_ui()
 
