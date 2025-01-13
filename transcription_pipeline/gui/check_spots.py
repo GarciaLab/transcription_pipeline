@@ -1,5 +1,10 @@
 """
-This module provides an interactive graphical interface for spot intensity analysis using Napari. The `CheckSpots` class allows visualization of spot intensity traces along with error bars and links this data with image and label layers in Napari. The `CheckSpotsGUI` class serves as an initializer for the graphical interface.
+This module provides an interactive graphical interface for spot intensity analysis using Napari. The `CheckSpots` class
+allows visualization of spot intensity traces along with error bars and links this data with image and label layers in
+Napari. The `CheckSpotsGUI` class serves as an initializer for the graphical interface. The key bindings are as follows:
+navigate traces with `a`(previous) and `d` (next). Use `s` to approve a trace and `w` to reject it, with updates
+reflected in the plot and dataset. Selecting a label in the Napari viewer syncs with the corresponding trace,
+while a red vertical line highlights the currently selected frame in the plot.
 
 Constants:
     :const str DEFAULT_QUANTIFICATION_COLUMN: Default column for quantification, "photometry_flux".
@@ -81,6 +86,42 @@ def update_plot(
     ax.set_xlabel("Frame", color="white")
     if labels_layer:
         labels_layer.selected_label = filtered_data.loc[curr_pos, "particle"]
+    # these are matplotlib.patch.Patch properties
+    approval_state = filtered_data.loc[curr_pos, "Selected"]
+    if approval_state:
+        alpha_withdrawn = 0
+        alpha_selected = 0.5
+    else:
+        alpha_withdrawn = 0.5
+        alpha_selected = 0
+    props_withdrawn = dict(
+        boxstyle="square", facecolor="magenta", alpha=alpha_withdrawn
+    )
+    props_selected = dict(boxstyle="square", facecolor="green", alpha=alpha_selected)
+
+    # Add text boxes to keep track of approval state
+    ax.text(
+        0.84,
+        1.02,
+        "[S]elected",
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        bbox=props_selected,
+        color="white",
+    )
+    ax.text(
+        1,
+        1.02,
+        "[W]ithdrawn",
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        bbox=props_withdrawn,
+        color="white",
+    )
 
 
 class CheckSpots(QWidget):
@@ -120,9 +161,13 @@ class CheckSpots(QWidget):
             )
         else:
             self.spot_image_data, self.label_data = spot_image_data, label_data
-        self.compiled_data = compiled_data
         self.napari_viewer = napari_viewer
         self.curr_pos = 0
+
+        # Initialize approval column for manual curation. Needs to be initialized before UI.
+        self.compiled_data = compiled_data
+        self.compiled_data["Selected"] = True
+
         self._initialize_ui()
 
     def _initialize_ui(self):
@@ -191,6 +236,40 @@ class CheckSpots(QWidget):
                 )
                 self.figure.canvas.draw()
 
+        @self.napari_viewer.bind_key("s", overwrite=True)
+        def select_trace(_viewer):
+            """
+            Bind the "s" key to select (approve) the trace.
+            """
+            self.compiled_data.loc[self.curr_pos, "Selected"] = True
+            # noinspection PyTypeChecker
+            update_plot(
+                self.ax,
+                self.curr_pos,
+                self.compiled_data,
+                self.quantification_column,
+                self.error_column,
+                self.labels_layer,
+            )
+            self.figure.canvas.draw()
+
+        @self.napari_viewer.bind_key("w", overwrite=True)
+        def select_trace(_viewer):
+            """
+            Bind the "w" key to withdraw (reject) the trace.
+            """
+            self.compiled_data.loc[self.curr_pos, "Selected"] = False
+            # noinspection PyTypeChecker
+            update_plot(
+                self.ax,
+                self.curr_pos,
+                self.compiled_data,
+                self.quantification_column,
+                self.error_column,
+                self.labels_layer,
+            )
+            self.figure.canvas.draw()
+
         self.ax_frame = self.ax.twinx()
         self.ax_frame.get_yaxis().set_visible(False)
 
@@ -258,7 +337,7 @@ class CheckSpotsGUI:
         parent=None,
     ):
         viewer = napari.Viewer()
-        gui_plugin = CheckSpots(
+        self.CheckSpots = CheckSpots(
             napari_viewer=viewer,
             spot_image_data=spot_channel,
             label_data=labels,
@@ -269,5 +348,5 @@ class CheckSpotsGUI:
             error_column=error_column,
             parent=parent,
         )
-        viewer.window.add_dock_widget(gui_plugin, area="right", name="CheckSpots")
+        viewer.window.add_dock_widget(self.CheckSpots, area="right", name="CheckSpots")
         napari.run()
