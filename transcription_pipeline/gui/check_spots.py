@@ -14,7 +14,7 @@ Functions:
     extract_dataset(dataset_name: str, spot_image_index: int) -> tuple:
         Extracts the dataset and spot label data required for visualization.
 
-    update_plot(ax, curr_pos, filtered_data, column, error_column, labels_layer=None):
+    update_plot(ax,ax_frame, curr_pos, frame_min, frame_max, filtered_data, column, error_column, labels_layer=None):
         Updates the plot with trace data for a given particle.
 
 Classes:
@@ -25,16 +25,20 @@ Classes:
         Control class to initialize the Napari viewer and the `CheckSpots` widget.
 """
 
+from asyncio import current_task
+
 import napari
 from napari.utils.events import Event
 from qtpy.QtWidgets import QWidget, QVBoxLayout
 from napari_matplotlib.base import NapariMPLWidget
 import numpy as np
 from transcription_pipeline import preprocessing_pipeline, spot_pipeline
+from magicgui import magicgui
 
 # Define constants to avoid magic strings
 DEFAULT_QUANTIFICATION_COLUMN = "photometry_flux"
 DEFAULT_ERROR_COLUMN = "photometry_flux_error"
+PLOT_PADDING_FRACTION = 0.05
 
 
 def extract_dataset(dataset_name, spot_image_index=0):
@@ -61,6 +65,8 @@ def extract_dataset(dataset_name, spot_image_index=0):
 def update_plot(
     ax,
     curr_pos,
+    frame_min,
+    frame_max,
     filtered_data,
     column=DEFAULT_QUANTIFICATION_COLUMN,
     error_column=DEFAULT_ERROR_COLUMN,
@@ -71,6 +77,8 @@ def update_plot(
 
     :param ax: Matplotlib axis to draw the plot.
     :param int curr_pos: The current position in the dataset.
+    :param int frame_min: Earliest frame in current trace.
+    :param int frame_max: Latest frame in current trace.
     :param pandas.DataFrame filtered_data: The data containing trace and associated information.
     :param str column: Name of the column for quantification data. Default is "photometry_flux".
     :param str error_column: Name of the column for error data. Default is "photometry_flux_error".
@@ -84,9 +92,26 @@ def update_plot(
     ax.errorbar(frames, trace, yerr=trace_err, fmt=".", elinewidth=0.5, markersize=3)
     ax.set_ylabel("Spot intensity (AU)", color="white")
     ax.set_xlabel("Frame", color="white")
+    padding = PLOT_PADDING_FRACTION * (frame_max - frame_min)
+    ax.set_xlim(frame_min - padding, frame_max + padding)
     if labels_layer:
         labels_layer.selected_label = filtered_data.loc[curr_pos, "particle"]
+
+
+def update_approval(
+    ax_box,
+    curr_pos,
+    filtered_data,
+):
+    """
+    Update the indicator box with the approval state (selected/rejected) of the trace.
+
+    :param ax_box: Matplotlib axis to draw the indicator box.
+    :param int curr_pos: The current position in the dataset.
+    :param pandas.DataFrame filtered_data: The data containing trace and associated information.
+    """
     # these are matplotlib.patch.Patch properties
+    ax_box.cla()
     approval_state = filtered_data.loc[curr_pos, "Selected"]
     if approval_state:
         alpha_withdrawn = 0
@@ -100,28 +125,50 @@ def update_plot(
     props_selected = dict(boxstyle="square", facecolor="green", alpha=alpha_selected)
 
     # Add text boxes to keep track of approval state
-    ax.text(
+
+    ax_box.text(
         0.84,
         1.02,
         "[S]elected",
-        transform=ax.transAxes,
+        transform=ax_box.transAxes,
         fontsize=10,
         verticalalignment="bottom",
         horizontalalignment="right",
         bbox=props_selected,
         color="white",
     )
-    ax.text(
+    ax_box.text(
         1,
         1.02,
         "[W]ithdrawn",
-        transform=ax.transAxes,
+        transform=ax_box.transAxes,
         fontsize=10,
         verticalalignment="bottom",
         horizontalalignment="right",
         bbox=props_withdrawn,
         color="white",
     )
+
+
+def update_frame_marker(
+    ax_frame,
+    frame_min,
+    frame_max,
+    napari_viewer,
+):
+    """
+    Update the indicator box with the approval state (selected/rejected) of the trace.
+
+    :param ax_frame: Matplotlib axis to draw the vertical frame marker.
+    :param frame_min: Earliest frame in current trace.
+    :param frame_max: Latest frame in current trace.
+    :param napari.viewer.Viewer napari_viewer: The Napari viewer to which this widget is connected.
+    """
+    # Add frame marker
+    ax_frame.cla()
+    current_frame = napari_viewer.dims.point[0]
+    if frame_min <= current_frame <= frame_max:
+        ax_frame.axvline(x=current_frame, color="red", linestyle="--")
 
 
 class CheckSpots(QWidget):
@@ -163,11 +210,14 @@ class CheckSpots(QWidget):
             self.spot_image_data, self.label_data = spot_image_data, label_data
         self.napari_viewer = napari_viewer
         self.curr_pos = 0
+        self.curr_spot_coord = None
 
         # Initialize approval column for manual curation. Needs to be initialized before UI.
         self.compiled_data = compiled_data
         if "Selected" not in self.compiled_data.columns:
             self.compiled_data["Selected"] = True
+        self.trace_frame_min = self.compiled_data.loc[self.curr_pos, "frame"][0]
+        self.trace_frame_max = self.compiled_data.loc[self.curr_pos, "frame"][-1]
 
         self._initialize_ui()
 
@@ -189,17 +239,18 @@ class CheckSpots(QWidget):
         self.ax = self.figure.add_subplot(111)
         self.ax.set_facecolor("black")
         self.ax.tick_params(colors="white")
+
+        self.ax_frame = self.ax.twinx()
+        self.ax_frame.get_yaxis().set_visible(False)
+
+        self.ax_box = self.ax.twiny()
+        self.ax_box.get_xaxis().set_visible(False)
+        self.ax_box.get_yaxis().set_visible(False)
+
         # noinspection PyTypeChecker
-        update_plot(
-            self.ax,
-            self.curr_pos,
-            self.compiled_data,
-            self.quantification_column,
-            self.error_column,
-            self.labels_layer,
-        )
+        self.update_all_plots()
         self.figure.canvas.draw()
-        num_traces = len(self.compiled_data.index)
+        self.num_traces = len(self.compiled_data.index)
 
         @self.napari_viewer.bind_key("a", overwrite=True)
         def plot_previous_trace(_viewer):
@@ -209,33 +260,25 @@ class CheckSpots(QWidget):
             if self.curr_pos > 0:
                 self.curr_pos -= 1
                 # noinspection PyTypeChecker
-                update_plot(
-                    self.ax,
-                    self.curr_pos,
-                    self.compiled_data,
-                    self.quantification_column,
-                    self.error_column,
-                    self.labels_layer,
-                )
+                self.update_trace_bounds()
+                self.update_all_plots()
                 self.figure.canvas.draw()
+            if "centroid" in self.compiled_data.columns:
+                self.curr_spot_coord = self.compiled_data.loc[self.curr_pos, "centroid"]
 
         @self.napari_viewer.bind_key("d", overwrite=True)
         def plot_next_trace(_viewer):
             """
             Bind the "d" key to plot the next trace.
             """
-            if self.curr_pos < num_traces - 1:
+            if self.curr_pos < self.num_traces - 1:
                 self.curr_pos += 1
                 # noinspection PyTypeChecker
-                update_plot(
-                    self.ax,
-                    self.curr_pos,
-                    self.compiled_data,
-                    self.quantification_column,
-                    self.error_column,
-                    self.labels_layer,
-                )
+                self.update_trace_bounds()
+                self.update_all_plots()
                 self.figure.canvas.draw()
+            if "centroid" in self.compiled_data.columns:
+                self.curr_spot_coord = self.compiled_data.loc[self.curr_pos, "centroid"]
 
         @self.napari_viewer.bind_key("s", overwrite=True)
         def select_trace(_viewer):
@@ -244,50 +287,40 @@ class CheckSpots(QWidget):
             """
             self.compiled_data.loc[self.curr_pos, "Selected"] = True
             # noinspection PyTypeChecker
-            update_plot(
-                self.ax,
+            update_approval(
+                self.ax_box,
                 self.curr_pos,
                 self.compiled_data,
-                self.quantification_column,
-                self.error_column,
-                self.labels_layer,
             )
             self.figure.canvas.draw()
 
         @self.napari_viewer.bind_key("w", overwrite=True)
-        def select_trace(_viewer):
+        def withdraw_trace(_viewer):
             """
             Bind the "w" key to withdraw (reject) the trace.
             """
             self.compiled_data.loc[self.curr_pos, "Selected"] = False
             # noinspection PyTypeChecker
-            update_plot(
-                self.ax,
+            update_approval(
+                self.ax_box,
                 self.curr_pos,
                 self.compiled_data,
-                self.quantification_column,
-                self.error_column,
-                self.labels_layer,
             )
             self.figure.canvas.draw()
-
-        self.ax_frame = self.ax.twinx()
-        self.ax_frame.get_yaxis().set_visible(False)
 
         @self.napari_viewer.dims.events.point.connect
         def mark_frame(_viewer):
             """
             Highlight the current frame based on the viewer's point dimension.
             """
-            frame_min, frame_max = self.ax.get_xlim()
-            current_frame = self.napari_viewer.dims.point[0]
-            if frame_min <= current_frame <= frame_max:
-                self.ax_frame.cla()
-                self.ax_frame.axvline(x=current_frame, color="red", linestyle="--")
-                self.figure.canvas.draw()
-            else:
-                self.ax_frame.cla()
-                self.figure.canvas.draw()
+            # noinspection PyTypeChecker
+            update_frame_marker(
+                self.ax_frame,
+                self.trace_frame_min,
+                self.trace_frame_max,
+                self.napari_viewer,
+            )
+            self.figure.canvas.draw()
 
         @self.labels_layer.events.selected_label.connect
         def label_selection_callback(_event: Event):
@@ -300,16 +333,40 @@ class CheckSpots(QWidget):
             )
             if label_indices.size > 0:
                 self.curr_pos = int(label_indices[0][0])
-                # noinspection PyTypeChecker
-                update_plot(
-                    self.ax,
-                    self.curr_pos,
-                    self.compiled_data,
-                    self.quantification_column,
-                    self.error_column,
-                    self.labels_layer,
-                )
+                self.update_trace_bounds()
+                self.update_all_plots()
                 self.figure.canvas.draw()
+            if "centroid" in self.compiled_data.columns:
+                self.curr_spot_coord = self.compiled_data.loc[self.curr_pos, "centroid"]
+
+    def update_all_plots(self):
+        # noinspection PyTypeChecker
+        update_plot(
+            self.ax,
+            self.curr_pos,
+            self.trace_frame_min,
+            self.trace_frame_max,
+            self.compiled_data,
+            self.quantification_column,
+            self.error_column,
+            self.labels_layer,
+        )
+        update_approval(
+            self.ax_box,
+            self.curr_pos,
+            self.compiled_data,
+        )
+        # noinspection PyTypeChecker
+        update_frame_marker(
+            self.ax_frame,
+            self.trace_frame_min,
+            self.trace_frame_max,
+            self.napari_viewer,
+        )
+
+    def update_trace_bounds(self):
+        self.trace_frame_min = self.compiled_data.loc[self.curr_pos, "frame"][0]
+        self.trace_frame_max = self.compiled_data.loc[self.curr_pos, "frame"][-1]
 
 
 class CheckSpotsGUI:
@@ -337,7 +394,10 @@ class CheckSpotsGUI:
         error_column=DEFAULT_ERROR_COLUMN,
         parent=None,
     ):
+        # Initialize the napari viewer
         viewer = napari.Viewer()
+
+        # Initialize the CheckSpots widget
         self.CheckSpots = CheckSpots(
             napari_viewer=viewer,
             spot_image_data=spot_channel,
@@ -349,5 +409,39 @@ class CheckSpotsGUI:
             error_column=error_column,
             parent=parent,
         )
-        viewer.window.add_dock_widget(self.CheckSpots, area="right", name="CheckSpots")
+
+        # Create a unified widget to combine CheckSpots and the magicgui widget
+        unified_widget = QWidget(parent=parent)
+        unified_layout = QVBoxLayout()
+        unified_widget.setLayout(unified_layout)
+
+        # Add the CheckSpots widget to the unified container
+        unified_layout.addWidget(self.CheckSpots)
+
+        # Define the "Fix spot coordinates" checkbox widget
+        self.fix_spot_coordinates = False
+
+        @magicgui(auto_call=True, spot_coordinate={"label": "Fix spot coordinates"})
+        def coordinate_change_widget(spot_coordinate: bool):
+            self.fix_spot_coordinates = spot_coordinate
+
+        # Add the coordinate change widget to the unified container
+        unified_layout.addWidget(coordinate_change_widget.native)
+
+        # Set up the recenter camera functionality
+        @viewer.dims.events.point.connect
+        def recenter_camera(_viewer):
+            # Check if the frame exists in this trace
+            trace_frames = self.CheckSpots.compiled_data.loc[
+                self.CheckSpots.curr_pos, "frame"
+            ]
+            if (viewer.dims.point[0] in trace_frames) & self.fix_spot_coordinates:
+                viewer.camera.center = self.CheckSpots.curr_spot_coord[
+                    int(np.argwhere(viewer.dims.point[0] == trace_frames)[0][0])
+                ]
+
+        # Finally, add the unified widget to the viewer's dock
+        viewer.window.add_dock_widget(unified_widget, area="right", name="CheckSpots")
+
+        # Run the napari event loop
         napari.run()
