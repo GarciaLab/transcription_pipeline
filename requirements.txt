@@ -11,3 +11,8 @@ numba~=0.58.1
 tqdm~=4.66.1
 install-jdk==1.1.0
 numba-progress==1.1.0
+
+napari~=0.5.5
+qtpy~=2.4.1
+napari_matplotlib~=3.0.0
+magicgui~=0.8.2
