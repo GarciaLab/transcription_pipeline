@@ -713,8 +713,13 @@ def import_dataset(
             series.bundle_axes = "tczyx"
             multichannel = True
         except ValueError:
-            series.bundle_axes = "tzyx"
-            multichannel = False
+            try:
+                series.bundle_axes = "tzyx"
+                multichannel = False
+            except ValueError:
+                series.bundle_axes = "zyx"
+                multichannel = False
+
 
         data.append(series)
         num_frames_series.append(series.shape[1])
@@ -728,10 +733,13 @@ def import_dataset(
         num_series = checked_file_metadata["ImageCount"]
         for i in range(1, num_series):
             series = pims.Bioformats(file, read_mode="jpype", series=i)
-            if multichannel:
-                series.bundle_axes = "tczyx"
-            else:
-                series.bundle_axes = "tzyx"
+            try:
+                if multichannel:
+                    series.bundle_axes = "tczyx"
+                else:
+                    series.bundle_axes = "tzyx"
+            except ValueError:
+                continue
             data.append(series)
             num_frames_series.append(series.shape[1])
 
