@@ -1,5 +1,3 @@
-# 2024.10.23 - Goal: Split checking and averaging into two steps
-
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.stats import chi2
@@ -110,6 +108,7 @@ def unpack_functions():
         # Negative log-likelihood function
         def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
             residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
             regularization = reg * np.sum(params[:] ** 2)
             nll = 0.5 * np.sum(residuals ** 2) + regularization
             return nll
@@ -337,6 +336,7 @@ def unpack_functions():
         # Negative log-likelihood function
         def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
             residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
             regularization = reg * np.sum(params[:] ** 2)
             nll = 0.5 * np.sum(residuals ** 2) + regularization
             return nll
@@ -766,7 +766,7 @@ class FitAndAverage:
 
         self.compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked
 
-    def take_fit_averages(self, plot=True):
+    def average_particle_fits(self, plot=True):
         '''
         Take the average of all the approved fits of individual particles in each bin,
         with an option to plot them by bins.
@@ -864,34 +864,34 @@ class FitAndAverage:
                     # Standard error of the mean
                     SE_fit_rates[i] = np.nanstd(rates) / np.sqrt(len(rates))
 
+            # Prepare the data for plotting
+            not_nan = ~np.isnan(mean_fit_rates)
+
+            bin_indices = np.arange(bin_num)
+            ap_positions = bin_indices * 1 / bin_num
+
+            bin_slopes = mean_fit_rates[not_nan]
+            bin_slope_errs = SE_fit_rates[not_nan]
+
+            max_bin_slope = np.max(bin_slopes)
+            ylim_up = 1.5 * max_bin_slope
+
             if plot_result:
-                # Prepare the data for plotting
-                not_nan_1 = ~np.isnan(mean_fit_rates)
-
-                bin_indices_1 = np.arange(bin_num)[not_nan_1]
-                ap_positions_1 = bin_indices_1 * 1 / bin_num
-
-                bin_slopes_1 = mean_fit_rates[not_nan_1]
-                bin_slope_errs_1 = SE_fit_rates[not_nan_1]
-
-                max_bin_slope_1 = np.max(bin_slopes_1)
-                ylim_up = 1.5 * max_bin_slope_1
-
                 # Plot the average slope of trace fits for each bin number
                 plt.figure()
-                plt.errorbar(ap_positions_1, bin_slopes_1, yerr=bin_slope_errs_1, capsize=2, fmt='o')
+                plt.errorbar(ap_positions[not_nan], bin_slopes, yerr=bin_slope_errs, capsize=2, fmt='o')
                 plt.xlabel('AP Position')
                 plt.ylabel('Average rate of trace fits (AU/min)')
                 plt.title('Average rate of trace fits vs. AP position')
                 plt.ylim(0, ylim_up)
                 plt.show()
 
-            return bin_counts, bin_particles_rates, mean_fit_rates, SE_fit_rates
+            return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
 
-        bin_counts, bin_particles_rates, mean_fit_rates, SE_fit_rates = (
+        ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates = (
             compute_average_fit_rates_for_bins(traces_compiled_dataframe_fits_checked, self.bin_num))
 
-        return bin_counts, bin_particles_rates, mean_fit_rates, SE_fit_rates
+        return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
 
 
 class AverageAndFit:
@@ -1280,6 +1280,8 @@ class AverageAndFit:
 
         bin_indices = np.arange(self.bin_num)
 
+        ap_positions = bin_indices * 1 / self.bin_num
+
         plot_mask = ((self.bin_average_fit_dataframe['approval_status'] == 1) |
                      (self.bin_average_fit_dataframe['approval_status'] == 2))
 
@@ -1305,23 +1307,28 @@ class AverageAndFit:
             except:
                 pass
 
-        bin_indices = bin_indices[plot_mask]
-        bin_slopes = bin_slopes[plot_mask]
-        bin_slope_errs = bin_slope_errs[plot_mask]
-
-        # Get the bin slope error by subtracting the bounds of the confidence intervals from the slope value
         bin_slope_errs = np.transpose(np.abs(bin_slope_errs - bin_slopes[:, np.newaxis]))
 
-        ap_positions = bin_indices * 1 / self.bin_num
 
+        # Prepare plotting variables
+        #bin_indices_for_plot = bin_indices[plot_mask]
+        ap_positions_for_plot = ap_positions[plot_mask]
+        bin_slopes_for_plot = bin_slopes[plot_mask]
+        bin_slope_errs_for_plot = bin_slope_errs[:,plot_mask]
+
+        # Get the bin slope error by subtracting the bounds of the confidence intervals from the slope value
+        #bin_slope_errs_for_plot = np.transpose(np.abs(bin_slope_errs_for_plot - bin_slopes_for_plot[:, np.newaxis]))
+
+
+        # plot the bin fits
         plt.figure()
-        plt.errorbar(ap_positions, bin_slopes, yerr=bin_slope_errs, capsize=2, fmt='o')
+        plt.errorbar(ap_positions_for_plot, bin_slopes_for_plot, yerr=bin_slope_errs_for_plot, capsize=2, fmt='o')
         plt.xlabel('AP position')
         plt.ylabel('Fit rate of average trace (AU/min)')
         plt.title('Fit rate of average trace vs. AP position (with shifting)')
         plt.show()
 
-        return [ap_positions, bin_slopes, bin_slope_errs]
+        return ap_positions, bin_slopes, bin_slope_errs
 
 
 
