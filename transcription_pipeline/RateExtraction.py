@@ -896,12 +896,13 @@ class AverageAndFit:
     '''
     time_bin_width: please use dataset.export_frame_metadata[0]['t_s'][1, 0]
     '''
-    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path):
+    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path, fit_and_average=None):
         self.compiled_dataframe = compiled_dataframe
         self.nc14_start_frame = nc14_start_frame
         self.time_bin_width = time_bin_width
         self.bin_num = bin_num
         self.dataset_name = dataset_folder_path
+        self.fit_and_average = fit_and_average
 
         self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
         self.checked_bin_fits_previous = os.path.isfile(self.checked_bin_fits_file_path)
@@ -923,7 +924,13 @@ class AverageAndFit:
 
             dataframe_nc14 = self.compiled_dataframe[self.compiled_dataframe['frame'].apply(min)
                                                           >= self.nc14_start_frame]
-
+            
+            # Filter dataframe based on the approval status of FitAndAverage (if provided)
+            if self.fit_and_average and self.fit_and_average.compiled_dataframe_fits_checked is not None:
+                approved_particles = self.fit_and_average.compiled_dataframe_fits_checked[
+                    self.fit_and_average.compiled_dataframe_fits_checked['approval_status'] == 1]['particle']
+                dataframe_nc14 = dataframe_nc14[dataframe_nc14['particle'].isin(approved_particles)]
+            
             binned_dataframe_nc14, _ = bin_particles(dataframe_nc14, self.bin_num)
 
             binned_particles_nc14 = [None] * self.bin_num

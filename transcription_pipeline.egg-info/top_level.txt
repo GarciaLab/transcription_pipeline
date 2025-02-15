@@ -1,2 +1,4 @@
 dist
+localEnrichment
+test_data
 transcription_pipeline

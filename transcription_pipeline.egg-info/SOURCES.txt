@@ -1,6 +1,7 @@
 LICENSE
 README.md
 pyproject.toml
+transcription_pipeline/RateExtraction.py
 transcription_pipeline/__init__.py
 transcription_pipeline/fullEmbryo_pipeline.py
 transcription_pipeline/loci_tools.jar
@@ -40,4 +41,3 @@ transcription_pipeline/utils/label_manipulation.py
 transcription_pipeline/utils/neighborhood_manipulation.py
 transcription_pipeline/utils/parallel_computing.py
 transcription_pipeline/utils/plottable.py
-transcription_pipeline/utils/smMS2_calibration.py
