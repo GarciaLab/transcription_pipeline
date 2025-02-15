@@ -108,6 +108,7 @@ def unpack_functions():
         # Negative log-likelihood function
         def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
             residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
             regularization = reg * np.sum(params[:] ** 2)
             nll = 0.5 * np.sum(residuals ** 2) + regularization
             return nll
@@ -335,6 +336,7 @@ def unpack_functions():
         # Negative log-likelihood function
         def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
             residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
             regularization = reg * np.sum(params[:] ** 2)
             nll = 0.5 * np.sum(residuals ** 2) + regularization
             return nll
