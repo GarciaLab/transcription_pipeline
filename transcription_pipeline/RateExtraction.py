@@ -13,6 +13,7 @@ from tkinter import messagebox
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
+import warnings
 
 from transcription_pipeline.spot_analysis import compile_data
 from transcription_pipeline.utils import plottable
@@ -85,69 +86,93 @@ def unpack_functions():
         return [basal0, t_on0, t_dwell0, rate0]
 
     def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000):
-        # Initial guess
-        x0 = initial_guess(MS2, timepoints)
+        warnings.simplefilter("ignore", RuntimeWarning)  # Suppress runtime warnings
 
-        # Parameter bounds
-        lb = [np.min(MS2), 0, 0, 0]  # Ensure t_dwell is non-negative
-        ub = [np.max(MS2), np.max(timepoints), np.max(timepoints), 1e7]
+        try:
+            # Initial guess
+            x0 = initial_guess(MS2, timepoints)
 
-        # Scaling factors to normalize parameters
-        scale_factors = np.array([np.max(MS2), np.max(timepoints), np.max(timepoints), 100])
+            # Parameter bounds
+            lb = [np.min(MS2), 0, 0, 0]  # Ensure t_dwell is non-negative
+            ub = [np.max(MS2), np.max(timepoints), np.max(timepoints), 1e7]
 
-        # Scaled bounds
-        lb_scaled = np.array(lb) / scale_factors
-        ub_scaled = np.array(ub) / scale_factors
-        x0_scaled = np.array(x0) / scale_factors
+            # Check if any lower bound equals upper bound
+            for i in range(len(lb)):
+                if lb[i] == ub[i]:
+                    lb[i] = lb[i] - 1
+                    ub[i] = ub[i] + 1
 
-        # Scaled fit function
-        def fit_func_scaled(params, MS2, timepoints, t_interp):
-            params_unscaled = params * scale_factors
-            return fit_func(params_unscaled, MS2, timepoints, t_interp)
 
-        # Negative log-likelihood function
-        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
-            residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
-            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
-            regularization = reg * np.sum(params[:] ** 2)
-            nll = 0.5 * np.sum(residuals ** 2) + regularization
-            return nll
 
-        # Initial parameter estimation using least_squares
-        res = least_squares(negative_log_likelihood,
-                            x0_scaled, bounds=(lb_scaled, ub_scaled),
-                            args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
+            # Scaling factors to normalize parameters
+            scale_factors = np.array([np.max(MS2), np.max(timepoints), np.max(timepoints), 100])
 
-        # Define log-probability function for MCMC
-        def log_prob(params, MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled):
-            if np.any(params < lb_scaled) or np.any(params > ub_scaled):
-                return -np.inf
-            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
-            return -nll  # Convert to log-probability
+            # Scaled bounds
+            lb_scaled = np.array(lb) / scale_factors
+            ub_scaled = np.array(ub) / scale_factors
+            x0_scaled = np.array(x0) / scale_factors
 
-        # MCMC parameters
-        nwalkers = 10
-        ndim = len(x0_scaled)
-        nsteps = 1000
-        initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
-        # Run MCMC
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(MS2, timepoints,
-                                                                        t_interp, std_errors,
-                                                                        scale_factors, lb_scaled, ub_scaled))
-        # Run MCMC until the acceptance fraction is at least 0.5
-        sampler.run_mcmc(initial_pos, nsteps,
-                         progress=False, tune=True)
+            # Scaled fit function
+            def fit_func_scaled(params, MS2, timepoints, t_interp):
+                params_unscaled = params * scale_factors
+                return fit_func(params_unscaled, MS2, timepoints, t_interp)
 
-        # Flatten the chain and discard burn-in steps
-        flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
+            # Negative log-likelihood function
+            def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
+                residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+                residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
+                regularization = reg * np.sum(params[:] ** 2)
+                nll = 0.5 * np.sum(residuals ** 2) + regularization
+                return nll
 
-        # Extract and rescale fit parameters
-        basal, t_on, t_dwell, rate = np.median(flat_samples, axis=0) * scale_factors
+            # Initial parameter estimation using least_squares
+            res = least_squares(negative_log_likelihood,
+                                x0_scaled, bounds=(lb_scaled, ub_scaled),
+                                args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
 
-        # Calculate confidence intervals
-        CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors[:, np.newaxis]
+            if not res.success:
+                print(f"Warning: Least squares fitting failed. Message: {res.message}")
+                return None
 
-        return basal, t_on, t_dwell, rate, CI
+            # Define log-probability function for MCMC
+            def log_prob(params, MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled):
+                if np.any(params < lb_scaled) or np.any(params > ub_scaled):
+                    return -np.inf
+                nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
+                return -nll  # Convert to log-probability
+
+            # MCMC parameters
+            nwalkers = 10
+            ndim = len(x0_scaled)
+            nsteps = 1000
+            initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
+
+            # Run MCMC
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(
+            MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled))
+            try:
+                sampler.run_mcmc(initial_pos, nsteps, progress=False, tune=True)
+            except Exception as e:
+                print(f"Warning: MCMC sampling failed. Error: {e}")
+                return None
+
+            # Flatten the chain and discard burn-in steps
+            flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
+            if flat_samples.shape[0] == 0:
+                print("Warning: No valid MCMC samples obtained.")
+                return None
+
+            # Extract and rescale fit parameters
+            basal, t_on, t_dwell, rate = np.median(flat_samples, axis=0) * scale_factors
+
+            # Calculate confidence intervals
+            CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors[:, np.newaxis]
+
+            return basal, t_on, t_dwell, rate, CI
+
+        except Exception as e:
+            print(f"Error in fit_half_cycle: {e}")
+            return None
 
     def first_derivative(x, y):
         """

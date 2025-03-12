@@ -192,7 +192,10 @@ def collate_global_metadata(
         for field in input_global_metadata:
             if field in fields_num_channels:
                 if num_channels > 1:
-                    channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    try:
+                        channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    except TypeError:
+                        channel_global_metadata[field] = input_global_metadata[field]
                 else:
                     channel_global_metadata[field] = input_global_metadata[field]
             elif field in fields_num_series:
@@ -355,7 +358,7 @@ def collate_frame_metadata(
             t = "inconsistent_metadata"
 
         channel_frame_metadata["t"] = t
-
+        #print(input_frame_metadata)
         try:
             if num_channels > 1:
                 t_s_list = [
@@ -713,13 +716,8 @@ def import_dataset(
             series.bundle_axes = "tczyx"
             multichannel = True
         except ValueError:
-            try:
-                series.bundle_axes = "tzyx"
-                multichannel = False
-            except ValueError:
-                series.bundle_axes = "zyx"
-                multichannel = False
-
+            series.bundle_axes = "tzyx"
+            multichannel = False
 
         data.append(series)
         num_frames_series.append(series.shape[1])
@@ -733,13 +731,10 @@ def import_dataset(
         num_series = checked_file_metadata["ImageCount"]
         for i in range(1, num_series):
             series = pims.Bioformats(file, read_mode="jpype", series=i)
-            try:
-                if multichannel:
-                    series.bundle_axes = "tczyx"
-                else:
-                    series.bundle_axes = "tzyx"
-            except ValueError:
-                continue
+            if multichannel:
+                series.bundle_axes = "tczyx"
+            else:
+                series.bundle_axes = "tzyx"
             data.append(series)
             num_frames_series.append(series.shape[1])
 
