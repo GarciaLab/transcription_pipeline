@@ -28,7 +28,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
@@ -40,6 +40,7 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -359,7 +360,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#subpackages">Subpackages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#submodules">Submodules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#transcription-pipeline-nuclear-pipeline-module">transcription_pipeline.nuclear_pipeline module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#transcription-pipeline-preprocessing-pipeline-module">transcription_pipeline.preprocessing_pipeline module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#module-transcription_pipeline.preprocessing_pipeline">transcription_pipeline.preprocessing_pipeline module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#transcription-pipeline-spot-pipeline-module">transcription_pipeline.spot_pipeline module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.html#module-transcription_pipeline">Module contents</a></li>
 </ul>
@@ -376,8 +377,8 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription-pipeline-preprocessing-import-data-module">transcription_pipeline.preprocessing.import_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription-pipeline-preprocessing-process-metadata-module">transcription_pipeline.preprocessing.process_metadata module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing.import_data">transcription_pipeline.preprocessing.import_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing.process_metadata">transcription_pipeline.preprocessing.process_metadata module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing">Module contents</a></li>
 </ul>
 </li>
@@ -388,9 +389,9 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-detect-mitosis-module">transcription_pipeline.tracking.detect_mitosis module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking.detect_mitosis">transcription_pipeline.tracking.detect_mitosis module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-stitch-tracks-module">transcription_pipeline.tracking.stitch_tracks module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-track-features-module">transcription_pipeline.tracking.track_features module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking">Module contents</a></li>
 </ul>
 </li>
@@ -401,7 +402,7 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html">transcription_pipeline.nuclear_analysis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription-pipeline-nuclear-analysis-segmentation-module">transcription_pipeline.nuclear_analysis.segmentation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#module-transcription_pipeline.nuclear_analysis.segmentation">transcription_pipeline.nuclear_analysis.segmentation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#module-transcription_pipeline.nuclear_analysis">Module contents</a></li>
 </ul>
 </li>
@@ -412,13 +413,13 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-compile-data-module">transcription_pipeline.spot_analysis.compile_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-detection-module">transcription_pipeline.spot_analysis.detection module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-fitting-module">transcription_pipeline.spot_analysis.fitting module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-refine-traces-module">transcription_pipeline.spot_analysis.refine_traces module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-track-filtering-module">transcription_pipeline.spot_analysis.track_filtering module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-fluctuation-correlation-module">transcription_pipeline.spot_analysis.fluctuation_correlation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-smms2-calibration-module">transcription_pipeline.spot_analysis.smMS2_calibration module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.fitting">transcription_pipeline.spot_analysis.fitting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.refine_traces">transcription_pipeline.spot_analysis.refine_traces module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.track_filtering">transcription_pipeline.spot_analysis.track_filtering module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.fluctuation_correlation">transcription_pipeline.spot_analysis.fluctuation_correlation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis">Module contents</a></li>
 </ul>
 </li>
@@ -429,11 +430,11 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-image-histogram-module">transcription_pipeline.utils.image_histogram module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-label-manipulation-module">transcription_pipeline.utils.label_manipulation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-neighborhood-manipulation-module">transcription_pipeline.utils.neighborhood_manipulation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-parallel-computing-module">transcription_pipeline.utils.parallel_computing module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-plottable-module">transcription_pipeline.utils.plottable module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.image_histogram">transcription_pipeline.utils.image_histogram module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.label_manipulation">transcription_pipeline.utils.label_manipulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.neighborhood_manipulation">transcription_pipeline.utils.neighborhood_manipulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.parallel_computing">transcription_pipeline.utils.parallel_computing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.plottable">transcription_pipeline.utils.plottable module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils">Module contents</a></li>
 </ul>
 </li>

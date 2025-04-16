@@ -28,7 +28,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
@@ -40,6 +40,7 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'transcription_pipeline';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -331,7 +332,19 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#subpackages">Subpackages</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-nuclear-pipeline-module">transcription_pipeline.nuclear_pipeline module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-pipeline-module">transcription_pipeline.preprocessing_pipeline module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing_pipeline">transcription_pipeline.preprocessing_pipeline module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport"><code class="docutils literal notranslate"><span class="pre">DataImport</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport.read"><code class="docutils literal notranslate"><span class="pre">DataImport.read()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport.save"><code class="docutils literal notranslate"><span class="pre">DataImport.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.read"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport.read()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.save"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport.save()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-pipeline-module">transcription_pipeline.spot_pipeline module</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline">Module contents</a></li>
 </ul>
@@ -353,44 +366,161 @@ document.write(`
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html">transcription_pipeline.nuclear_analysis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription-pipeline-nuclear-analysis-segmentation-module">transcription_pipeline.nuclear_analysis.segmentation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#module-transcription_pipeline.nuclear_analysis.segmentation">transcription_pipeline.nuclear_analysis.segmentation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.binarize_frame"><code class="docutils literal notranslate"><span class="pre">binarize_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie"><code class="docutils literal notranslate"><span class="pre">binarize_movie()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.binarize_movie_parallel"><code class="docutils literal notranslate"><span class="pre">binarize_movie_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.denoise_frame"><code class="docutils literal notranslate"><span class="pre">denoise_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie"><code class="docutils literal notranslate"><span class="pre">denoise_movie()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.denoise_movie_parallel"><code class="docutils literal notranslate"><span class="pre">denoise_movie_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.iterative_peak_local_max"><code class="docutils literal notranslate"><span class="pre">iterative_peak_local_max()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.mark_frame"><code class="docutils literal notranslate"><span class="pre">mark_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.mark_movie"><code class="docutils literal notranslate"><span class="pre">mark_movie()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.mark_movie_parallel"><code class="docutils literal notranslate"><span class="pre">mark_movie_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.segment_frame"><code class="docutils literal notranslate"><span class="pre">segment_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.segment_movie"><code class="docutils literal notranslate"><span class="pre">segment_movie()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#transcription_pipeline.nuclear_analysis.segmentation.segment_movie_parallel"><code class="docutils literal notranslate"><span class="pre">segment_movie_parallel()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.nuclear_analysis.html#module-transcription_pipeline.nuclear_analysis">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.preprocessing.html">transcription_pipeline.preprocessing package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription-pipeline-preprocessing-import-data-module">transcription_pipeline.preprocessing.import_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription-pipeline-preprocessing-process-metadata-module">transcription_pipeline.preprocessing.process_metadata module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing.import_data">transcription_pipeline.preprocessing.import_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.all_equal"><code class="docutils literal notranslate"><span class="pre">all_equal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.check_metadata"><code class="docutils literal notranslate"><span class="pre">check_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.collate_frame_metadata"><code class="docutils literal notranslate"><span class="pre">collate_frame_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.collate_global_metadata"><code class="docutils literal notranslate"><span class="pre">collate_global_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.collate_metadata"><code class="docutils literal notranslate"><span class="pre">collate_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.extract_global_metadata"><code class="docutils literal notranslate"><span class="pre">extract_global_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.import_dataset"><code class="docutils literal notranslate"><span class="pre">import_dataset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.import_full_embryo"><code class="docutils literal notranslate"><span class="pre">import_full_embryo()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.import_save_dataset"><code class="docutils literal notranslate"><span class="pre">import_save_dataset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.import_data.z_cross_correlation_shift"><code class="docutils literal notranslate"><span class="pre">z_cross_correlation_shift()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing.process_metadata">transcription_pipeline.preprocessing.process_metadata module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.process_metadata.extract_renormalized_frame"><code class="docutils literal notranslate"><span class="pre">extract_renormalized_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.preprocessing.html#transcription_pipeline.preprocessing.process_metadata.extract_time"><code class="docutils literal notranslate"><span class="pre">extract_time()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.preprocessing.html#module-transcription_pipeline.preprocessing">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.spot_analysis.html">transcription_pipeline.spot_analysis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-compile-data-module">transcription_pipeline.spot_analysis.compile_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-detection-module">transcription_pipeline.spot_analysis.detection module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-fitting-module">transcription_pipeline.spot_analysis.fitting module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-refine-traces-module">transcription_pipeline.spot_analysis.refine_traces module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-track-filtering-module">transcription_pipeline.spot_analysis.track_filtering module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-fluctuation-correlation-module">transcription_pipeline.spot_analysis.fluctuation_correlation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription-pipeline-spot-analysis-smms2-calibration-module">transcription_pipeline.spot_analysis.smMS2_calibration module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="docutils literal notranslate"><span class="pre">compile_traces()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.compile_data.consolidate_traces"><code class="docutils literal notranslate"><span class="pre">consolidate_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.detection.detect_and_gather_spots"><code class="docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.detection.detect_spots"><code class="docutils literal notranslate"><span class="pre">detect_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.detection.make_spot_mask"><code class="docutils literal notranslate"><span class="pre">make_spot_mask()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.fitting">transcription_pipeline.spot_analysis.fitting module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">bootstrap_intensity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.create_blocks"><code class="docutils literal notranslate"><span class="pre">create_blocks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.extract_spot_mask"><code class="docutils literal notranslate"><span class="pre">extract_spot_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.extract_spot_shell"><code class="docutils literal notranslate"><span class="pre">extract_spot_shell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">fit_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.gaussian3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">gaussian3d_sym_xy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.generate_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">generate_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.intensity_error_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_error_from_fit_row()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.intensity_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_from_fit_row()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fitting.simple_bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">simple_bootstrap_intensity()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.refine_traces">transcription_pipeline.spot_analysis.refine_traces module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.refine_traces.refine_compile_traces"><code class="docutils literal notranslate"><span class="pre">refine_compile_traces()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.refine_traces.refine_trace"><code class="docutils literal notranslate"><span class="pre">refine_trace()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.track_filtering">transcription_pipeline.spot_analysis.track_filtering module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.compile_successive_differences"><code class="docutils literal notranslate"><span class="pre">compile_successive_differences()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.filter_multiple_spots"><code class="docutils literal notranslate"><span class="pre">filter_multiple_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_sigma"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_sigma()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_tracks"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_tracks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.normalized_variation_intensity"><code class="docutils literal notranslate"><span class="pre">normalized_variation_intensity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.successive_differences_quartile"><code class="docutils literal notranslate"><span class="pre">successive_differences_quartile()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots"><code class="docutils literal notranslate"><span class="pre">track_and_filter_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.track_spots"><code class="docutils literal notranslate"><span class="pre">track_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels"><code class="docutils literal notranslate"><span class="pre">transfer_nuclear_labels()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.fluctuation_correlation">transcription_pipeline.spot_analysis.fluctuation_correlation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces"><code class="docutils literal notranslate"><span class="pre">corr_traces()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.fluctuation_correlation.mean_corr_traces"><code class="docutils literal notranslate"><span class="pre">mean_corr_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">log_likelihood_step()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">vectorized_log_likelihood_step()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.spot_analysis.html#module-transcription_pipeline.spot_analysis">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.tracking.html">transcription_pipeline.tracking package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-detect-mitosis-module">transcription_pipeline.tracking.detect_mitosis module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking.detect_mitosis">transcription_pipeline.tracking.detect_mitosis module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.detect_mitosis.construct_lineage"><code class="docutils literal notranslate"><span class="pre">construct_lineage()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.detect_mitosis.tracks_start"><code class="docutils literal notranslate"><span class="pre">tracks_start()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari"><code class="docutils literal notranslate"><span class="pre">tracks_to_napari()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-stitch-tracks-module">transcription_pipeline.tracking.stitch_tracks module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription-pipeline-tracking-track-features-module">transcription_pipeline.tracking.track_features module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.add_velocity"><code class="docutils literal notranslate"><span class="pre">add_velocity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.assign_nuclear_cycle"><code class="docutils literal notranslate"><span class="pre">assign_nuclear_cycle()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.determine_nuclear_cycle_frames"><code class="docutils literal notranslate"><span class="pre">determine_nuclear_cycle_frames()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.link_df"><code class="docutils literal notranslate"><span class="pre">link_df()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.read_trackpy_status"><code class="docutils literal notranslate"><span class="pre">read_trackpy_status()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.reorder_labels"><code class="docutils literal notranslate"><span class="pre">reorder_labels()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.reorder_labels_parallel"><code class="docutils literal notranslate"><span class="pre">reorder_labels_parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.segmentation_df"><code class="docutils literal notranslate"><span class="pre">segmentation_df()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.tracking.html#transcription_pipeline.tracking.track_features.tqdm_trackpy"><code class="docutils literal notranslate"><span class="pre">tqdm_trackpy()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.tracking.html#module-transcription_pipeline.tracking">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="transcription_pipeline.utils.html">transcription_pipeline.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-image-histogram-module">transcription_pipeline.utils.image_histogram module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-label-manipulation-module">transcription_pipeline.utils.label_manipulation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-neighborhood-manipulation-module">transcription_pipeline.utils.neighborhood_manipulation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-parallel-computing-module">transcription_pipeline.utils.parallel_computing module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#transcription-pipeline-utils-plottable-module">transcription_pipeline.utils.plottable module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.image_histogram">transcription_pipeline.utils.image_histogram module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.image_histogram.histogram"><code class="docutils literal notranslate"><span class="pre">histogram()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.label_manipulation">transcription_pipeline.utils.label_manipulation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.label_manipulation.expand_labels_movie"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.label_manipulation.expand_labels_movie_parallel"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie_parallel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.neighborhood_manipulation">transcription_pipeline.utils.neighborhood_manipulation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.neighborhood_manipulation.ellipsoid"><code class="docutils literal notranslate"><span class="pre">ellipsoid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.neighborhood_manipulation.extract_neighborhood"><code class="docutils literal notranslate"><span class="pre">extract_neighborhood()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.neighborhood_manipulation.inject_neighborhood"><code class="docutils literal notranslate"><span class="pre">inject_neighborhood()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.parallel_computing">transcription_pipeline.utils.parallel_computing module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.parallel_computing.futures_to_zarr"><code class="docutils literal notranslate"><span class="pre">futures_to_zarr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.parallel_computing.number_of_frames"><code class="docutils literal notranslate"><span class="pre">number_of_frames()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.parallel_computing.parallelize"><code class="docutils literal notranslate"><span class="pre">parallelize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.parallel_computing.parse_parallelize_kwargs"><code class="docutils literal notranslate"><span class="pre">parse_parallelize_kwargs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.parallel_computing.zarr_to_futures"><code class="docutils literal notranslate"><span class="pre">zarr_to_futures()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils.plottable">transcription_pipeline.utils.plottable module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="transcription_pipeline.utils.html#transcription_pipeline.utils.plottable.generate_trace_plot_list"><code class="docutils literal notranslate"><span class="pre">generate_trace_plot_list()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="transcription_pipeline.utils.html#module-transcription_pipeline.utils">Module contents</a></li>
 </ul>
 </li>
@@ -403,8 +533,158 @@ document.write(`
 <section id="transcription-pipeline-nuclear-pipeline-module">
 <h2>transcription_pipeline.nuclear_pipeline module<a class="headerlink" href="#transcription-pipeline-nuclear-pipeline-module" title="Link to this heading">#</a></h2>
 </section>
-<section id="transcription-pipeline-preprocessing-pipeline-module">
-<h2>transcription_pipeline.preprocessing_pipeline module<a class="headerlink" href="#transcription-pipeline-preprocessing-pipeline-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.preprocessing_pipeline">
+<span id="transcription-pipeline-preprocessing-pipeline-module"></span><h2>transcription_pipeline.preprocessing_pipeline module<a class="headerlink" href="#module-transcription_pipeline.preprocessing_pipeline" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.DataImport">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">DataImport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_previous</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">registration_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_storage_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collated_dataset_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zarr_chunk_memory_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.DataImport" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Uses the PIMS Bioformats reader to import each channel of a movie as an
+array, extracting the relevant metadata into respective dictionaries as
+per the documentation for <code class="xref py py-func docutils literal notranslate"><span class="pre">import_dataset()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_folder</strong> (<em>str</em>) – Path to name folder containing data files.</p></li>
+<li><p><strong>import_previous</strong> (<em>bool</em>) – If <cite>True</cite>, attempts to import already collated
+data and preprocessed and pickled metadata dicts from <cite>collated_dataset</cite>
+subdirectory instead of using the PIMS Bioformats reader to extract
+from the original microscopy format.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+<li><p><strong>peak_window</strong> (<em>int</em>) – Window around proposed peak index in normalized correlation
+computed for different z-shifts to consider when computing the centroid of the
+peak of the normalized correlation.</p></li>
+<li><p><strong>min_prominence</strong> (<em>float</em>) – Minimum prominence of a peak for it to be considered
+a true maxima of the normalized correlation. See documentation for
+<cite>scipy.signal.peak_prominences</cite>.</p></li>
+<li><p><strong>registration_channel</strong> (int or <cite>None</cite>) – Index of channel to use for registration of z-shift
+between stacks - usually works better with channels with more structure. By default
+uses last channel.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>channels_full_dataset</strong> – list of numpy arrays, with each element of the
+list being a collated dataset for a given channel.</p></li>
+<li><p><strong>original_global_metadata</strong> – dictionary of global metadata
+for all files and series in a dataset.</p></li>
+<li><p><strong>original_frame_metadata</strong> – dictionary of frame-by-frame metadata
+for all files and series in a dataset.</p></li>
+<li><p><strong>export_global_metadata</strong> – list of dictionaries of global
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><strong>export_frame_metadata</strong> – list of dictionaries of frame-by-frame
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><strong>series_splits</strong> – List of first frame of each series. This is useful
+when stitching together z-coordinates to improve tracking when the z-stack
+has been shifted mid-imaging.</p></li>
+<li><p><strong>series_shifts</strong> – List of estimated shifts in pixels (sub-pixel
+approximated using centroid of normalized correlation peak) between stacks
+at interface between separate series - this quantifies the shift in the
+z-stack.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.DataImport.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.DataImport.read" title="Link to this definition">#</a></dt>
+<dd><p>Imports preprocessed and collated data along with metadata dictionaries extracted
+from a movie and saved to disk in the <cite>name_folder</cite> directory, loading it into
+respective class attributes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.DataImport.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zarr'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.DataImport.save" title="Link to this definition">#</a></dt>
+<dd><p>Saves preprocessed and collated channel data in the <cite>name_folder</cite> directory
+in the format requested, and saves the metadata dictionaries in the same
+folder using <cite>pickle</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> (<em>{'tiff'</em><em>, </em><em>'zarr'}</em>) – Format to save the data arrays.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.FullEmbryoImport">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">FullEmbryoImport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_previous</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Uses the PIMS Bioformats reader to import each of the images in the
+FullEmbryo directory as a list of arrays with each element corresponding to a channel,
+extracting the relevant metadata into respective dictionaries as per the documentation
+for <code class="xref py py-func docutils literal notranslate"><span class="pre">import_full_embryo()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_folder</strong> (<em>str</em>) – Path to name folder containing FullEmbryo directory.</p></li>
+<li><p><strong>import_previous</strong> (<em>bool</em>) – If <cite>True</cite>, attempts to import already collated
+data and preprocessed and pickled metadata dicts from <cite>preprocessed_full_embryo</cite>
+subdirectory instead of using the PIMS Bioformats reader to extract
+from the original microscopy format.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>channels_full_dataset_mid</strong> – list of numpy arrays, with each element of the
+list being a channel of the <cite>Mid</cite> image.</p></li>
+<li><p><strong>original_global_metadata_mid</strong> – dictionary of global metadata
+for the <cite>Mid</cite> image.</p></li>
+<li><p><strong>original_frame_metadata_mid</strong> – dictionary of frame-by-frame metadata
+for the <cite>Mid</cite> image.</p></li>
+<li><p><strong>export_global_metadata_mid</strong> – list of dictionaries of global
+metadata for the <cite>Mid</cite> image, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><strong>export_frame_metadata_mid</strong> – list of dictionaries of frame-by-frame
+metadata for the <cite>Mid</cite> image, with each element of the list
+corresponding to a channel. FullEmbryo images are usually single time-points,
+so this is redundant but kept to maintain consistency with the interface for
+other import classes.</p></li>
+<li><p><strong>channels_full_dataset_surf</strong> – list of numpy arrays, with each element of the
+list being a channel of the <cite>Surf</cite> image.</p></li>
+<li><p><strong>original_global_metadata_surf</strong> – dictionary of global metadata
+for the <cite>Surf</cite> image.</p></li>
+<li><p><strong>original_frame_metadata_surf</strong> – dictionary of frame-by-frame metadata
+for the <cite>Surf</cite> image.</p></li>
+<li><p><strong>export_global_metadata_surf</strong> – list of dictionaries of global
+metadata for the <cite>Surf</cite> image, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><strong>export_frame_metadata_surf</strong> – list of dictionaries of frame-by-frame
+metadata for the <cite>Surf</cite> image, with each element of the list
+corresponding to a channel. FullEmbryo images are usually single time-points,
+so this is redundant but kept to maintain consistency with the interfact for
+other import classes.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.read" title="Link to this definition">#</a></dt>
+<dd><p>Imports preprocessed and collated FullEmbryo data along with metadata dictionaries
+extracted and saved to disk in the <cite>name_folder</cite> directory, loading it into
+respective class attributes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zarr'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.save" title="Link to this definition">#</a></dt>
+<dd><p>Saves preprocessed and collated FullEmbryo data in the <cite>name_folder</cite> directory
+in the format requested, and saves the metadata dictionaries in the same
+folder using <cite>pickle</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> (<em>{'tiff'</em><em>, </em><em>'zarr'}</em>) – Format to save the data arrays.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="transcription-pipeline-spot-pipeline-module">
 <h2>transcription_pipeline.spot_pipeline module<a class="headerlink" href="#transcription-pipeline-spot-pipeline-module" title="Link to this heading">#</a></h2>
@@ -462,7 +742,19 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#subpackages">Subpackages</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-nuclear-pipeline-module">transcription_pipeline.nuclear_pipeline module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-pipeline-module">transcription_pipeline.preprocessing_pipeline module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing_pipeline">transcription_pipeline.preprocessing_pipeline module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport"><code class="docutils literal notranslate"><span class="pre">DataImport</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport.read"><code class="docutils literal notranslate"><span class="pre">DataImport.read()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.DataImport.save"><code class="docutils literal notranslate"><span class="pre">DataImport.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.read"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport.read()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing_pipeline.FullEmbryoImport.save"><code class="docutils literal notranslate"><span class="pre">FullEmbryoImport.save()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-pipeline-module">transcription_pipeline.spot_pipeline module</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline">Module contents</a></li>
 </ul>

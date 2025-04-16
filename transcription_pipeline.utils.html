@@ -28,7 +28,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
@@ -328,11 +328,33 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-image-histogram-module">transcription_pipeline.utils.image_histogram module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-label-manipulation-module">transcription_pipeline.utils.label_manipulation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-neighborhood-manipulation-module">transcription_pipeline.utils.neighborhood_manipulation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-parallel-computing-module">transcription_pipeline.utils.parallel_computing module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-plottable-module">transcription_pipeline.utils.plottable module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.image_histogram">transcription_pipeline.utils.image_histogram module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.image_histogram.histogram"><code class="docutils literal notranslate"><span class="pre">histogram()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.label_manipulation">transcription_pipeline.utils.label_manipulation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie_parallel"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie_parallel()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.neighborhood_manipulation">transcription_pipeline.utils.neighborhood_manipulation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.ellipsoid"><code class="docutils literal notranslate"><span class="pre">ellipsoid()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.extract_neighborhood"><code class="docutils literal notranslate"><span class="pre">extract_neighborhood()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.inject_neighborhood"><code class="docutils literal notranslate"><span class="pre">inject_neighborhood()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.parallel_computing">transcription_pipeline.utils.parallel_computing module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.futures_to_zarr"><code class="docutils literal notranslate"><span class="pre">futures_to_zarr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.number_of_frames"><code class="docutils literal notranslate"><span class="pre">number_of_frames()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.parallelize"><code class="docutils literal notranslate"><span class="pre">parallelize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.parse_parallelize_kwargs"><code class="docutils literal notranslate"><span class="pre">parse_parallelize_kwargs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.zarr_to_futures"><code class="docutils literal notranslate"><span class="pre">zarr_to_futures()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.plottable">transcription_pipeline.utils.plottable module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.plottable.generate_trace_plot_list"><code class="docutils literal notranslate"><span class="pre">generate_trace_plot_list()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils">Module contents</a></li>
 </ul>
             </nav>
@@ -350,20 +372,317 @@ document.write(`
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
 </section>
-<section id="transcription-pipeline-utils-image-histogram-module">
-<h2>transcription_pipeline.utils.image_histogram module<a class="headerlink" href="#transcription-pipeline-utils-image-histogram-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.utils.image_histogram">
+<span id="transcription-pipeline-utils-image-histogram-module"></span><h2>transcription_pipeline.utils.image_histogram module<a class="headerlink" href="#module-transcription_pipeline.utils.image_histogram" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.image_histogram.histogram">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.image_histogram.</span></span><span class="sig-name descname"><span class="pre">histogram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.image_histogram.histogram" title="Link to this definition">#</a></dt>
+<dd><p>Return histogram of image.</p>
+<p>Unlike <cite>numpy.histogram</cite>, this function returns the centers of bins and
+does not rebin integer arrays. For integer arrays, each integer value has
+its own bin, which improves speed and intensity-resolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Image for which the histogram is to be computed.</p></li>
+<li><p><strong>bins</strong> (<em>{int</em><em>, </em><em>np.ndarray}</em>) – The number of histogram bins. For images with integer dtype, an array
+containing the bin centers can also be provided. For images with floating point
+dtype, this can be an array of bin_edges for use by <cite>np.histogram</cite>.</p></li>
+<li><p><strong>hist_range</strong> (<em>2-tuple</em><em> of </em><em>scalars</em>) – Range of values covered by the histogram bins.</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>) – If True, normalize the histogram by the sum of its values.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-utils-label-manipulation-module">
-<h2>transcription_pipeline.utils.label_manipulation module<a class="headerlink" href="#transcription-pipeline-utils-label-manipulation-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.utils.label_manipulation">
+<span id="transcription-pipeline-utils-label-manipulation-module"></span><h2>transcription_pipeline.utils.label_manipulation module<a class="headerlink" href="#module-transcription_pipeline.utils.label_manipulation" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.label_manipulation.expand_labels_movie">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.label_manipulation.</span></span><span class="sig-name descname"><span class="pre">expand_labels_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie" title="Link to this definition">#</a></dt>
+<dd><p>Extends <cite>skimage.segmentation.expand_labels</cite> to operate frame-by-frame on a movie.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label_movie</strong> (<em>np.ndarray</em>) – Labelled movie.</p></li>
+<li><p><strong>distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
+defaults to 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Labelled movie array with connected regions enlarged frame-by-frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.label_manipulation.expand_labels_movie_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.label_manipulation.</span></span><span class="sig-name descname"><span class="pre">expand_labels_movie_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Extends <cite>skimage.segmentation.expand_labels</cite> to operate frame-by-frame on a movie,
+parallelized across a Dask LocalCluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label_movie</strong> (<em>np.ndarray</em>) – Labelled movie.</p></li>
+<li><p><strong>distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
+defaults to 1.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(<cite>expanded_labels</cite>, <cite>expanded_labels_futures</cite>, <cite>scattered_label_movie</cite>)
+where</p>
+<ul class="simple">
+<li><p><cite>expanded_labels</cite> is the fully evaluated labelled movie array with connected
+regions enlarged frame-by-frame.</p></li>
+<li><p><cite>expanded_labels_futures</cite> is the list of futures objects resulting from the
+label expansion in the worker memories before gathering and concatenation.</p></li>
+<li><p><cite>scattered_label_movie</cite> is a list with each element corresponding to a list of
+futures pointing to the input <cite>label_movie</cite> in the workers’ memory.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass along any kwargs taken by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code>.</p>
+</div>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-utils-neighborhood-manipulation-module">
-<h2>transcription_pipeline.utils.neighborhood_manipulation module<a class="headerlink" href="#transcription-pipeline-utils-neighborhood-manipulation-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.utils.neighborhood_manipulation">
+<span id="transcription-pipeline-utils-neighborhood-manipulation-module"></span><h2>transcription_pipeline.utils.neighborhood_manipulation module<a class="headerlink" href="#module-transcription_pipeline.utils.neighborhood_manipulation" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.neighborhood_manipulation.ellipsoid">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.neighborhood_manipulation.</span></span><span class="sig-name descname"><span class="pre">ellipsoid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diameter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.neighborhood_manipulation.ellipsoid" title="Link to this definition">#</a></dt>
+<dd><p>Constructs an ellipsoid footprint for morphological operations - this is usually
+better than built-in skimage.morphology footprints because the voxel dimensions
+in our images are typically anisotropic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>diameter</strong> (<em>int</em>) – Diameter in xy-plane of ellipsoid footprint.</p></li>
+<li><p><strong>height</strong> (<em>int</em>) – Height in z-axis of ellipsoid footprint.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Ellipsoid footprint.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.neighborhood_manipulation.extract_neighborhood">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.neighborhood_manipulation.</span></span><span class="sig-name descname"><span class="pre">extract_neighborhood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.neighborhood_manipulation.extract_neighborhood" title="Link to this definition">#</a></dt>
+<dd><p>Extracts a view of a neighborhood of size <cite>span</cite> (or the largest odd number under
+<cite>span</cite> if <cite>span</cite> is even) centered around the pixel corresponding to position
+specified by <cite>coordinates</cite> from an input <cite>image</cite> in arbitrary dimensions, with
+<cite>span</cite> and <cite>coordinates</cite> both having size matching the dimensions of <cite>image</cite> and
+specifying the neighborhood in respective axes. This is useful when extracting
+proposed spots from the raw data for Gaussian fitting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Input image to extract neighborhood from.</p></li>
+<li><p><strong>coordinates</strong> (<em>np.ndarray</em>) – Coordinates that locate the pixel in <cite>image</cite> around which to
+extract <cite>neighborhood</cite>.</p></li>
+<li><p><strong>span</strong> (<em>np.ndarray</em>) – Size of neighborhood to extract (rounded in each axis to the largest
+odd number below <cite>span</cite> if even).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Extracted neighborhood in same dimensionality as <cite>image</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.neighborhood_manipulation.inject_neighborhood">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.neighborhood_manipulation.</span></span><span class="sig-name descname"><span class="pre">inject_neighborhood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborhood</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates_start</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.neighborhood_manipulation.inject_neighborhood" title="Link to this definition">#</a></dt>
+<dd><p>Injects a specified neighborhood of dimensionality matching <cite>image</cite> at a position
+with initial corner specified by <cite>coordinates_start</cite> (i.e. the (0, 0,…) corner
+of <cite>neighborhood</cite> is injected at position <cite>coordinates_start</cite>). The input <cite>image</cite>
+is modified in-place, returning <cite>None</cite>. This is useful for injecting spot masks
+into a blank mask when constructing a new mask from Gaussian fitting parameters
+during spot curation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – Input image to inject neighborhood in.</p></li>
+<li><p><strong>coordinates_start</strong> (<em>{np.ndarray</em><em>, </em><em>int}</em>) – Coordinates that locate the position at which to inject
+<cite>neighborhood</cite>, with the 0-indexed corner of <cite>neighborhood</cite> being injected
+at the pixel specified by this parameter.</p></li>
+<li><p><strong>neighborhood</strong> (<em>np.ndarray</em>) – Neighborhood to inject, same dimensionality as <cite>image</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-utils-parallel-computing-module">
-<h2>transcription_pipeline.utils.parallel_computing module<a class="headerlink" href="#transcription-pipeline-utils-parallel-computing-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.utils.parallel_computing">
+<span id="transcription-pipeline-utils-parallel-computing-module"></span><h2>transcription_pipeline.utils.parallel_computing module<a class="headerlink" href="#module-transcription_pipeline.utils.parallel_computing" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.parallel_computing.futures_to_zarr">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.parallel_computing.</span></span><span class="sig-name descname"><span class="pre">futures_to_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">futures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_start_stop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zarr_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.parallel_computing.futures_to_zarr" title="Link to this definition">#</a></dt>
+<dd><p>Indexes into a <cite>zarr</cite> array and transfers in values from the corresponding
+Dask <cite>Futures</cite> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>futures</strong> (List of <cite>dask.distribution.client.Futures</cite> objects.) – List of futures objects containing chunks of the output, e.g. from a
+<cite>client.map</cite> operation.</p></li>
+<li><p><strong>chunk_start_stop</strong> (<em>list</em>) – 2D list, with each 2-element along axis 0 corresponding
+to the first and last indices of the target <cite>zarr_out</cite> to copy values to.</p></li>
+<li><p><strong>zarr_out</strong> (<em>Zarr array.</em>) – Target <cite>zarr</cite> array to copy values from <cite>futures</cite> into.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of <cite>None</cite> objects of same length as <cite>futures</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.parallel_computing.number_of_frames">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.parallel_computing.</span></span><span class="sig-name descname"><span class="pre">number_of_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.parallel_computing.number_of_frames" title="Link to this definition">#</a></dt>
+<dd><p>Finds number of frames in input <cite>movie</cite>, whether movie is passed as a Numpy
+array or a list of Futures corresponding to chunks of <cite>movie</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movie</strong> (<em>{np.ndarray</em><em>, </em><em>list}</em>) – Input movie as passed wrapped in list to <cite>parallelize</cite>.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of frames in input movie.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.parallel_computing.parallelize">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.parallel_computing.</span></span><span class="sig-name descname"><span class="pre">parallelize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">movies_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">futures_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">futures_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.parallel_computing.parallelize" title="Link to this definition">#</a></dt>
+<dd><p>Parallelizes the execution of input function <cite>func</cite> taking elements of movies_list
+as only positional arguments across workers, dispatching the input data to
+distributed memory first if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>movies_list</strong> (<em>list</em>) – List with each element corresponding to a positional
+input of <cite>func</cite>. Each element may be an <cite>ndarray</cite> which is then dispatched
+to the distributed memory, or a list of pointers to Futures in the
+distributed memory that are used as is.</p></li>
+<li><p><strong>func</strong> (<em>function</em>) – Function taking the elements of movies_list as positional
+arguments.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+<li><p><strong>evaluate</strong> (<em>bool</em>) – If True (default), deserialize and concatenate results of
+worker computations on execution. If False, processed_movie is set to None.
+This is useful for avoiding unnecessary gathering and deserialization if you
+don’t need the result of a function computation by itself, but require it as
+an input to a downstream parallelized function.</p></li>
+<li><p><strong>futures_in</strong> (<em>bool</em>) – If True (default), keeps the futures objects used to
+send the input movies from movies_list and passes them to the scattered_data
+output. If False, scattered_output is set to None and the futures objects
+are removed so that the worker memory can be garbage collected.</p></li>
+<li><p><strong>futures_out</strong> (<em>bool</em>) – If True (default), keeps the futures objects corresponding
+to the output of the computation before concatenation and passes them to the
+processed_movie_futures output. If False, scattered_output is set to None and
+the futures objects are removed so that the worker memory can be garbage
+collected.</p></li>
+<li><p><strong>num_chunks</strong> (<em>int</em>) – Number of chunks to split input movie into if fed as Numpy
+array. Defaults to same as number of worker processes in the Dask <cite>client</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(processed_movie, processed_movie_futures, scattered_data) where</p>
+<ul class="simple">
+<li><p>processed_movie is the fully evaluated result of the computation</p></li>
+<li><p>processed_movie_futures is the list of futures objects resulting from the
+computation before concatenation.</p></li>
+<li><p>scattered_data is a list of list of futures pointing to the input data in
+movies_list in the workers’ memory</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.parallel_computing.parse_parallelize_kwargs">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.parallel_computing.</span></span><span class="sig-name descname"><span class="pre">parse_parallelize_kwargs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.parallel_computing.parse_parallelize_kwargs" title="Link to this definition">#</a></dt>
+<dd><p>Parses optional kwargs dict for relevant <a class="reference internal" href="#transcription_pipeline.utils.parallel_computing.parallelize" title="transcription_pipeline.utils.parallel_computing.parallelize"><code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code></a> arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<em>dict</em>) – Dictionary of keyword arguments.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple(evaluate, futures_in, futures_out) corresponding to the values
+of the optional keyword arguments for <a class="reference internal" href="#transcription_pipeline.utils.parallel_computing.parallelize" title="transcription_pipeline.utils.parallel_computing.parallelize"><code class="xref py py-func docutils literal notranslate"><span class="pre">parallelize()</span></code></a> with the same
+defaults (all True).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.parallel_computing.zarr_to_futures">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.parallel_computing.</span></span><span class="sig-name descname"><span class="pre">zarr_to_futures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zarr_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.parallel_computing.zarr_to_futures" title="Link to this definition">#</a></dt>
+<dd><p>Reads <cite>zarr</cite> array containing the image data as a list of Dask <cite>Futures</cite> objects
+consistent with the existing chunking on the <cite>zarr</cite> array.</p>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-utils-plottable-module">
-<h2>transcription_pipeline.utils.plottable module<a class="headerlink" href="#transcription-pipeline-utils-plottable-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.utils.plottable">
+<span id="transcription-pipeline-utils-plottable-module"></span><h2>transcription_pipeline.utils.plottable module<a class="headerlink" href="#module-transcription_pipeline.utils.plottable" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.utils.plottable.generate_trace_plot_list">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.utils.plottable.</span></span><span class="sig-name descname"><span class="pre">generate_trace_plot_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled_dataframe</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.utils.plottable.generate_trace_plot_list" title="Link to this definition">#</a></dt>
+<dd><p>Generates list of tuples of the time and intensity vectors for a given particle,
+and the particle ID and assigned nuclear cycle of the trace.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>compiled_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame of compiled data indexed by particle.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of tuples of the form <cite>(time, intensity, particle, nc)</cite> where <cite>time</cite>
+and <cite>intensity</cite> are vectors corresponding to the trace for <cite>particle</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[tuple]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-transcription_pipeline.utils">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.utils" title="Link to this heading">#</a></h2>
@@ -407,11 +726,33 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-image-histogram-module">transcription_pipeline.utils.image_histogram module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-label-manipulation-module">transcription_pipeline.utils.label_manipulation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-neighborhood-manipulation-module">transcription_pipeline.utils.neighborhood_manipulation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-parallel-computing-module">transcription_pipeline.utils.parallel_computing module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-utils-plottable-module">transcription_pipeline.utils.plottable module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.image_histogram">transcription_pipeline.utils.image_histogram module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.image_histogram.histogram"><code class="docutils literal notranslate"><span class="pre">histogram()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.label_manipulation">transcription_pipeline.utils.label_manipulation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.label_manipulation.expand_labels_movie_parallel"><code class="docutils literal notranslate"><span class="pre">expand_labels_movie_parallel()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.neighborhood_manipulation">transcription_pipeline.utils.neighborhood_manipulation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.ellipsoid"><code class="docutils literal notranslate"><span class="pre">ellipsoid()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.extract_neighborhood"><code class="docutils literal notranslate"><span class="pre">extract_neighborhood()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.neighborhood_manipulation.inject_neighborhood"><code class="docutils literal notranslate"><span class="pre">inject_neighborhood()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.parallel_computing">transcription_pipeline.utils.parallel_computing module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.futures_to_zarr"><code class="docutils literal notranslate"><span class="pre">futures_to_zarr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.number_of_frames"><code class="docutils literal notranslate"><span class="pre">number_of_frames()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.parallelize"><code class="docutils literal notranslate"><span class="pre">parallelize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.parse_parallelize_kwargs"><code class="docutils literal notranslate"><span class="pre">parse_parallelize_kwargs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.parallel_computing.zarr_to_futures"><code class="docutils literal notranslate"><span class="pre">zarr_to_futures()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils.plottable">transcription_pipeline.utils.plottable module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.utils.plottable.generate_trace_plot_list"><code class="docutils literal notranslate"><span class="pre">generate_trace_plot_list()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.utils">Module contents</a></li>
 </ul>
   </nav></div>

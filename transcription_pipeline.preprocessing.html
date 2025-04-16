@@ -28,7 +28,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
@@ -329,8 +329,24 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-import-data-module">transcription_pipeline.preprocessing.import_data module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-process-metadata-module">transcription_pipeline.preprocessing.process_metadata module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing.import_data">transcription_pipeline.preprocessing.import_data module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.all_equal"><code class="docutils literal notranslate"><span class="pre">all_equal()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.check_metadata"><code class="docutils literal notranslate"><span class="pre">check_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_frame_metadata"><code class="docutils literal notranslate"><span class="pre">collate_frame_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_global_metadata"><code class="docutils literal notranslate"><span class="pre">collate_global_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_metadata"><code class="docutils literal notranslate"><span class="pre">collate_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.extract_global_metadata"><code class="docutils literal notranslate"><span class="pre">extract_global_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_dataset"><code class="docutils literal notranslate"><span class="pre">import_dataset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_full_embryo"><code class="docutils literal notranslate"><span class="pre">import_full_embryo()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_save_dataset"><code class="docutils literal notranslate"><span class="pre">import_save_dataset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.z_cross_correlation_shift"><code class="docutils literal notranslate"><span class="pre">z_cross_correlation_shift()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing.process_metadata">transcription_pipeline.preprocessing.process_metadata module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.process_metadata.extract_renormalized_frame"><code class="docutils literal notranslate"><span class="pre">extract_renormalized_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.process_metadata.extract_time"><code class="docutils literal notranslate"><span class="pre">extract_time()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing">Module contents</a></li>
 </ul>
             </nav>
@@ -348,11 +364,426 @@ document.write(`
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
 </section>
-<section id="transcription-pipeline-preprocessing-import-data-module">
-<h2>transcription_pipeline.preprocessing.import_data module<a class="headerlink" href="#transcription-pipeline-preprocessing-import-data-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.preprocessing.import_data">
+<span id="transcription-pipeline-preprocessing-import-data-module"></span><h2>transcription_pipeline.preprocessing.import_data module<a class="headerlink" href="#module-transcription_pipeline.preprocessing.import_data" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.all_equal">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">all_equal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.all_equal" title="Link to this definition">#</a></dt>
+<dd><p>Checks if all the elements of an iterable are identical.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>iterable</strong> – Any object that can be iterated over.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if all elements of input are identical, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.check_metadata">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">check_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.check_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Checks dictionary of global metadata as output by
+<a class="reference internal" href="#transcription_pipeline.preprocessing.import_data.extract_global_metadata" title="transcription_pipeline.preprocessing.import_data.extract_global_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">extract_global_metadata()</span></code></a> for inconsistencies and flattens
+fields with no inconsistencies. Throws a warning for each inconsistent
+metadata field, except for those listed in ignore_fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metadata_dict</strong> (<em>dict</em>) – Dictionary of global metadata.</p></li>
+<li><p><strong>ignore_fields</strong> (<em>list</em>) – List of metadata fields to leave uncollapsed
+even if they are consistent across series.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cleaned up dictionary of global metadata, with consistent fields
+flattened with removed duplicates.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.collate_frame_metadata">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">collate_frame_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_frame_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_global_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_delta_from_0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.collate_frame_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Helper function that uses the metadata from the files being processed
+to write a consistent frame-by-frame metadata dictionary for the
+collated file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_frame_metadata</strong> (<em>dict</em>) – Frame-by-frame metadata dictionary for
+an extracted dataset.</p></li>
+<li><p><strong>output_global_metadata</strong> (<em>dict</em>) – Global metadata dictionary for the
+exported (collated) data file, as output by
+<a class="reference internal" href="#transcription_pipeline.preprocessing.import_data.collate_global_metadata" title="transcription_pipeline.preprocessing.import_data.collate_global_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">collate_global_metadata()</span></code></a>.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+<li><p><strong>num_channels</strong> (<em>int</em>) – Number of imaging channels.</p></li>
+<li><p><strong>time_delta_from_0</strong> (<em>list</em>) – List of time difference between the
+start of each series and the start of the first series in the dataset.
+This is used to make an accurate timestamp of the frames in all
+series in a dataset since each series records its timestamps relative
+to its own start time.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of global metadata for the exported (collated) file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.collate_global_metadata">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">collate_global_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_global_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_series_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields_num_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields_num_series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields_num_series_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields_explicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.collate_global_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Helper function that uses the metadata from the files being processed
+to write a consistent global metadata dictionary for the collated file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_global_metadata</strong> (<em>dict</em>) – Clean up metadata dictionary for an
+extracted dataset, as output by <a class="reference internal" href="#transcription_pipeline.preprocessing.import_data.check_metadata" title="transcription_pipeline.preprocessing.import_data.check_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_metadata()</span></code></a>.</p></li>
+<li><p><strong>num_channels</strong> (<em>int</em>) – Number of imaging channels.</p></li>
+<li><p><strong>num_series_total</strong> (<em>int</em>) – Total number of series across all data files.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+<li><p><strong>fields_num_channels</strong> (<em>list</em>) – List of metadata fields indexed by
+channel.</p></li>
+<li><p><strong>fields_num_series</strong> (<em>list</em>) – List of metadata fields indexed by series.</p></li>
+<li><p><strong>fields_num_series_channels</strong> (<em>list</em>) – List of metadata fields indexed
+by series and channels respectively.</p></li>
+<li><p><strong>fields_explicit</strong> (<em>list</em>) – List of metadata fields that will be handled
+explicitly - this just avoids multiple writings to the same dict key.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of global metadata for the exported (collated) file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.collate_metadata">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">collate_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_global_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_frame_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.collate_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Helper function that takes the original metadata extracted from each
+series and data file by PIMS (where each dictionary key value is a list
+of the corresponding metadata values for each series, indexed by data file
+and series respectively) and returns cleaned up global and frame-by-frame
+metadata dictionaries consistent with the PIMS format, corresponding
+to the cleaned-up (trimmed and collated) dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_global_metadata</strong> (<em>dict</em>) – Dictionary of global metadata for all
+files and series in a dataset. Make sure that the global metadata
+has been run through <a class="reference internal" href="#transcription_pipeline.preprocessing.import_data.check_metadata" title="transcription_pipeline.preprocessing.import_data.check_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_metadata()</span></code></a> since this function
+raises an exception if the ChannelCount and PixelSizeZ metadata are
+still given as lists.</p></li>
+<li><p><strong>input_frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata
+for all files and series in a dataset.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple(output_global_metadata, output_frame_metadata) of
+lists of dictionaries, each list element corresponding to a channel,
+matching the global and frame-by-frame metadata respectively of the
+collated dataset.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of lists of dictionaries.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.extract_global_metadata">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">extract_global_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata_object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.extract_global_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Helper function that extracts a dictionary of the global metadata
+(i.e. not the frame-by-frame metadata) from a MetadataRetrieve object
+as given by the PIMS bioformats reader for a single file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>metadata_object</strong> (<em>MetadataRetrieve object.</em>) – MetadataRetrieve object output by PIMS bioformats
+reader for single file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of global metadata values. If the metadata field has
+potentially distinct values for different series and channels within
+the file, the corresponding key is a list indexed by series and
+channel respectively.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.import_dataset">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">import_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">registration_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_storage_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collated_dataset_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zarr_chunk_nbytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.import_dataset" title="Link to this definition">#</a></dt>
+<dd><p>Imports and collates the data files in the name_directory, and generates
+metadata dictionaries for the original files metadata and new metadata
+corresponding to the collated file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_folder</strong> (<em>str</em>) – Path to name folder containing data files.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+<li><p><strong>peak_window</strong> (<em>int</em>) – Window around proposed peak index in normalized correlation
+computed for different z-shifts to consider when computing the centroid of the
+peak of the normalized correlation.</p></li>
+<li><p><strong>min_prominence</strong> (<em>float</em>) – Minimum prominence of a peak for it to be considered
+a true maxima of the normalized correlation. See documentation for
+<cite>scipy.signal.peak_prominences</cite>.</p></li>
+<li><p><strong>registration_channel</strong> (<em>int</em>) – Index of channel to use for registration of z-shift
+between stacks - usually works better with channels with more structure. By default
+uses last channel.</p></li>
+<li><p><strong>working_storage_mode</strong> ({<cite>None</cite>, “zarr”}) – Determines how the dataset is pulled into memory - <cite>None</cite>
+pulls the whole dataset as a Numpy array into memory, “zarr” chunks as requested and
+commits data to a zarr array.</p></li>
+<li><p><strong>collated_dataset_path</strong> (<em>str</em><em> or </em><em>pathlib.Path</em>) – Path to the folder containing the collated data after
+extraction from the raw files.</p></li>
+<li><p><strong>zarr_chunk_nbytes</strong> (<em>int</em>) – Imported movies are chunked along the time axis, with the
+memory size of each chunk being approximately set by this parameter in memory size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
+original_frame_metadata, export_global_metadata,
+export_frame_metadata)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">channels_full_dataset</span></code>: list of numpy arrays, with each
+element of the list being a collated dataset for a given channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_global_metadata</span></code>: dictionary of global metadata
+for all files and series in a dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_frame_metadata</span></code>: dictionary of frame-by-frame metadata
+for all files and series in a dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_global_metadata</span></code>: list of dictionaries of global
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_frame_metadata</span></code>: list of dictionaries of frame-by-frame
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">series_splits</span></code>: list of first frame of each series. This is useful
+when stitching together z-coordinates to improve tracking when the z-stack
+has been shifted mid-imaging.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">series_shifts</span></code>: list of estimated shifts in pixels (sub-pixel
+approximated using centroid of normalized correlation peak) between stacks
+at interface between separate series - this quantifies the shift in the
+z-stack.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.import_full_embryo">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">import_full_embryo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.import_full_embryo" title="Link to this definition">#</a></dt>
+<dd><p>Imports the FullEmbryo data files in the name_directory used to assign position of
+the imaging window along the embryo AP axis, and generates metadata dictionaries for
+the original files metadata and new metadata corresponding to the respective
+channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_folder</strong> (<em>str</em>) – Path to name folder containing data files.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of file pattern to look for inside the FullEmbryo folder
+(e.g. <cite>Mid*</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
+original_frame_metadata, export_global_metadata,
+export_frame_metadata)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">channels_dataset</span></code>: list of numpy arrays, with each
+element of the list being a collated FullEmbryo dataset for a given channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_global_metadata</span></code>: dictionary of global metadata
+for a FullEmbryo dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_frame_metadata</span></code>: dictionary of frame-by-frame metadata
+for all files and series in a dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_global_metadata</span></code>: list of dictionaries of global
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_frame_metadata</span></code>: list of dictionaries of frame-by-frame
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.import_save_dataset">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">import_save_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_folder</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tiff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.import_save_dataset" title="Link to this definition">#</a></dt>
+<dd><p>Imports and collates the data files in the name_directory, and generates
+metadata dictionaries for the original files metadata and new metadata
+corresponding to the collated file. These metadata dicts are saved to
+a ‘collated_dataset’ folder in the name_folder as .mat files and the
+collated dataset is saved into separate tiff files for each channel in the
+same folder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_folder</strong> (<em>str</em>) – Path to name folder containing data files.</p></li>
+<li><p><strong>trim_series</strong> (<em>bool</em>) – If True, deletes the last frame of each series.
+This should be used when acquisition was stopped in the middle of a
+z-stack.</p></li>
+<li><p><strong>mode</strong> (<em>{'tiff'</em><em>, </em><em>'zarr'}</em>) – Format to save and return data array.</p></li>
+<li><p><strong>chunks</strong> (<em>bool</em><em>, </em><em>int</em><em> or </em><em>tuple</em><em> of </em><em>ints</em><em>, </em><em>optional.</em>) – Chunk shape for zarr storage. If True, will be guessed from shape
+and dtype. If False, will be set to shape, i.e., single chunk for the whole
+array. If an int, the chunk size in each dimension will be given by the
+value of chunks. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple(channels_full_dataset, original_global_metadata,
+original_frame_metadata, export_global_metadata,export_frame_metadata)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">channels_full_dataset</span></code>: list of numpy (if mode=’tiff’) or zarr arrays
+(if mode=’zarr’), with each element of the list being a collated dataset
+for a given channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_global_metadata</span></code>: dictionary of global metadata
+for all files and series in a dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">original_frame_metadata</span></code>: dictionary of frame-by-frame metadata
+for all files and series in a dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_global_metadata</span></code>: list of dictionaries of global
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_frame_metadata</span></code>: list of dictionaries of frame-by-frame
+metadata for the collated dataset, with each element of the list
+corresponding to a channel.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[dict]</p>
+</dd>
+</dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version Deprecated: </span>in favor of <cite>pipeline.DataImport</cite> class wrapper.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.import_data.z_cross_correlation_shift">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.import_data.</span></span><span class="sig-name descname"><span class="pre">z_cross_correlation_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stack1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stack2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.import_data.z_cross_correlation_shift" title="Link to this definition">#</a></dt>
+<dd><p>Used the normalized cross-correlation in the z-axis to find the shift in z between
+two z-stacks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stack1</strong> (<em>np.ndarray</em>) – Z-stack overlapping with <cite>stack2</cite> such that the normalized correlation
+peak can be used to estimate the shift in z between <cite>stack1</cite> and <cite>stack2</cite>.</p></li>
+<li><p><strong>stack2</strong> (<em>np.ndarray</em>) – Z-stack overlapping with <cite>stack1</cite> such that the normalized correlation
+peak can be used to estimate the shift in z between <cite>stack1</cite> and <cite>stack2</cite>.</p></li>
+<li><p><strong>peak_window</strong> (<em>int</em>) – Window around proposed peak index in normalized correlation
+computed for different z-shifts to consider when computing the centroid of the
+peak of the normalized correlation.</p></li>
+<li><p><strong>min_prominence</strong> (<em>float</em>) – Minimum prominence of a peak for it to be considered
+a true maxima of the normalized correlation. See documentation for
+<cite>scipy.signal.peak_prominences</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Estimated shift in pixels (sub-pixel approximated using centroid of
+normalized correlation peak) between <cite>stack1</cite> and <cite>stack2</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-preprocessing-process-metadata-module">
-<h2>transcription_pipeline.preprocessing.process_metadata module<a class="headerlink" href="#transcription-pipeline-preprocessing-process-metadata-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.preprocessing.process_metadata">
+<span id="transcription-pipeline-preprocessing-process-metadata-module"></span><h2>transcription_pipeline.preprocessing.process_metadata module<a class="headerlink" href="#module-transcription_pipeline.preprocessing.process_metadata" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.process_metadata.extract_renormalized_frame">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.process_metadata.</span></span><span class="sig-name descname"><span class="pre">extract_renormalized_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_metadata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.process_metadata.extract_renormalized_frame" title="Link to this definition">#</a></dt>
+<dd><p>Returns a function that maps a frame number and z-coordinate to the time in
+units of number of z-stack scans after the start of the imaging sessions - this
+is used rather than absolute time in seconds by trackpy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
+series in a dataset.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Function object taking frame number and z-position as arguments and
+returning an imaging time number of z-stack scan times.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>function of form time_func(frame_number, z_position)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will try to estimate the time at which a coordinate was imaged.
+If the scope records the imaging time for each z-slice in the metadata, it will
+simply use the corresponding value. Some scopes, however, only record the
+time at the start of each z-stack - in this case it will interpolate the
+time.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.preprocessing.process_metadata.extract_time">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.preprocessing.process_metadata.</span></span><span class="sig-name descname"><span class="pre">extract_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_metadata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.preprocessing.process_metadata.extract_time" title="Link to this definition">#</a></dt>
+<dd><p>Returns a function that maps a frame number and z-coordinate to the time in
+seconds after the start of the imaging sessions at which that coordinate was
+imaged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
+series in a dataset.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple of function object taking frame number and z-position as arguments
+and returning an imaging time in seconds, and time between frames i.e. of
+form tuple(function of form time_func(frame_number, z_position),
+time_between_frames).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will try to estimate the time at which a coordinate was imaged.
+If the scope records the imaging time for each z-slice in the metadata, it will
+simply use the corresponding value. Some scopes, however, only record the
+time at the start of each z-stack - in this case it will interpolate the
+time.</p>
+</div>
+</dd></dl>
+
 </section>
 <section id="module-transcription_pipeline.preprocessing">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.preprocessing" title="Link to this heading">#</a></h2>
@@ -405,8 +836,24 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-import-data-module">transcription_pipeline.preprocessing.import_data module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-preprocessing-process-metadata-module">transcription_pipeline.preprocessing.process_metadata module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing.import_data">transcription_pipeline.preprocessing.import_data module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.all_equal"><code class="docutils literal notranslate"><span class="pre">all_equal()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.check_metadata"><code class="docutils literal notranslate"><span class="pre">check_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_frame_metadata"><code class="docutils literal notranslate"><span class="pre">collate_frame_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_global_metadata"><code class="docutils literal notranslate"><span class="pre">collate_global_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.collate_metadata"><code class="docutils literal notranslate"><span class="pre">collate_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.extract_global_metadata"><code class="docutils literal notranslate"><span class="pre">extract_global_metadata()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_dataset"><code class="docutils literal notranslate"><span class="pre">import_dataset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_full_embryo"><code class="docutils literal notranslate"><span class="pre">import_full_embryo()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.import_save_dataset"><code class="docutils literal notranslate"><span class="pre">import_save_dataset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.import_data.z_cross_correlation_shift"><code class="docutils literal notranslate"><span class="pre">z_cross_correlation_shift()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing.process_metadata">transcription_pipeline.preprocessing.process_metadata module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.process_metadata.extract_renormalized_frame"><code class="docutils literal notranslate"><span class="pre">extract_renormalized_frame()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.preprocessing.process_metadata.extract_time"><code class="docutils literal notranslate"><span class="pre">extract_time()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.preprocessing">Module contents</a></li>
 </ul>
   </nav></div>

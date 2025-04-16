@@ -28,7 +28,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
 <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
@@ -40,6 +40,7 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'transcription_pipeline.spot_analysis';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -329,13 +330,61 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-compile-data-module">transcription_pipeline.spot_analysis.compile_data module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-detection-module">transcription_pipeline.spot_analysis.detection module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-fitting-module">transcription_pipeline.spot_analysis.fitting module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-refine-traces-module">transcription_pipeline.spot_analysis.refine_traces module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-track-filtering-module">transcription_pipeline.spot_analysis.track_filtering module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-fluctuation-correlation-module">transcription_pipeline.spot_analysis.fluctuation_correlation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-smms2-calibration-module">transcription_pipeline.spot_analysis.smMS2_calibration module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="docutils literal notranslate"><span class="pre">compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces"><code class="docutils literal notranslate"><span class="pre">consolidate_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.detect_and_gather_spots"><code class="docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.detect_spots"><code class="docutils literal notranslate"><span class="pre">detect_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.make_spot_mask"><code class="docutils literal notranslate"><span class="pre">make_spot_mask()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.fitting">transcription_pipeline.spot_analysis.fitting module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">bootstrap_intensity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.create_blocks"><code class="docutils literal notranslate"><span class="pre">create_blocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_mask"><code class="docutils literal notranslate"><span class="pre">extract_spot_mask()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_shell"><code class="docutils literal notranslate"><span class="pre">extract_spot_shell()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">fit_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.gaussian3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">gaussian3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.generate_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">generate_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.intensity_error_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_error_from_fit_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.intensity_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_from_fit_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.simple_bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">simple_bootstrap_intensity()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.refine_traces">transcription_pipeline.spot_analysis.refine_traces module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.refine_traces.refine_compile_traces"><code class="docutils literal notranslate"><span class="pre">refine_compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.refine_traces.refine_trace"><code class="docutils literal notranslate"><span class="pre">refine_trace()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.track_filtering">transcription_pipeline.spot_analysis.track_filtering module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.compile_successive_differences"><code class="docutils literal notranslate"><span class="pre">compile_successive_differences()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_multiple_spots"><code class="docutils literal notranslate"><span class="pre">filter_multiple_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_sigma"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_sigma()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_tracks"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_tracks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.normalized_variation_intensity"><code class="docutils literal notranslate"><span class="pre">normalized_variation_intensity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.successive_differences_quartile"><code class="docutils literal notranslate"><span class="pre">successive_differences_quartile()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots"><code class="docutils literal notranslate"><span class="pre">track_and_filter_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_spots"><code class="docutils literal notranslate"><span class="pre">track_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels"><code class="docutils literal notranslate"><span class="pre">transfer_nuclear_labels()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.fluctuation_correlation">transcription_pipeline.spot_analysis.fluctuation_correlation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces"><code class="docutils literal notranslate"><span class="pre">corr_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.mean_corr_traces"><code class="docutils literal notranslate"><span class="pre">mean_corr_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">log_likelihood_step()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">vectorized_log_likelihood_step()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis">Module contents</a></li>
 </ul>
             </nav>
@@ -353,26 +402,1516 @@ document.write(`
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
 </section>
-<section id="transcription-pipeline-spot-analysis-compile-data-module">
-<h2>transcription_pipeline.spot_analysis.compile_data module<a class="headerlink" href="#transcription-pipeline-spot-analysis-compile-data-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.compile_data">
+<span id="transcription-pipeline-spot-analysis-compile-data-module"></span><h2>transcription_pipeline.spot_analysis.compile_data module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.compile_data" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.compile_data.compile_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.compile_data.</span></span><span class="sig-name descname"><span class="pre">compile_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_tracking_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_columns_spot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['frame',</span> <span class="pre">'t_s',</span> <span class="pre">'intensity_from_neighborhood',</span> <span class="pre">'intensity_std_error_from_neighborhood']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuclear_tracking_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_columns_nuclear</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['nuclear_cycle']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frames_outside_division</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_negative_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces" title="Link to this definition">#</a></dt>
+<dd><p>Compiles spot tracking data (and nuclear tracking data if provided) by particles,
+with particles indexed by row and properties of interest indexed by column such that
+the cell corresponding to a (particle, property) pair contains an array tracking
+the value of that property across time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_tracking_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>compile_columns_spot</strong> (<em>List</em><em> of </em><em>column names. Entries can be strings pointing
+to column names</em><em>, or </em><em>single-entry dictionaries with the key pointing to the
+column name to compile from</em><em>, </em><em>and the value pointing to the new column name
+to give the compiled property in the compiled dictionary.</em>) – List of properties to extract and compile from
+<cite>spot_tracking_dataframe</cite>.</p></li>
+<li><p><strong>nuclear_tracking_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected
+and tracked nuclei.</p></li>
+<li><p><strong>compile_columns_nuclear</strong> (<em>List</em><em> of </em><em>column names.</em>) – List of properties to extract and compile from
+<cite>nuclear_tracking_dataframe</cite>.</p></li>
+<li><p><strong>max_frames_outside_division</strong> (<em>int</em>) – The maximum number of timepoints a track
+can have outside of a nuclear cycle and still be considered exclusively part
+of that nuclear cycle.</p></li>
+<li><p><strong>ignore_negative_spots</strong> (<em>bool</em>) – Ignores datapoints where the spot quantification
+goes negative - as long as we are looking at background-subtracted intensity,
+negative values are clear mistrackings/misquantifications.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame of compiled data indexed by particle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.compile_data.consolidate_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.compile_data.</span></span><span class="sig-name descname"><span class="pre">consolidate_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'background_intensity_from_neighborhood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t_frame'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces" title="Link to this definition">#</a></dt>
+<dd><p>Consolidates all traces from a compiled dataframe structure as output by
+<a class="reference internal" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces" title="transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_traces()</span></code></a> into a single array with dimensions
+<cite>(number of traces, number of time points in the longest trace)</cite>. All missing time points
+are padded with <cite>np.nan</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traces_dataframe</strong> (<em>pandas.DataFrame</em>) – Dataframe containing compiled traces.</p></li>
+<li><p><strong>trace_column</strong> (<em>str</em>) – Name of column in <cite>traces_dataframe</cite> containing the
+traces to be consolidated (each entry being a time series array, each row
+corresponding to a single trace).</p></li>
+<li><p><strong>time_column</strong> (<em>str</em>) – Name of column in <cite>traces_dataframe</cite> containing the
+time points of the traces to be consolidated in units of the time resolution.
+This must be an array of integers that map to real time (not just frame number
+since those can be different if the data is concatenated from multiple series
+with a time delay between the end of a series and the start of the next).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Padded array containing compiled traces.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-detection-module">
-<h2>transcription_pipeline.spot_analysis.detection module<a class="headerlink" href="#transcription-pipeline-spot-analysis-detection-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.detection">
+<span id="transcription-pipeline-spot-analysis-detection-module"></span><h2>transcription_pipeline.spot_analysis.detection module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.detection" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.detection.detect_and_gather_spots">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.detection.</span></span><span class="sig-name descname"><span class="pre">detect_and_gather_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'triangle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_spot_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spot_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spots_movie</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_reverse_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.detection.detect_and_gather_spots" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a trackpy-compatible pandas Dataframe of proposed spot locations after
+bandpass-filtering, thresholding and removing small objects, adding a column for
+the raw spot data. If a Dask Client is passed as a <cite>client</cite> kwarg, the bandpass
+filtering and thresholding will be parallelized across the client.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponsing the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
+series in a dataset.</p></li>
+<li><p><strong>span</strong> (<em>np.ndarray</em>) – Size of neighborhood to extract (rounded in each axis to the largest
+odd number below <cite>span</cite> if even).</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in DataFrame measurement table obtained from
+spot label array containing a position coordinate, in order of indexing of
+the input <cite>spot_movie</cite>.</p></li>
+<li><p><strong>nbins</strong> (<em>int</em>) – Number of bins used to construct image histogram for automatic
+thresholding.</p></li>
+<li><p><strong>threshold</strong> (<em>{&quot;triangle&quot;</em><em>, </em><em>float}</em>) – Threshold below which to clip <cite>spot_movie</cite> after bandpass filter.
+Note that bandpass filtering forces a conversion to normalized float, so the
+threshold should not exceed 1. Setting <cite>threshold=”triangle”</cite> uses automatic
+thresholding using the triangle method.</p></li>
+<li><p><strong>threshold_factor</strong> (<em>float</em>) – If using automated thresholding, this factor is multiplied
+by the proposed threshold value. This gives some degree of control over the stringency
+of thresholding while still getting a ballpark value using the automated method.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em>) – The smallest allowable object size.</p></li>
+<li><p><strong>connectivity</strong> (<em>int</em>) – The connectivity defining the neighborhood of a pixel
+during small object removal.</p></li>
+<li><p><strong>return_bandpass</strong> (<em>bool</em>) – If True, returns bandpass-filtered movie as
+third element of output. Otherwise returns none as third output.</p></li>
+<li><p><strong>keep_futures_bandpass</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated bandpass-filtered movie
+as a list of <cite>Futures</cite> in the Dask worker memories, returning as a list in fourth output.</p></li>
+<li><p><strong>return_spot_labels</strong> (<em>bool</em>) – If True, returns labelled spot mask as
+second element of output. Otherwise returns none as second output.</p></li>
+<li><p><strong>keep_futures_spot_labels</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated labelled mask as a list of
+<cite>Futures</cite> in the Dask worker memories, returning as a list in second output.</p></li>
+<li><p><strong>return_spot_dataframe</strong> (<em>bool</em>) – If True, returns fully evaluated dataframe of
+labelled spots as first output (otherwise returns <cite>None</cite>).</p></li>
+<li><p><strong>keep_futures_spot_dataframe</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of labelled
+spots as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
+<li><p><strong>keep_futures_spots_movie</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of input <cite>spot_movie</cite>
+as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
+mask to measure and add to the DataFrame. With no extra properties, the
+DataFrame will have columns only for the frame, label, and centroid
+coordinates.</p></li>
+<li><p><strong>drop_reverse_time</strong> (<em>bool</em>) – If True, drops the columns with reversed frame
+numbers added to facilitate tracking (if you are using nuclear tracking to
+track your spots instead of tracking the spots independently, you might not
+need these columns).</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>trackpy-compatible pandas DataFrame of spot positions and extra requested
+properties.</p></li>
+<li><p>trackpy-compatible pandas DataFrame of spot positions and extra requested
+properties, chunked up as list of <cite>Futures</cite> corresponding to labelled mask and
+bandpassed-filtered movie <cite>Futures</cite> (see below).</p></li>
+<li><p>labelled mask of spots in <cite>spot_movie</cite></p></li>
+<li><p>labelled mask as list of <cite>Futures</cite></p></li>
+<li><p>bandpass-filtered movie</p></li>
+<li><p>bandpass-filtered movie as a list of <cite>Futures</cite></p></li>
+<li><p>input <cite>spot_movie</cite> as list of <cite>Futures</cite></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.detection.detect_spots">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.detection.</span></span><span class="sig-name descname"><span class="pre">detect_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'triangle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_spot_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spot_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spots_movie</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_reverse_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.detection.detect_spots" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a trackpy-compatible pandas Dataframe of proposed spot locations after
+bandpass-filtering, thresholding and removing small objects. If a Dask Client is
+passed as a <cite>client</cite> kwarg, the bandpass filtering and thresholding will be
+parallelized across the client.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponding the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> (<em>{np.float</em><em>, </em><em>tuple</em><em>[</em><em>np.float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>frame_metadata</strong> (<em>dict</em>) – Dictionary of frame-by-frame metadata for all files and
+series in a dataset.</p></li>
+<li><p><strong>nbins</strong> (<em>int</em>) – Number of bins used to construct image histogram for automatic
+thresholding.</p></li>
+<li><p><strong>threshold</strong> (<em>{&quot;triangle&quot;</em><em>, </em><em>float}</em>) – Threshold below which to clip <cite>spot_movie</cite> after bandpass filter.
+Note that bandpass filtering forces a conversion to normalized float, so the
+threshold should not exceed 1. Setting <cite>threshold=”triangle”</cite> uses automatic
+thresholding using the triangle method.</p></li>
+<li><p><strong>threshold_factor</strong> (<em>float</em>) – If using automated thresholding, this factor is multiplied
+by the proposed threshold value. This gives some degree of control over the stringency
+of thresholding while still getting a ballpark value using the automated method.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em>) – The smallest allowable object size.</p></li>
+<li><p><strong>connectivity</strong> (<em>int</em>) – The connectivity defining the neighborhood of a pixel
+during small object removal.</p></li>
+<li><p><strong>return_bandpass</strong> (<em>bool</em>) – If True, returns bandpass-filtered movie as
+third element of output. Otherwise returns none as third output.</p></li>
+<li><p><strong>keep_futures_bandpass</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated bandpass-filtered movie
+as a list of <cite>Futures</cite> in the Dask worker memories, returning as a list in fourth output.</p></li>
+<li><p><strong>return_spot_labels</strong> (<em>bool</em>) – If True, returns labelled spot mask as
+second element of output. Otherwise returns none as second output.</p></li>
+<li><p><strong>keep_futures_spot_labels</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated labelled mask as a list of
+<cite>Futures</cite> in the Dask worker memories, returning as a list in second output.</p></li>
+<li><p><strong>return_spot_dataframe</strong> (<em>bool</em>) – If True, returns fully evaluated dataframe of
+labelled spots as first output (otherwise returns <cite>None</cite>).</p></li>
+<li><p><strong>keep_futures_spot_dataframe</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of labelled
+spots as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
+<li><p><strong>keep_futures_spots_movie</strong> (<em>bool</em>) – If <cite>True</cite>, keeps dataframe of input <cite>spot_movie</cite>
+as a list of <cite>Futures</cite> in the Dask worker memories.</p></li>
+<li><p><strong>extra_properties</strong> (<em>tuple</em><em>[</em><em>str</em><em>]</em>) – Properties of each labelled region in the segmentation
+mask to measure and add to the DataFrame. With no extra properties, the
+DataFrame will have columns only for the frame, label, and centroid
+coordinates.</p></li>
+<li><p><strong>drop_reverse_time</strong> (<em>bool</em>) – If True, drops the columns with reversed frame
+numbers added to facilitate tracking (if you are using nuclear tracking to
+track your spots instead of tracking the spots independently, you might not
+need these columns).</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>trackpy-compatible pandas DataFrame of spot positions and extra requested
+properties.</p></li>
+<li><p>trackpy-compatible pandas DataFrame of spot positions and extra requested
+properties, chunked up as list of <cite>Futures</cite> corresponding to labelled mask and
+bandpassed-filtered movie <cite>Futures</cite> (see below).</p></li>
+<li><p>labelled mask of spots in <cite>spot_movie</cite></p></li>
+<li><p>labelled mask as list of <cite>Futures</cite></p></li>
+<li><p>bandpass-filtered movie</p></li>
+<li><p>bandpass-filtered movie as a list of <cite>Futures</cite></p></li>
+<li><p>input <cite>spot_movie</cite> as list of <cite>Futures</cite></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.detection.make_spot_mask">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.detection.</span></span><span class="sig-name descname"><span class="pre">make_spot_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_movie</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'triangle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_bandpass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spot_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_futures_spots_movie</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.detection.make_spot_mask" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a labelled mask separating spots from background, bandpassing and
+thresholding the image and removing objects smaller than the specified size.
+If a Dask Client is passed as a <cite>client</cite> kwarg, the bandpass filtering and
+thresholding will be parallelized across the client.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_movie</strong> (<em>np.ndarray</em>) – Movie of spot channel.</p></li>
+<li><p><strong>low_sigma</strong> (<em>{float</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Sigma to use as the low-pass filter (mainly filters out
+noise). Can be given as float (assumes isotropic sigma) or as sequence/array
+(each element corresponsing the sigma along of the image axes).</p></li>
+<li><p><strong>high_sigma</strong> (<em>{float</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Sigma to use as the high-pass filter (removes structured
+background and dims down areas where nuclei are close together that might
+start to coalesce under other morphological operations). Can be given as float
+(assumes isotropic sigma) or as sequence/array (each element corresponsing the
+sigma along of the image axes).</p></li>
+<li><p><strong>nbins</strong> (<em>int</em>) – Number of bins used to construct image histogram for automatic
+thresholding.</p></li>
+<li><p><strong>threshold</strong> (<em>{&quot;triangle&quot;</em><em>, </em><em>float}</em>) – Threshold below which to clip <cite>spot_movie</cite> after bandpass filter.
+Note that bandpass filtering forces a conversion to normalized float, so the
+threshold should not exceed 1. Setting <cite>threshold=”triangle”</cite> uses automatic
+thresholding using the triangle method.</p></li>
+<li><p><strong>threshold_factor</strong> (<em>float</em>) – If using automated thresholding, this factor is multiplied
+by the proposed threshold value. This gives some degree of control over the stringency
+of thresholding while still getting a ballpark value using the automated method.</p></li>
+<li><p><strong>min_size</strong> (<em>int</em>) – The smallest allowable object size.</p></li>
+<li><p><strong>connectivity</strong> (<em>int</em>) – The connectivity defining the neighborhood of a pixel
+during small object removal.</p></li>
+<li><p><strong>return_bandpass</strong> (<em>bool</em>) – If <cite>True</cite>, returns bandpass-filtered movie as
+third element of output. Otherwise returns none as third output.</p></li>
+<li><p><strong>keep_futures_bandpass</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated bandpass-filtered movie
+as a list of <cite>Futures</cite> in the Dask worker memories, returning as a list in fourth output.</p></li>
+<li><p><strong>return_spot_labels</strong> (<em>bool</em>) – If <cite>True</cite>, returns labelled spot mask as
+first element of output. Otherwise returns none as first output.</p></li>
+<li><p><strong>keep_futures_spot_labels</strong> (<em>bool</em>) – If <cite>True</cite>, keeps generated labelled mask as a list of
+<cite>Futures</cite> in the Dask worker memories, returning as a list in second output.</p></li>
+<li><p><strong>keep_futures_spots_movie</strong> (<em>bool</em>) – If <cite>True</cite>, keeps input <cite>spot_movie</cite> as a list of
+<cite>Futures</cite> in the Dask worker memories, returning as a list in fifth output.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple(Labelled mask of spots in <cite>spot_movie</cite>, labelled mask as list of
+<cite>Futures</cite>, bandpass-filtered movie, bandpass-filtered movie as a list of <cite>Futures</cite>,
+input <cite>spot_movie</cite> as list of <cite>Futures</cite>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-fitting-module">
-<h2>transcription_pipeline.spot_analysis.fitting module<a class="headerlink" href="#transcription-pipeline-spot-analysis-fitting-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.fitting">
+<span id="transcription-pipeline-spot-analysis-fitting-module"></span><h2>transcription_pipeline.spot_analysis.fitting module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.fitting" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">add_fits_spots_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'trf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe" title="Link to this definition">#</a></dt>
+<dd><p>Fits a 3D Gaussian to the raw data in each row of the DataFrame of detected spots
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code> using
+<a class="reference internal" href="#transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy" title="transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_gaussian_3d_sym_xy()</span></code></a>. The fit centroid is then used to refine the
+spatial coordinates of the spot, and columns are added as follows:</p>
+<ul class="simple">
+<li><p>“sigma_x_y”: Standard deviation of Gaussian fit in x- and y-coordinates.</p></li>
+<li><p>“sigma_z”: Standard deviation of Gaussian fit in z-coordinate.</p></li>
+<li><p>“amplitude”: Amplitude of Gaussian fit (this is typically the signal of interest).</p></li>
+<li><p>“offset”: Offset of Gaussian fit (useful for background subtraction).</p></li>
+<li><p>“cost”: Value of the cost function at termination of the fit, see documentation
+for <cite>scipy.optimize.least_squares</cite>.</p></li>
+<li><p>“norm_cost”: Normalized cost, defined as the L2-norm of the residuals divided
+by the product of the amplitude and the number of voxels. This gives a dimensionless
+measure of cost of the fit that can be more easily used for downstream filtering.</p></li>
+<li><p>“intensity_from_fit”: Estimated spot intensity by using analytical expression for
+integral of 3D Gaussian over space and fit parameters.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_df</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as output by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>sigma_x_y_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in x- and y-coordinates, assumed to be symmetric.</p></li>
+<li><p><strong>sigma_z_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in z-coordinate.</p></li>
+<li><p><strong>amplitude_guess</strong> (<em>float</em>) – Initial guess for amplitude of Gaussian fit. If
+None (default), an initial guess will be computed from the data by taking the
+maximum.</p></li>
+<li><p><strong>offset_guess</strong> (<em>float</em>) – Initial guess for offset of Gaussian fit - this is
+useful for estimating the background for the detected spot. If None (default),
+an initial guess will be computed from the data by taking the mean value of
+the voxels on the surface of the <cite>data</cite> array (incidentally, this seems to
+already be a reasonable estimate of background).</p></li>
+<li><p><strong>image_size</strong> (<em>np.ndarray</em>) – Shape of the array corresponding to a frame. This is used to
+check whether the proposed spot centroids are within the image bounds.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Method to use for least-squares optimization (see
+<cite>scipy.optimize.least_squares</cite>).</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If True, the input <cite>spot_df</cite> is modified in-place to add the
+required columns and returns <cite>None</cite>. Otherwise, a modified copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>inplace=False</cite>, returns copy of input <cite>spot_df</cite> with added columns
+for fit characteristics of the 3D Gaussian fit. Otherwise returns <cite>None</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{pandas DataFrame, None}</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass through any kwargs taken by
+<cite>scipy.optimize.least_squares</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">add_fits_spots_dataframe_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'trf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Parallelizes <a class="reference internal" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe" title="transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_fits_spots_dataframe()</span></code></a> across a Dask Cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as output by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>sigma_x_y_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in x- and y-coordinates, assumed to be symmetric.</p></li>
+<li><p><strong>sigma_z_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in z-coordinate.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+<li><p><strong>amplitude_guess</strong> (<em>float</em>) – Initial guess for amplitude of Gaussian fit. If
+None (default), an initial guess will be computed from the data by taking the
+maximum.</p></li>
+<li><p><strong>offset_guess</strong> (<em>float</em>) – Initial guess for offset of Gaussian fit - this is
+useful for estimating the background for the detected spot. If None (default),
+an initial guess will be computed from the data by taking the mean value of
+the voxels on the surface of the <cite>data</cite> array (incidentally, this seems to
+already be a reasonable estimate of background).</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Method to use for least-squares optimization (see
+<cite>scipy.optimize.least_squares</cite>).</p></li>
+<li><p><strong>evaluate</strong> (<em>bool</em>) – If True, returns a fully-evaluated modified copy of the input
+<cite>spot_dataframe</cite> with the required columns added. Otherwise, returns a pointer
+to a Dask task that can be evaluated and returned on demand using the <cite>compute</cite>
+method. Note that <cite>inplace=True</cite> forces evaluation regardless of this parameter.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If True, the input <cite>spot_df</cite> is modified in-place to add the
+required columns and returns <cite>None</cite>. Otherwise, a modified copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>inplace=False</cite>, returns copy of input <cite>spot_df</cite> with added columns
+for fit characteristics of the 3D Gaussian fit. Otherwise returns <cite>None</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{pandas DataFrame, None}</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass through any kwargs taken by
+<cite>scipy.optimize.least_squares</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">add_neighborhood_intensity_spot_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe" title="Link to this definition">#</a></dt>
+<dd><p>Extracts an ellipsoid neighborhood around each proposed spot in the input spot
+dataframe (preferably after refining spot centers using gaussian fitting), summing
+over the neighborhood to find the raw integrated spot intensity. A shell of pixel
+values around the neighborhood is also extracted to estimate the background for
+background subtraction. This procedure is bootstrapped to obtain an estimate of the
+error in integrated fluorescence.</p>
+<ul class="simple">
+<li><p>“intensity_from_neighborhood”: Estimated spot intensity by using sum of pixel
+values in ellipsoid neighborhood around spot, background-subtracted by using
+pixel values in shell around ellipsoid neighborhood to estimate background per
+pixel.</p></li>
+<li><p>“intensity_std_error_from_neighborhood”: Estimated error in spot intensity by
+bootstrapping the estimator.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_df</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as output by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+<li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If True, the input <cite>spot_df</cite> is modified in-place to add the
+required columns and returns <cite>None</cite>. Otherwise, a modified copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>inplace=False</cite>, returns copy of input <cite>spot_df</cite> with added columns
+for spot intensity and associated error. Otherwise returns <cite>None</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{pandas DataFrame, None}</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the imaging settings are fast relative to the diffusion time of
+transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
+good quantification of the spot. Otherwise (as they are on our system, with
+~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
+that a larger neighborhood (~2 um seems to work fine on our system) should
+be used.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe_parallel">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">add_neighborhood_intensity_spot_dataframe_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe_parallel" title="Link to this definition">#</a></dt>
+<dd><p>Parallelizes <cite>add_neighborhood_intensity_spot_dataframe</cite> across a Dask cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about proposed spots as output by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+<li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot.</p></li>
+<li><p><strong>evaluate</strong> (<em>bool</em>) – If True, returns a fully-evaluated modified copy of the input
+<cite>spot_dataframe</cite> with the required columns added. Otherwise, returns a pointer
+to a Dask task that can be evaluated and returned on demand using the <cite>compute</cite>
+method. Note that <cite>inplace=True</cite> forces evaluation regardless of this parameter.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If True, the input <cite>spot_df</cite> is modified in-place to add the
+required columns and returns <cite>None</cite>. Otherwise, a modified copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>inplace=False</cite>, returns copy of input <cite>spot_df</cite> with added columns
+for spot intensity and associated error. Otherwise returns <cite>None</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{pandas DataFrame, None}</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the imaging settings are fast relative to the diffusion time of
+transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
+good quantification of the spot. Otherwise (as they are on our system, with
+~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
+that a larger neighborhood (~2 um seems to work fine on our system) should
+be used.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.bootstrap_intensity">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">bootstrap_intensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_pixels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_pixels_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity" title="Link to this definition">#</a></dt>
+<dd><p>Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
+pixel values in a shell around that neighborhood for spot and background
+quantification respectively, then estimates the intensity as the sum of spot
+pixel values in the ellipsoid mask, background-subtracted by estimating the background
+intensity using the shell around the ellipsoid spot mask. This procedure is bootstrapped
+and used to estimate the error on the intensity. Note that the bootstrapping procedure
+divides the spot into rings around the center before bootstrapping across each ring so
+that the counts on each bootstrapping block are iid by cylindrical symmetry of the PSF -
+this may not be appropriate for non-scanning microscopy images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+<li><p><strong>background</strong> ({“mean”, “total”, <cite>None</cite>}) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot. <cite>None</cite>
+disables background subtraction altogether.</p></li>
+<li><p><strong>background_pixels</strong> (<em>np.ndarray</em>) – Array of background pixels used for background estimation.
+If <cite>None</cite> (default), the background will be estimated from a shell around the
+spot in each frame.</p></li>
+<li><p><strong>background_pixels_weights</strong> (<em>np.ndarray</em>) – Weight to apply to the background pixels in the
+mean background intensity per pixel estimation procedure. This must be of the
+same shape as <cite>background_pixels</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(intensity, intensity_err) where <cite>intensity</cite> is the sum of pixel values
+inside the ellipsoid spot mask, background-subtracted by estimating the average
+background intensity per pixel from the shell around the ellipsoid mask, and
+averaged over <cite>num_bootstraps</cite> bootstrap samples. <cite>intensity_err</cite> is the standard
+deviation of the same.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the imaging settings are fast relative to the diffusion time of
+transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
+good quantification of the spot. Otherwise (as they are on our system, with
+~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
+that a larger neighborhood (~2 um seems to work fine on our system) should
+be used.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.create_blocks">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">create_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_mask</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.create_blocks" title="Link to this definition">#</a></dt>
+<dd><p>Creates a list of masks corresponding to blocks of the raw spot that get sampled
+for bootstrapping - this makes use of cylindrical symmetry of PSFs, and may not
+be applicable for non-scanning microscopy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_mask</strong> – Cuboidal neighborhood around a spot as extracted by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.extract_spot_mask">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">extract_spot_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_mask" title="Link to this definition">#</a></dt>
+<dd><p>Generates a mask corresponding an ellipsoid neighborhood around a proposed spot, and
+to a shell around that neighborhood for spot and background quantification respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(ball_mask, shell_mask) where <cite>ball_mask</cite> is a mask of the ellipsoid
+neighborhood around the spot, and <cite>background</cite> is a mask of the shell around the
+neighborhood.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.extract_spot_shell">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">extract_spot_shell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_shell" title="Link to this definition">#</a></dt>
+<dd><p>Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
+pixel values in a shell around that neighborhood for spot and background
+quantification respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(spot_values, background_values) where <cite>spot</cite> is an array of the pixel values
+inside the ellipsoid neighborhood around the spot, and <cite>background</cite> is an
+array of the pixel values in the shell around the neighborhood.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">fit_gaussian_3d_sym_xy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinate_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset_guess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'trf'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy" title="Link to this definition">#</a></dt>
+<dd><p>Fits an xy-symmetric 3D Gaussian to <cite>data</cite>, returning fit parameters and other
+relevant fit information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – 3-dimensional array (with the usual spatial axis ordering ‘zyx’)
+containing a single putative spot to fit with a 3D Gaussian.</p></li>
+<li><p><strong>centroid_guess</strong> (<em>np.ndarray</em>) – Initial guess for Gaussian centroid to feed to least
+squares minimization.</p></li>
+<li><p><strong>sigma_x_y_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in x- and y-coordinates, assumed to be symmetric.</p></li>
+<li><p><strong>sigma_z_guess</strong> (<em>float</em>) – Initial guess for standard deviation of Gaussian
+fit in z-coordinate.</p></li>
+<li><p><strong>coordinate_array</strong> (<em>np.ndarray</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
+the usual <cite>tzyx</cite> axes. Otherwise, an array of coordinates of the same shape
+as <cite>data</cite> can be passed to specify the coordinates of each pixel.</p></li>
+<li><p><strong>amplitude_guess</strong> (<em>float</em>) – Initial guess for amplitude of Gaussian fit. If
+None (default), an initial guess will be computed from the data by taking the
+maximum.</p></li>
+<li><p><strong>offset_guess</strong> (<em>float</em>) – Initial guess for offset of Gaussian fit - this is
+useful for estimating the background for the detected spot. If None (default),
+an initial guess will be computed from the data by taking the mean value of
+the voxels on the surface of the <cite>data</cite> array (incidentally, this seems to
+already be a reasonable estimate of background).</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Method to use for least-squares optimization (see
+<cite>scipy.optimize.least_squares</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>If optimization is successful, returns a tuple of fit parameters
+<cite>(centroid, sigma_x_y, sigma_z, amplitude, offset, cost)</cite>. The notation
+is consistent with that used in <cite>gaussian3d_sym_xy</cite>.</p>
+<ul class="simple">
+<li><p><cite>centroid</cite>: Centroid of fitted 3D Gaussian (Numpy array).</p></li>
+<li><p><cite>sigma_x_y</cite>: Standard deviation of fitted 3D Gaussian in x- and y-coordinate.</p></li>
+<li><p><cite>sigma_z</cite>: Standard deviation of fitted 3D Gaussian in z-coordinate.</p></li>
+<li><p><cite>amplitude</cite>: Amplitude of fitted 3D Gaussian.</p></li>
+<li><p><cite>offset</cite>: Offset of fitted 3D Gaussian.</p></li>
+<li><p><cite>cost</cite>: Value of cost function at the solution.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also pass through any kwargs accepted by
+<cite>scipy.optimization.least_squares</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.gaussian3d_sym_xy">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">gaussian3d_sym_xy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coordinates</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.gaussian3d_sym_xy" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates a 3d Gaussian function isotropic in the xy-plane and with specified
+centroid at specified coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coordinates</strong> (<em>np.ndarray</em>) – Coordinates at which to evaluate the Gaussian.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
+<li><p><strong>sigma_x_y</strong> (<em>float</em>) – Standard deviation of Gaussian function in the x- and y-
+coordinate direction.</p></li>
+<li><p><strong>sigma_z</strong> (<em>float</em>) – Standard deviation of Gaussian function in the z-coordinate.</p></li>
+<li><p><strong>amplitude</strong> (<em>float</em>) – Amplitude of Gaussian function.</p></li>
+<li><p><strong>offset</strong> (<em>float</em>) – Offset (limit away from centroid) of Gaussian.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Evaluated Gaussian.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.generate_gaussian_3d_sym_xy">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">generate_gaussian_3d_sym_xy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinate_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.generate_gaussian_3d_sym_xy" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates a 3d Gaussian function isotropic in the xy-plane and with specified
+centroid at specified coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>box_shape</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>int</em><em>]</em><em>, </em><em>list</em><em>[</em><em>int</em><em>]</em><em>}</em>) – Shape of bounding box containing the generated Gaussian.</p></li>
+<li><p><strong>centroid</strong> (<em>{np.ndarray</em><em>, </em><em>tuple</em><em>[</em><em>float</em><em>]</em><em>, </em><em>list</em><em>[</em><em>float</em><em>]</em><em>}</em>) – Coordinates of centroid of Gaussian function to evaluate.</p></li>
+<li><p><strong>sigma_x_y</strong> (<em>float</em>) – Standard deviation of Gaussian function in the x- and y-
+coordinate direction.</p></li>
+<li><p><strong>sigma_z</strong> (<em>float</em>) – Standard deviation of Gaussian function in the z-coordinate.</p></li>
+<li><p><strong>amplitude</strong> (<em>float</em>) – Amplitude of Gaussian function.</p></li>
+<li><p><strong>offset</strong> (<em>float</em>) – Offset (limit away from centroid) of Gaussian.</p></li>
+<li><p><strong>coordinate_array</strong> (<em>np.ndarray</em>) – If <cite>None</cite>, it is assumed that the pixel data is ordered by
+the usual <cite>tzyx</cite> axes. Otherwise, an array of coordinates of the same shape
+as <cite>data</cite> can be passed to specify the coordinates of each pixel.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Generated Gaussian inside bounding box.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.intensity_error_from_fit_row">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">intensity_error_from_fit_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe_row</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.intensity_error_from_fit_row" title="Link to this definition">#</a></dt>
+<dd><p>Uses the analytical expression for integrated intensity from <cite>intensity_from_fit_row</cite>
+to estimate the standard error of the intensity from the covariance matrix of the
+fit parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>spot_dataframe_row</strong> (<em>Row</em><em> of </em><em>pandas DataFrame</em>) – Riw of DataFrame containing information about putative spots
+a output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We make use of the first-order expansion of errors for <span class="math notranslate nohighlight">\(I = \prod_i X_i\)</span> given
+by:</p>
+<div class="math notranslate nohighlight">
+\[\bigg( \frac{\sigma_I}{I} \bigg)^2 = \sum_i \bigg( \frac{\sigma_{X_i}}{X_i})^2 \bigg) \
++ 2 \sum_i \sum_{j &gt; i} \frac{\sigma_{X_i X_j}}{X_i X_j}\]</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.intensity_from_fit_row">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">intensity_from_fit_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe_row</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.intensity_from_fit_row" title="Link to this definition">#</a></dt>
+<dd><p>Uses the analytical expression for the integral of a 3D xy-symmetric Gaussian
+over space to estimate the integrated spot brightness from the amplitude and
+sigma fit parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>spot_dataframe_row</strong> (<em>row</em><em> of </em><em>pandas DataFrame</em>) – Row of DataFrame containing information about putative
+spots as output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<div class="math notranslate nohighlight">
+\[\int_{\mathbb{R}^3} A e^{- \frac{x^2 + y^2}{2 \sigma_{xy}^2}
+- \frac{z^2}{2 \sigma_z^2}} \ dx \ dy \ dz =
+2 \sqrt{2} A \pi^{3/2} \sigma_{xy}^2 \sigma_z\]</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fitting.simple_bootstrap_intensity">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fitting.</span></span><span class="sig-name descname"><span class="pre">simple_bootstrap_intensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_spot</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fitting.simple_bootstrap_intensity" title="Link to this definition">#</a></dt>
+<dd><p>Extracts pixel values within an ellipsoid neighborhood around a proposed spot, and
+pixel values in a shell around that neighborhood for spot and background
+quantification respectively, then estimates the intensity as the sum of spot
+pixel values in the ellipsoid mask, background-subtracted by estimating the background
+intensity using the shell around the ellipsoid spot mask. This procedure is bootstrapped
+and used to estimate the error on the intensity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_spot</strong> (<em>np.ndarray</em>) – Cuboidal neighborhood around a spot as extracted by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>centroid</strong> – Centroid of spot, usually obtained by Gaussian fitting.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(intensity, intensity_err) where <cite>intensity</cite> is the sum of pixel values
+inside the ellipsoid spot mask, background-subtracted by estimating the average
+background intensity per pixel from the shell around the ellipsoid mask, and
+averaged over <cite>num_bootstraps</cite> bootstrap samples. <cite>intensity_err</cite> is the standard
+deviation of the same.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the imaging settings are fast relative to the diffusion time of
+transcriptional loci, a neighborhood of ~3 sigmas is sufficient to obtain
+good quantification of the spot. Otherwise (as they are on our system, with
+~0.6s between z-slices) the spot center moves enough as we traverse the z-stack
+that a larger neighborhood (~2 <span class="math notranslate nohighlight">\(\mu m\)</span> seems to work fine on our system)
+should be used.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version Use: </span><cite>bootstrap_intensity</cite> instead of <cite>simple_bootstrap_intensity</cite>, see documentation for details..</p>
+</div>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-refine-traces-module">
-<h2>transcription_pipeline.spot_analysis.refine_traces module<a class="headerlink" href="#transcription-pipeline-spot-analysis-refine-traces-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.refine_traces">
+<span id="transcription-pipeline-spot-analysis-refine-traces-module"></span><h2>transcription_pipeline.spot_analysis.refine_traces module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.refine_traces" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.refine_traces.refine_compile_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.refine_traces.</span></span><span class="sig-name descname"><span class="pre">refine_compile_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_spots_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_frames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relative'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuclear_tracking_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_columns_nuclear</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['nuclear_cycle']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_negative_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_averaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partitions_per_worker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.refine_traces.refine_compile_traces" title="Link to this definition">#</a></dt>
+<dd><p>Improves the quantification of a trace by averaging over a few frames to estimate
+the spot background, while still estimating spot intensity on a frame-by-frame basis.
+This should only be used for traces with sampling times much shorter than timescales
+over which the background varies significantly (~30s in preliminary tests).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_spots_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>min_frames</strong> (<em>int</em>) – Minimum number of frames in a trace for it to be included
+in the compiled traces.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>compile_columns</strong> (<em>List</em><em> of </em><em>column names. Entries can be strings pointing
+to column names</em><em>, or </em><em>single-entry dictionaries with the key pointing to the
+column name to compile from</em><em>, </em><em>and the value pointing to the new column name
+to give the compiled property in the compiled dictionary.</em>) – List of properties to extract and compile from
+<cite>spot_tracking_dataframe</cite>.</p></li>
+<li><p><strong>centroid</strong> (<em>{&quot;relative&quot;</em><em>, </em><em>&quot;absolute&quot;}</em>) – Selects whether centroids should be given relative to the image
+(<cite>absolute</cite>) or cutout (<cite>relative</cite>) coordinates.</p></li>
+<li><p><strong>nuclear_tracking_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected
+and tracked nuclei.</p></li>
+<li><p><strong>compile_columns_nuclear</strong> (<em>List</em><em> of </em><em>column names.</em>) – List of properties to extract and compile from
+<cite>nuclear_tracking_dataframe</cite>.</p></li>
+<li><p><strong>ignore_negative_spots</strong> (<em>bool</em>) – Ignores datapoints where the spot quantification
+goes negative - as long as we are looking at background-subtracted intensity,
+negative values are clear mistrackings/misquantifications.</p></li>
+<li><p><strong>background_averaging</strong> (<em>bool</em>) – If <cite>True</cite>, the background of each trace is averaged
+(and bootstrapped) over multiple frames to improve the intensity quantification.
+Otherwise, traces are compiled as-is.</p></li>
+<li><p><strong>window</strong> (<em>float</em>) – Window size in seconds over which to average the background.</p></li>
+<li><p><strong>win_type</strong> (<em>{&quot;gaussian&quot;</em><em>, </em><em>&quot;boxcar&quot;}</em>) – Type of weighing to give the timepoints in each window when calculating
+the rolling average. <cite>boxcar</cite> is unweighted average and is much faster, but has
+worse frequency-space performance than <cite>gaussian</cite> (this might matter for e.g.
+autocorrelation-type analysis).</p></li>
+<li><p><strong>std</strong> (<em>float</em>) – Standard deviation of the gaussian weighing to use when performing the rolling
+average with <cite>win_type=”gaussian”</cite>.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+<li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+<li><p><strong>partitions_per_worker</strong> (<em>int</em>) – Number of partitions to split the dataframe containing
+compiled traces into before round-robin sending to workers in the Dask client for
+background averaging and refinement of the quantification. More partitioning adds overhead
+in moving data around, but make sure the workers spend less time idle once the processing
+is done on one of the partitions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame of compiled data indexed by particle, with the intensity timeseries
+refined by averaging and bootstrapping over a few frames if <cite>background_averaging=True</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.refine_traces.refine_trace">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.refine_traces.</span></span><span class="sig-name descname"><span class="pre">refine_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_raw_spots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_t_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_centroids</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppZ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mppYX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ball_diameter_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell_width_um</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aspect_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bootstraps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.refine_traces.refine_trace" title="Link to this definition">#</a></dt>
+<dd><p>Improves the quantification of a trace by averaging over a few frames to estimate
+the spot background, while still estimating spot intensity on a frame-by-frame basis.
+This should only be used for traces with sampling times much shorter than timescales
+over which the background varies significantly (~30s in preliminary tests).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trace_raw_spots</strong> (<em>np.ndarray</em>) – Extracted neighborhood voxels from the raw movie containing
+the spots for a trace, with timepoints indexed over the 0-th axis. Each timepoint
+is extracted from a <cite>transcription_pipeline.spot_pipeline.Spot.spot_dataframe</cite>
+object.</p></li>
+<li><p><strong>trace_t_s</strong> (<em>np.ndarray</em>) – Time in seconds corresponding to each element of the trace (0-th axis of
+<cite>trace_raw_spots</cite>).</p></li>
+<li><p><strong>trace_centroids</strong> (<em>np.ndarray</em>) – Estimated centroid of spot in each timepoint of <cite>trace_raw_spots</cite>.</p></li>
+<li><p><strong>window</strong> (<em>float</em>) – Window size in seconds over which to average the background.</p></li>
+<li><p><strong>win_type</strong> (<em>{&quot;gaussian&quot;</em><em>, </em><em>&quot;boxcar&quot;}</em>) – Type of weighing to give the timepoints in each window when calculating
+the rolling average. <cite>boxcar</cite> is unweighted average and is much faster, but has
+worse frequency-space performance than <cite>gaussian</cite> (this might matter for e.g.
+autocorrelation-type analysis).</p></li>
+<li><p><strong>std</strong> (<em>float</em>) – Standard deviation of the gaussian weighing to use when performing the rolling
+average with <cite>win_type=”gaussian”</cite>.</p></li>
+<li><p><strong>mppZ</strong> (<em>float</em>) – Microns per pixel in z.</p></li>
+<li><p><strong>mppYX</strong> (<em>float</em>) – Microns per pixel in the xy plane, assumed to be symmetrical.</p></li>
+<li><p><strong>ball_diameter_um</strong> (<em>float</em>) – Diameter of ellipsoid neighborhood in the  xy plane.</p></li>
+<li><p><strong>shell_width_um</strong> (<em>float</em>) – Width of shell to extract around the ellipsoid mask
+used to extract the spot. This is used to estimate the background. This should
+be at least a little over <cite>mppZ</cite> to ensure a continuous shell is extracted.</p></li>
+<li><p><strong>aspect_ratio</strong> (<em>float</em>) – Ratio of diameter of ellipsoid neighborhood in xy to
+the diameter in z. This should be matched to the ratio of the standard deviations
+of the gaussian approximation to the PSF of the microscope in microns - for our
+system, this is empirically very close to 0.5.</p></li>
+<li><p><strong>num_bootstraps</strong> (<em>int</em>) – Number of bootstrap samples of the same shape as the
+extracted pixel values to generate for intensity estimation.</p></li>
+<li><p><strong>background</strong> (<em>{&quot;mean&quot;</em><em>, </em><em>&quot;total&quot;}</em>) – Choose whether the background returned is the mean background
+intensity per pixel or the total background subtracted over the spot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of trace intensity after background averaging, standard error in
+trace intensity, estimated background, and standard error in estimated background.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-track-filtering-module">
-<h2>transcription_pipeline.spot_analysis.track_filtering module<a class="headerlink" href="#transcription-pipeline-spot-analysis-track-filtering-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.track_filtering">
+<span id="transcription-pipeline-spot-analysis-track-filtering-module"></span><h2>transcription_pipeline.spot_analysis.track_filtering module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.track_filtering" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.compile_successive_differences">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">compile_successive_differences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.compile_successive_differences" title="Link to this definition">#</a></dt>
+<dd><p>Compiles as a single array all successive differences in quantitation
+values of tracked traces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>min_points</strong> (<em>int</em>) – Minimum number of data points for a trace to be
+considered when compiling successive differences.</p></li>
+<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
+when compiling successive differences along a trace. Defaults to
+<cite>intensity_from_neighborhood</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pooled array of all successive differences along all traces.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.filter_multiple_spots">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">filter_multiple_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choose_by</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_or_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_num_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.filter_multiple_spots" title="Link to this definition">#</a></dt>
+<dd><p>Checks input <cite>spot_dataframe</cite> for spots with the same nuclear label in the same
+frame, and marks each row with <cite>True</cite> in an added <cite>include_spot_from_multiple</cite>
+column if it is the only spot in that nucleus or if it is the spot with the best
+discriminant value (as set by <cite>choose_by</cite> and <cite>min_or_max</cite> - for instance, we can
+choose for spots with the highest amplitude of the Gaussian fit in the dataframe by
+setting <cite>choose_by = “amplitude”</cite> and <cite>min_or_max = “maximize”</cite>). Modifies the input
+<cite>spot_dataframe</cite> in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>choose_by</strong> (<em>str</em>) – Name of column in <cite>spot_dataframe</cite> whose values to use
+as discriminating factor when choosing which of multiple spots in a nucleus
+to keep.</p></li>
+<li><p><strong>min_or_max</strong> (<em>{&quot;minimize&quot;</em><em>, </em><em>&quot;maximize&quot;}</em>) – Sets whether the spots are chosen so as to maximize or minimize
+the value in the column prescribed by <cite>choose_by</cite>.</p></li>
+<li><p><strong>max_num_spots</strong> (<em>int</em>) – Maximum number of allowed spots per nuclear label, if a
+<cite>nuclear_labels</cite> is provided.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_sigma">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">filter_spots_by_sigma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">inf)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">inf)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_sigma" title="Link to this definition">#</a></dt>
+<dd><p>Adds a column of booleans <cite>include_spot_by_sigma</cite> marking spots for inclusion
+based on the fit sigmas falling within specified ranges <cite>sigma_x_y_bounds</cite> and
+<cite>sigma_z_bounds</cite> for <cite>sigma_x_y</cite> and <cite>sigma_z</cite> respectively. The input
+<cite>spot_dataframe</cite> is modified in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>sigma_x_y_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+setting the acceptable range for inclusion of spots, with spots falling outside
+that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
+column.</p></li>
+<li><p><strong>sigma_z_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_z lower bound, sigma_z upper bound)
+setting the acceptable range for inclusion of spots, with spots falling outside
+that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
+column.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This also automatically excludes any points that couldn’t be fitted.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_tracks">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">filter_spots_by_tracks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_spot_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_track_length</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_tracks" title="Link to this definition">#</a></dt>
+<dd><p>Adds a column of booleans <cite>include_spot_by_track</cite> marking spots for inclusion
+based on whether a given spot could be tracked for more than <cite>min_track_length</cite>
+points. The input <cite>spot_dataframe</cite> is modified in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>min_track_length</strong> (<em>int</em>) – Minimum number of timepoints a spot has to be
+trackable for in order to be considered in the analysis.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.normalized_variation_intensity">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">normalized_variation_intensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_quantile_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.normalized_variation_intensity" title="Link to this definition">#</a></dt>
+<dd><p>Given a preliminary spot tracking, this normalizes the intensity quantification of
+the spots so that the .84-quantile  of the successive difference in intensity
+across all tracked traces is <cite>normalize_quantile_to</cite>. This can be used to set the
+weight assigned to intensity when re-tracking (i.e. intensity is added as an extra
+spatial dimension so that spots with wild jumps in intensity are less likely to be
+linked). Note that the .84-quantile is chosen arbitrarily as a robust estimator
+of the standard deviation of a normal distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>normalize_quantile_to</strong> (<em>float</em>) – Target value of .84-quantile of successive
+differences in intensity across traces after normalization. This can essentially
+be used to set the “exchange rate” between spatial proximity and similarity in
+intensity (i.e. when tracking, differing in intensity by the .84-quantile
+is penalized as much as being separated by <cite>normalize_quantile_to</cite> from a
+candidate point in the next frame).</p></li>
+<li><p><strong>min_points</strong> (<em>int</em>) – Minimum number of data points for a trace to be
+considered when compiling successive differences.</p></li>
+<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
+when compiling successive differences along a trace. Defaults to
+<cite>intensity_from_neighborhood</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized intensity as per function description above.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.successive_differences_quartile">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">successive_differences_quartile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.successive_differences_quartile" title="Link to this definition">#</a></dt>
+<dd><p>Estimates the .84-quantile of successive differences in intensity across
+all tracked traces. We pick .84 arbitrarily as a robust estimator of
+the standard deviation - this can be used downstream to set an “exchange
+rate” between spatial proximity and similarity in intensity when tracking
+spots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>min_points</strong> (<em>int</em>) – Minimum number of data points for a trace to be
+considered when compiling successive differences.</p></li>
+<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
+when compiling successive differences along a trace. Defaults to
+<cite>intensity_from_neighborhood</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pooled array of all successive differences along all traces.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">track_and_filter_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x_y_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">inf)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_z_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">inf)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuclear_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'frame'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuclear_pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'frame_reverse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_predict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_averaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_track_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choose_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_or_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_num_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_negative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intensity_from_neighborhood'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">track_by_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_quantile_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_track_length_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_log_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp/trackpy_log'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots" title="Link to this definition">#</a></dt>
+<dd><p>Traverses input <cite>spot_dataframe</cite> of detected and fitted spots and excludes spots with
+fit standard deviations outside of specified ranges. If an array of tracked nuclear
+labels is provided, extranuclear spots are excluded as well, and the remaining spots are
+tracked using <cite>trackpy</cite>. Spots corresponding to short, spurious traces are excluded.
+If an array of tracked nuclear labels is provided, the nuclear labels are expanded
+and transferred over to the remaining spots. If there are multiple spots remaining
+in a single nucleus at any point, one is chosen by a specified characteristic (e.g.
+to maximize amplitude of the Gaussian fit or minimize the normalized cost). Particles
+excluded at any stage are assigned a <cite>particle</cite> label of 0. The input <cite>spot_dataframe</cite>
+is modified in-place to add a <cite>particle</cite> column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>sigma_x_y_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_x_y lower bound, sigma_x_y upper bound)
+setting the acceptable range for inclusion of spots, with spots falling outside
+that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
+column.</p></li>
+<li><p><strong>sigma_z_bounds</strong> (<em>tuple</em><em>[</em><em>float</em><em>]</em>) – tuple(sigma_z lower bound, sigma_z upper bound)
+setting the acceptable range for inclusion of spots, with spots falling outside
+that ranged being marked with a <cite>False</cite> value in the added <cite>include_spot_by_sigma</cite>
+column.</p></li>
+<li><p><strong>nuclear_labels</strong> (<em>{np.ndarray</em><em>[</em><em>np.int</em><em>]</em><em>, </em><em>None}</em>) – Labelled movie of nuclear masks.</p></li>
+<li><p><strong>expand_distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
+defaults to 1.</p></li>
+<li><p><strong>search_range</strong> (<em>float</em>) – The maximum distance features can move between frames.</p></li>
+<li><p><strong>memory</strong> (<em>int</em>) – The maximum number of frames during which a feature can vanish,
+then reappear nearby, and be considered the same particle.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate, used to track particles using <cite>trackpy</cite>.</p></li>
+<li><p><strong>nuclear_pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>spot_dataframe</cite> containing a pixel-space
+position coordinate to be used to map to the nuclear labels.</p></li>
+<li><p><strong>frame_column</strong> (<em>str</em>) – Name of column containing the frame numbers. This is provided
+as an option to facilitate working directly with dataframe Futures generate from
+chunked movies before stitching together in the local process - in this case
+it is used to transfer nuclear labels when the whole labeled array has been passed
+instead of corresponding chunks.</p></li>
+<li><p><strong>t_column</strong> (DataFrame column name,
+{<cite>frame</cite>, <cite>t_frame</cite>, <cite>frame_reverse</cite>, <cite>t_frame_reverse</cite>}. For explanation of
+column names, see <code class="xref py py-func docutils literal notranslate"><span class="pre">segmentation_df()</span></code>.) – Name of column in <cite>segmentation_df</cite> containing the time coordinate
+for each feature.</p></li>
+<li><p><strong>velocity_predict</strong> (<em>bool</em>) – If True, uses trackpy’s
+<cite>predict.NearestVelocityPredict</cite> class to estimate a velocity for each feature
+at each timestep and predict its position in the next frame. This can help
+tracking, particularly of nuclei during nuclear divisions.</p></li>
+<li><p><strong>velocity_averaging</strong> (<em>int</em>) – Number of frames to average velocity over.</p></li>
+<li><p><strong>min_track_length</strong> (<em>int</em>) – Minimum number of timepoints a spot has to be
+trackable for in order to be considered in the analysis.</p></li>
+<li><p><strong>choose_by</strong> (<em>str</em>) – Name of column in <cite>spot_dataframe</cite> whose values to use
+as discriminating factor when choosing which of multiple spots in a nucleus
+to keep.</p></li>
+<li><p><strong>min_or_max</strong> (<em>{&quot;minimize&quot;</em><em>, </em><em>&quot;maximize&quot;}</em>) – Sets whether the spots are chosen so as to maximize or minimize
+the value in the column prescribed by <cite>choose_by</cite>.</p></li>
+<li><p><strong>max_num_spots</strong> (<em>int</em>) – Maximum number of allowed spots per nuclear label, if a
+<cite>nuclear_labels</cite> is provided.</p></li>
+<li><p><strong>filter_negative</strong> (<em>bool</em>) – Ignores datapoints where the spot quantification
+goes negative - as long as we are looking at background-subtracted intensity,
+negative values are clear mistrackings/misquantifications.</p></li>
+<li><p><strong>quantification</strong> (<em>str</em>) – Name of dataframe column containing quantification to use
+if filtering by negatives or filtering multiple nuclear spots by intensity.
+Defaults to <cite>intensity_from_neighborhood</cite>.</p></li>
+<li><p><strong>track_by_intensity</strong> (<em>bool</em>) – If <cite>True</cite>, this will attempt to use a preliminary
+spot tracking to use the variation of intensity across traces to help spot
+tracking (i.e. spots with wild jumps in intensity are less likely to be linked
+across frames). See documentation for <cite>normalized_variation_intensity</cite> for
+details.</p></li>
+<li><p><strong>normalize_quantile_to</strong> (<em>float</em>) – Target value of .84-quantile of successive
+differences in intensity across traces after normalization. This can essentially
+be used to set the “exchange rate” between spatial proximity and similarity in
+intensity (i.e. when tracking, differing in intensity by the .84-quantile
+is penalized as much as being separated by <cite>normalize_quantile_to</cite> from a
+candidate point in the next frame) - the higher the value use, the less tolerant
+tracking is of large variations in intensity.</p></li>
+<li><p><strong>min_track_length_intensity</strong> (<em>int</em>) – Minimum number of data points for a trace to be
+considered when compiling successive differences for intensity-based retracking.</p></li>
+<li><p><strong>monitor_progress</strong> (<em>bool</em>) – If True, redirects the output of <cite>trackpy</cite>’s
+tracking monitoring to a <cite>tqdm</cite> progress bar.</p></li>
+<li><p><strong>trackpy_log_path</strong> (<em>str</em>) – Path to log file to redirect trackpy’s stdout progress to.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – If <cite>True</cite>, marks each row of the spot dataframe with the boolean
+flag indicating where the spot may have been filtered out.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also take any kwargs accepted by <code class="docutils literal notranslate"><span class="pre">trackpy.link_df</span></code> to
+specify the tracking options.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.track_spots">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">track_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_predict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocity_averaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_log_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp/trackpy_log'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.track_spots" title="Link to this definition">#</a></dt>
+<dd><p>Tracks spots in input <cite>spot_dataframe</cite> using trackpy, renaming any previous
+<cite>particle</cite> labels (e.g. from transfer of nuclear labels to the spots) to
+<cite>particle_nuclear</cite> and adding a <cite>particle</cite> column with new labels from trackpy
+linking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – trackpy-compatible pandas DataFrame for linking particles
+across frame.</p></li>
+<li><p><strong>search_range</strong> (<em>float</em>) – The maximum distance features can move between frames.</p></li>
+<li><p><strong>memory</strong> (<em>int</em>) – The maximum number of frames during which a feature can vanish,
+then reappear nearby, and be considered the same particle.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>t_column</strong> (DataFrame column name,
+{<cite>frame</cite>, <cite>t_frame</cite>, <cite>frame_reverse</cite>, <cite>t_frame_reverse</cite>}. For explanation of
+column names, see <code class="xref py py-func docutils literal notranslate"><span class="pre">segmentation_df()</span></code>.) – Name of column in <cite>segmentation_df</cite> containing the time coordinate
+for each feature.</p></li>
+<li><p><strong>velocity_predict</strong> (<em>bool</em>) – If True, uses trackpy’s
+<cite>predict.NearestVelocityPredict</cite> class to estimate a velocity for each feature
+at each timestep and predict its position in the next frame. This can help
+tracking, particularly of nuclei during nuclear divisions.</p></li>
+<li><p><strong>velocity_averaging</strong> (<em>int</em>) – Number of frames to average velocity over.</p></li>
+<li><p><strong>monitor_progress</strong> (<em>bool</em>) – If True, redirects the output of <cite>trackpy</cite>’s
+tracking monitoring to a <cite>tqdm</cite> progress bar.</p></li>
+<li><p><strong>trackpy_log_path</strong> (<em>str</em>) – Path to log file to redirect trackpy’s stdout progress to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Original <cite>segmentation_df</cite> DataFrame with an added <cite>particle</cite> column
+assigning an ID to each unique feature as tracked by trackpy and velocity
+columns for each coordinate in <cite>pos_columns</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function can also take any kwargs accepted by <code class="docutils literal notranslate"><span class="pre">trackpy.link_df</span></code> to
+specify the tracking options.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.track_filtering.</span></span><span class="sig-name descname"><span class="pre">transfer_nuclear_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spot_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuclear_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'frame'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels" title="Link to this definition">#</a></dt>
+<dd><p>Uses a provided nuclear mask to transfer the nuclear label of the nucleus
+containing each detected spot in the spot dataframe as output by
+:func”<cite>~spot_analysis.detection</cite>. If a <cite>client</cite> argument is passed, <cite>nuclear_mask</cite>
+may also be given as a list of futures as per the conventions of
+<cite>utils.parallel_computing</cite> for parallelization across a Dask LocalCluster. The input
+<cite>spot_dataframe</cite> is modified in-place to add a “particle” column with the
+corresponding labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spot_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about putative spots as
+output by <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code>.</p></li>
+<li><p><strong>nuclear_labels</strong> (<em>np.ndarray</em><em>[</em><em>np.int</em><em>]</em>) – Labelled movie of nuclear masks.</p></li>
+<li><p><strong>expand_distance</strong> (<em>int</em>) – Euclidean distance in pixels by which to grow the labels,
+defaults to 1.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>spot_dataframe</cite> containing a pixel-space
+position coordinate to be used to map to the nuclear labels.</p></li>
+<li><p><strong>frame_column</strong> (<em>str</em>) – Name of column containing the frame numbers. This is provided
+as an option to facilitate working directly with dataframe Futures generate from
+chunked movies before stitching together in the local process.</p></li>
+<li><p><strong>client</strong> (<cite>dask.distributed.client.Client</cite> object.) – Dask client to send the computation to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-fluctuation-correlation-module">
-<h2>transcription_pipeline.spot_analysis.fluctuation_correlation module<a class="headerlink" href="#transcription-pipeline-spot-analysis-fluctuation-correlation-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.fluctuation_correlation">
+<span id="transcription-pipeline-spot-analysis-fluctuation-correlation-module"></span><h2>transcription_pipeline.spot_analysis.fluctuation_correlation module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.fluctuation_correlation" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fluctuation_correlation.</span></span><span class="sig-name descname"><span class="pre">corr_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr_traces_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subtract_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rolling'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the correlation as a function of lag time, averaged across time, for an array
+of traces where each element of the array corresponds to a sample with fixed time
+resolution, with missing timepoints padded with <cite>np.nan`s. If `corr_traces_array</cite> is
+provided, a cross-correlation is computed. Otherwise, the autocorrelation is computed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traces_array</strong> (<em>np.ndarray</em>) – The array of traces with the 0-th axis enumerating traces, and the
+1-st axis corresponding to timepoints. Missing timepoints are padded with <cite>np.nan`s.
+This can be compiled using :func:`~spot_analysis.compile_data.consolidate_traces</cite>.
+Single traces can be passed as a 1D array.</p></li>
+<li><p><strong>corr_traces_array</strong> (<em>np.ndarray</em>) – If provided, the cross-correlation with the traces in
+<cite>traces_array</cite> is computed. Must be the same shape as <cite>traces_array</cite>, padded with <cite>np.nan</cite>
+as necessary.</p></li>
+<li><p><strong>corr_type</strong> (<em>{&quot;pearson&quot;</em><em>, </em><em>&quot;fcs&quot;}</em>) – The type of correlation to compute (this chooses the normalization).
+This changes the normalization of the correlation function, with <cite>“pearson”</cite>
+corresponding to division by the product of the standard deviation of the traces
+and <cite>“fcs”</cite> corresponding to division by the product of the average intensities
+(after mean subtraction).</p></li>
+<li><p><strong>subtract_mean</strong> ({“rolling”, “full”, <cite>None</cite>}) – <p>Method to use when performing mean subtraction on relevant subsets
+of the traces before computing the correlation.</p>
+<ul>
+<li><p><cite>”rolling”</cite> corresponds to averaging over a prescribed sliding time window <cite>“mean_window”</cite>.
+If rolling averaging is used, any keyword argument accepted by <code class="xref py py-func docutils literal notranslate"><span class="pre">rolling()</span></code>
+will be passed on. If a <cite>win_type</cite> argument is specified, a <cite>win_kwargs</cite> dictionary may
+also need to be provided (see below).</p></li>
+<li><p><cite>”full”</cite> corresponds to simply averaging over the entire relevant subsets of the traces
+(i.e. the overlap after time delay).</p></li>
+<li><p><cite>None</cite> corresponds to performing correlation without mean subtraction.</p></li>
+</ul>
+</p></li>
+<li><p><strong>mean_window</strong> (<em>int</em>) – Number of timepoints to roll over during mean subtraction if
+<cite>subtract_mean`=”rolling”</cite>.</p></li>
+<li><p><strong>win_kwargs</strong> (<em>dict</em>) – If a <cite>scipy.signal</cite> window type is used, as can be done by passing
+on keyword arguments accepted by <code class="xref py py-func docutils literal notranslate"><span class="pre">rolling()</span></code>, additional parameters
+matching the keywords specified in the Scipy window type method may need to be passed
+in this argument as a dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of array of correlation function with respect to lag time for each trace, in the same
+shape as <cite>traces_array</cite>, and array of the corresponding lag time.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray]</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>If you have an array of traces that you want individual correlation functions for, it is
+better to pass the full array after padding rather than do it on individual traces in
+a loop - the padding adds some overhead, but that ends up being much less costly than
+the advantage we gain from leveraging Numpy’s vectorized methods on arrays instead of
+looping in Python.</p></li>
+<li><p>If you’re calculating a cross-correlation, keep in mind that the cross-correlation is
+also calculated with negative lag time since the cross-correlation (unlike autocorrelation)
+is not necessarily symmetric around 0.</p></li>
+<li><p>In the autocorrelation case, we ignore the 0-lag autocorrelation since that’s just a sum of
+squares of the signal (with some normalization) and therefore still includes shot noise that
+immediately decorrelates at non-zero lag times, but there’s no need to ignore the 0-lag
+cross-correlation since the noise in the cross-correlation is already uncorrelated (and if not,
+that’s something that needs to be preserved).</p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.fluctuation_correlation.mean_corr_traces">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.fluctuation_correlation.</span></span><span class="sig-name descname"><span class="pre">mean_corr_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr_traces_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subtract_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rolling'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.mean_corr_traces" title="Link to this definition">#</a></dt>
+<dd><p>Averages correlation functions across traces as computed by <a class="reference internal" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces" title="transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">corr_traces()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traces_array</strong> (<em>np.ndarray</em>) – The array of traces with the 0-th axis enumerating traces, and the
+1-st axis corresponding to timepoints. Missing timepoints are padded with <cite>np.nan`s.
+This can be compiled using :func:`~spot_analysis.compile_data.consolidate_traces</cite>.
+Single traces can be passed as a 1D array.</p></li>
+<li><p><strong>corr_traces_array</strong> (<em>np.ndarray</em>) – If provided, the cross-correlation with the traces in
+<cite>traces_array</cite> is computed.</p></li>
+<li><p><strong>corr_type</strong> (<em>{&quot;pearson&quot;</em><em>, </em><em>&quot;fcs&quot;}</em>) – The type of correlation to compute (this chooses the normalization).
+This changes the normalization of the correlation function, with <cite>“pearson”</cite>
+corresponding to division by the product of the standard deviation of the traces
+and <cite>“fcs”</cite> corresponding to division by the product of the average intensities
+(after mean subtraction).</p></li>
+<li><p><strong>subtract_mean</strong> ({“rolling”, “full”, <cite>None</cite>}) – <p>Method to use when performing mean subtraction on relevant subsets
+of the traces before computing the correlation.</p>
+<ul>
+<li><p><cite>”rolling”</cite> corresponds to averaging over a prescribed sliding time window <cite>“mean_window”</cite>.
+If rolling averaging is used, any keyword argument accepted by <code class="xref py py-func docutils literal notranslate"><span class="pre">rolling()</span></code>
+will be passed on. If a <cite>win_type</cite> argument is specified, a <cite>win_kwargs</cite> dictionary may
+also need to be provided (see below).</p></li>
+<li><p><cite>”full”</cite> corresponds to simply averaging over the entire relevant subsets of the traces
+(i.e. the overlap after time delay).</p></li>
+<li><p><cite>None</cite> corresponds to performing correlation without mean subtraction.</p></li>
+</ul>
+</p></li>
+<li><p><strong>mean_window</strong> (<em>int</em>) – Number of timepoints to roll over during mean subtraction if
+<cite>subtract_mean`=”rolling”</cite>.</p></li>
+<li><p><strong>win_kwargs</strong> (<em>dict</em>) – If a <cite>scipy.signal</cite> window type is used, as can be done by passing
+on keyword arguments accepted by <code class="xref py py-func docutils literal notranslate"><span class="pre">rolling()</span></code>, additional parameters
+matching the keywords specified in the Scipy window type method may need to be passed
+in this argument as a dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Arrays of mean correlation function with respect to lag time averaged over all
+traces, standard error of the same, and corresponding lag-times respectively.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np..ndarray]</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is left here as a convenience function, but should almost never be used for
+anything quantitative unless you’re 100% sure that your correlograms for each trace
+are going to be fine (e.g. on synthetic data simulated to be at steady-state)
+since it’s quite easy for the mean to get skewed by a few bad correlograms, for
+instance if there’s some bursty behavior. Instead, use <a class="reference internal" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces" title="transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">corr_traces()</span></code></a> and
+manually curate the correlograms before averaging in your own script.</p>
+</div>
+</dd></dl>
+
 </section>
-<section id="transcription-pipeline-spot-analysis-smms2-calibration-module">
-<h2>transcription_pipeline.spot_analysis.smMS2_calibration module<a class="headerlink" href="#transcription-pipeline-spot-analysis-smms2-calibration-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.spot_analysis.smMS2_calibration">
+<span id="transcription-pipeline-spot-analysis-smms2-calibration-module"></span><h2>transcription_pipeline.spot_analysis.smMS2_calibration module<a class="headerlink" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.smMS2_calibration.</span></span><span class="sig-name descname"><span class="pre">log_likelihood_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_intensity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step" title="Link to this definition">#</a></dt>
+<dd><p>Computes the log-likelihood</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.spot_analysis.smMS2_calibration.</span></span><span class="sig-name descname"><span class="pre">vectorized_log_likelihood_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_intensity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
 <section id="module-transcription_pipeline.spot_analysis">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transcription_pipeline.spot_analysis" title="Link to this heading">#</a></h2>
@@ -425,13 +1964,61 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-compile-data-module">transcription_pipeline.spot_analysis.compile_data module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-detection-module">transcription_pipeline.spot_analysis.detection module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-fitting-module">transcription_pipeline.spot_analysis.fitting module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-refine-traces-module">transcription_pipeline.spot_analysis.refine_traces module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-track-filtering-module">transcription_pipeline.spot_analysis.track_filtering module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-fluctuation-correlation-module">transcription_pipeline.spot_analysis.fluctuation_correlation module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-spot-analysis-smms2-calibration-module">transcription_pipeline.spot_analysis.smMS2_calibration module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.compile_data">transcription_pipeline.spot_analysis.compile_data module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.compile_traces"><code class="docutils literal notranslate"><span class="pre">compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.compile_data.consolidate_traces"><code class="docutils literal notranslate"><span class="pre">consolidate_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.detection">transcription_pipeline.spot_analysis.detection module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.detect_and_gather_spots"><code class="docutils literal notranslate"><span class="pre">detect_and_gather_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.detect_spots"><code class="docutils literal notranslate"><span class="pre">detect_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.detection.make_spot_mask"><code class="docutils literal notranslate"><span class="pre">make_spot_mask()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.fitting">transcription_pipeline.spot_analysis.fitting module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_fits_spots_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_fits_spots_dataframe_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.add_neighborhood_intensity_spot_dataframe_parallel"><code class="docutils literal notranslate"><span class="pre">add_neighborhood_intensity_spot_dataframe_parallel()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">bootstrap_intensity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.create_blocks"><code class="docutils literal notranslate"><span class="pre">create_blocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_mask"><code class="docutils literal notranslate"><span class="pre">extract_spot_mask()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.extract_spot_shell"><code class="docutils literal notranslate"><span class="pre">extract_spot_shell()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.fit_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">fit_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.gaussian3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">gaussian3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.generate_gaussian_3d_sym_xy"><code class="docutils literal notranslate"><span class="pre">generate_gaussian_3d_sym_xy()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.intensity_error_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_error_from_fit_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.intensity_from_fit_row"><code class="docutils literal notranslate"><span class="pre">intensity_from_fit_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fitting.simple_bootstrap_intensity"><code class="docutils literal notranslate"><span class="pre">simple_bootstrap_intensity()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.refine_traces">transcription_pipeline.spot_analysis.refine_traces module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.refine_traces.refine_compile_traces"><code class="docutils literal notranslate"><span class="pre">refine_compile_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.refine_traces.refine_trace"><code class="docutils literal notranslate"><span class="pre">refine_trace()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.track_filtering">transcription_pipeline.spot_analysis.track_filtering module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.compile_successive_differences"><code class="docutils literal notranslate"><span class="pre">compile_successive_differences()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_multiple_spots"><code class="docutils literal notranslate"><span class="pre">filter_multiple_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_sigma"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_sigma()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.filter_spots_by_tracks"><code class="docutils literal notranslate"><span class="pre">filter_spots_by_tracks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.normalized_variation_intensity"><code class="docutils literal notranslate"><span class="pre">normalized_variation_intensity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.successive_differences_quartile"><code class="docutils literal notranslate"><span class="pre">successive_differences_quartile()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_and_filter_spots"><code class="docutils literal notranslate"><span class="pre">track_and_filter_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.track_spots"><code class="docutils literal notranslate"><span class="pre">track_spots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.track_filtering.transfer_nuclear_labels"><code class="docutils literal notranslate"><span class="pre">transfer_nuclear_labels()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.fluctuation_correlation">transcription_pipeline.spot_analysis.fluctuation_correlation module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.corr_traces"><code class="docutils literal notranslate"><span class="pre">corr_traces()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.fluctuation_correlation.mean_corr_traces"><code class="docutils literal notranslate"><span class="pre">mean_corr_traces()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis.smMS2_calibration">transcription_pipeline.spot_analysis.smMS2_calibration module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">log_likelihood_step()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.spot_analysis.smMS2_calibration.vectorized_log_likelihood_step"><code class="docutils literal notranslate"><span class="pre">vectorized_log_likelihood_step()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.spot_analysis">Module contents</a></li>
 </ul>
   </nav></div>
