@@ -16,7 +16,7 @@ jobs:
       run: |
         pip install sphinx sphinx_book_theme myst_parser
     - name: Build HTML
-      run: make html
+      run: cd /transcription_pipeline/docs && make html
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
       if: github.ref == 'refs/heads/main'
