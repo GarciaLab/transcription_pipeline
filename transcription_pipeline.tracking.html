@@ -335,7 +335,12 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari"><code class="docutils literal notranslate"><span class="pre">tracks_to_napari()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-tracking-stitch-tracks-module">transcription_pipeline.tracking.stitch_tracks module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.stitch_tracks">transcription_pipeline.tracking.stitch_tracks module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe"><code class="docutils literal notranslate"><span class="pre">construct_stitch_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks"><code class="docutils literal notranslate"><span class="pre">stitch_tracks()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.add_velocity"><code class="docutils literal notranslate"><span class="pre">add_velocity()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.assign_nuclear_cycle"><code class="docutils literal notranslate"><span class="pre">assign_nuclear_cycle()</span></code></a></li>
@@ -492,8 +497,103 @@ used to visualize tracks in napari.</p>
 </dd></dl>
 
 </section>
-<section id="transcription-pipeline-tracking-stitch-tracks-module">
-<h2>transcription_pipeline.tracking.stitch_tracks module<a class="headerlink" href="#transcription-pipeline-tracking-stitch-tracks-module" title="Link to this heading">#</a></h2>
+<section id="module-transcription_pipeline.tracking.stitch_tracks">
+<span id="transcription-pipeline-tracking-stitch-tracks-module"></span><h2>transcription_pipeline.tracking.stitch_tracks module<a class="headerlink" href="#module-transcription_pipeline.tracking.stitch_tracks" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">construct_stitch_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe" title="Link to this definition">#</a></dt>
+<dd><p>Constructs dataframe containing identities of tracks that need to be stitched
+together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em>) – Maximum distance between mean position of partial tracks
+that still allows for stitching to occur.</p></li>
+<li><p><strong>max_frame_distance</strong> (<em>int</em>) – Maximum number of frames between tracks with no
+points from either tracks that still allows for stitching to occur.</p></li>
+<li><p><strong>frames_mean</strong> (<em>int</em>) – Number of frames to average over when estimating the mean
+position of the start and end of candidate tracks to stitch together.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>DataFrame with columns {<cite>preliminary_particles</cite>, <cite>nearest_neighbor</cite>,
+<cite>distance</cite>, <cite>frame_overlap</cite>, <cite>frame_distance</cite>}.</p>
+<ul class="simple">
+<li><p><cite>preliminary_particles</cite>: Particle ID of tracked particles in <cite>tracked_dataframe</cite>.</p></li>
+<li><p><cite>nearest_neighbor</cite>: Mean-position nearest-neighbor of current particle.</p></li>
+<li><p><cite>distance</cite>: Euclidean distance (with respect to coordinates specified in
+<cite>pos_columns</cite>) to nearest neighbor.</p></li>
+<li><p><cite>frame_overlap</cite>: Number of frames that include both tracks.</p></li>
+<li><p><cite>frame_distance</cite>: Number of frames separating the end of the earlier track
+and the beginning of the later track if there is no overlapping frame.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.remove_duplicates">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">remove_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['z',</span> <span class="pre">'y',</span> <span class="pre">'x']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates" title="Link to this definition">#</a></dt>
+<dd><p>After a round of tracking, a stitching operation is usually carried out to link
+partial tracks that are easily resolvable by mean position, leaving some
+tracks with duplicate spots in the frame where the stitching occurs. This function
+scans through the tracked and stitched dataframe to remove duplicate spots.
+Modifies the dataframe in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots after stitching operation.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transcription_pipeline.tracking.stitch_tracks.stitch_tracks">
+<span class="sig-prename descclassname"><span class="pre">transcription_pipeline.tracking.stitch_tracks.</span></span><span class="sig-name descname"><span class="pre">stitch_tracks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracked_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frame_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks" title="Link to this definition">#</a></dt>
+<dd><p>Stitches together tracks depending on proximity in time (start time of candidate
+track to stitch relative to end time of a given track) and space (position averaged
+over a few frames at the end of given track relative to start of candidate track).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracked_dataframe</strong> (<em>pandas DataFrame</em>) – DataFrame containing information about detected,
+filtered and tracked spots.</p></li>
+<li><p><strong>pos_columns</strong> (<em>list</em><em> of </em><em>DataFrame column names</em>) – Name of columns in <cite>segmentation_df</cite> containing a position
+coordinate.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em>) – Maximum distance between mean position of partial tracks
+that still allows for stitching to occur.</p></li>
+<li><p><strong>max_frame_distance</strong> (<em>int</em>) – Maximum number of frames between tracks with no
+points from either tracks that still allows for stitching to occur.</p></li>
+<li><p><strong>frames_mean</strong> (<em>int</em>) – Number of frames to average over when estimating the mean
+position of the start and end of candidate tracks to stitch together.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em>) – If <cite>True</cite>, <cite>tracked_dataframe</cite> is modified in-place and the
+function returns <cite>None</cite>. Otherwise, a stitched copy is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tracked dataframe with stitched tracks.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas DataFrame or <cite>None</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-transcription_pipeline.tracking.track_features">
 <span id="transcription-pipeline-tracking-track-features-module"></span><h2>transcription_pipeline.tracking.track_features module<a class="headerlink" href="#module-transcription_pipeline.tracking.track_features" title="Link to this heading">#</a></h2>
@@ -901,7 +1001,12 @@ and monitors it on a <cite>tqdm</cite> progress bar.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.detect_mitosis.tracks_to_napari"><code class="docutils literal notranslate"><span class="pre">tracks_to_napari()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription-pipeline-tracking-stitch-tracks-module">transcription_pipeline.tracking.stitch_tracks module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.stitch_tracks">transcription_pipeline.tracking.stitch_tracks module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.construct_stitch_dataframe"><code class="docutils literal notranslate"><span class="pre">construct_stitch_dataframe()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.stitch_tracks.stitch_tracks"><code class="docutils literal notranslate"><span class="pre">stitch_tracks()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-transcription_pipeline.tracking.track_features">transcription_pipeline.tracking.track_features module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.add_velocity"><code class="docutils literal notranslate"><span class="pre">add_velocity()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transcription_pipeline.tracking.track_features.assign_nuclear_cycle"><code class="docutils literal notranslate"><span class="pre">assign_nuclear_cycle()</span></code></a></li>
