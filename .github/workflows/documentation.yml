@@ -15,6 +15,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install sphinx sphinx_book_theme myst_parser
+    - name: Install pipeline
+      run: pip install .
     - name: Build HTML
       run: cd transcription_pipeline/docs && make clean && make html
     - name: Deploy
