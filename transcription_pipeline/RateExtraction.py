@@ -13,7 +13,6 @@ from tkinter import messagebox
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
-import warnings
 
 from transcription_pipeline.spot_analysis import compile_data
 from transcription_pipeline.utils import plottable
@@ -86,93 +85,69 @@ def unpack_functions():
         return [basal0, t_on0, t_dwell0, rate0]
 
     def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000):
-        warnings.simplefilter("ignore", RuntimeWarning)  # Suppress runtime warnings
+        # Initial guess
+        x0 = initial_guess(MS2, timepoints)
 
-        try:
-            # Initial guess
-            x0 = initial_guess(MS2, timepoints)
+        # Parameter bounds
+        lb = [np.min(MS2), 0, 0, 0]  # Ensure t_dwell is non-negative
+        ub = [np.max(MS2), np.max(timepoints), np.max(timepoints), 1e7]
 
-            # Parameter bounds
-            lb = [np.min(MS2), 0, 0, 0]  # Ensure t_dwell is non-negative
-            ub = [np.max(MS2), np.max(timepoints), np.max(timepoints), 1e7]
+        # Scaling factors to normalize parameters
+        scale_factors = np.array([np.max(MS2), np.max(timepoints), np.max(timepoints), 100])
 
-            # Check if any lower bound equals upper bound
-            for i in range(len(lb)):
-                if lb[i] == ub[i]:
-                    lb[i] = lb[i] - 1
-                    ub[i] = ub[i] + 1
+        # Scaled bounds
+        lb_scaled = np.array(lb) / scale_factors
+        ub_scaled = np.array(ub) / scale_factors
+        x0_scaled = np.array(x0) / scale_factors
 
+        # Scaled fit function
+        def fit_func_scaled(params, MS2, timepoints, t_interp):
+            params_unscaled = params * scale_factors
+            return fit_func(params_unscaled, MS2, timepoints, t_interp)
 
+        # Negative log-likelihood function
+        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
+            residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
+            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
+            regularization = reg * np.sum(params[:] ** 2)
+            nll = 0.5 * np.sum(residuals ** 2) + regularization
+            return nll
 
-            # Scaling factors to normalize parameters
-            scale_factors = np.array([np.max(MS2), np.max(timepoints), np.max(timepoints), 100])
+        # Initial parameter estimation using least_squares
+        res = least_squares(negative_log_likelihood,
+                            x0_scaled, bounds=(lb_scaled, ub_scaled),
+                            args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
 
-            # Scaled bounds
-            lb_scaled = np.array(lb) / scale_factors
-            ub_scaled = np.array(ub) / scale_factors
-            x0_scaled = np.array(x0) / scale_factors
+        # Define log-probability function for MCMC
+        def log_prob(params, MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled):
+            if np.any(params < lb_scaled) or np.any(params > ub_scaled):
+                return -np.inf
+            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
+            return -nll  # Convert to log-probability
 
-            # Scaled fit function
-            def fit_func_scaled(params, MS2, timepoints, t_interp):
-                params_unscaled = params * scale_factors
-                return fit_func(params_unscaled, MS2, timepoints, t_interp)
+        # MCMC parameters
+        nwalkers = 10
+        ndim = len(x0_scaled)
+        nsteps = 1000
+        initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
+        # Run MCMC
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(MS2, timepoints,
+                                                                        t_interp, std_errors,
+                                                                        scale_factors, lb_scaled, ub_scaled))
+        # Run MCMC until the acceptance fraction is at least 0.5
+        sampler.run_mcmc(initial_pos, nsteps,
+                         progress=False, tune=True)
 
-            # Negative log-likelihood function
-            def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
-                residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
-                residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
-                regularization = reg * np.sum(params[:] ** 2)
-                nll = 0.5 * np.sum(residuals ** 2) + regularization
-                return nll
+        # Flatten the chain and discard burn-in steps
+        flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
 
-            # Initial parameter estimation using least_squares
-            res = least_squares(negative_log_likelihood,
-                                x0_scaled, bounds=(lb_scaled, ub_scaled),
-                                args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
+        # Extract and rescale fit parameters
+        basal, t_on, t_dwell, rate = np.median(flat_samples, axis=0) * scale_factors
 
-            if not res.success:
-                print(f"Warning: Least squares fitting failed. Message: {res.message}")
-                return None
+        # Calculate confidence intervals
+        CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors[:, np.newaxis]
 
-            # Define log-probability function for MCMC
-            def log_prob(params, MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled):
-                if np.any(params < lb_scaled) or np.any(params > ub_scaled):
-                    return -np.inf
-                nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
-                return -nll  # Convert to log-probability
-
-            # MCMC parameters
-            nwalkers = 10
-            ndim = len(x0_scaled)
-            nsteps = 1000
-            initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
-
-            # Run MCMC
-            sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(
-            MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled))
-            try:
-                sampler.run_mcmc(initial_pos, nsteps, progress=False, tune=True)
-            except Exception as e:
-                print(f"Warning: MCMC sampling failed. Error: {e}")
-                return None
-
-            # Flatten the chain and discard burn-in steps
-            flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
-            if flat_samples.shape[0] == 0:
-                print("Warning: No valid MCMC samples obtained.")
-                return None
-
-            # Extract and rescale fit parameters
-            basal, t_on, t_dwell, rate = np.median(flat_samples, axis=0) * scale_factors
-
-            # Calculate confidence intervals
-            CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors[:, np.newaxis]
-
-            return basal, t_on, t_dwell, rate, CI
-
-        except Exception as e:
-            print(f"Error in fit_half_cycle: {e}")
-            return None
+        return basal, t_on, t_dwell, rate, CI
 
     def first_derivative(x, y):
         """
@@ -791,7 +766,7 @@ class FitAndAverage:
 
         self.compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked
 
-    def average_particle_fits(self, plot=True):
+    def average_particle_fits(self, plot_results=True, show_slopes=True):
         '''
         Take the average of all the approved fits of individual particles in each bin,
         with an option to plot them by bins.
@@ -814,7 +789,8 @@ class FitAndAverage:
 
 
         # compute_average_fit_rates_for_bins: a function that calculates the average fit rates for each bin
-        def compute_average_fit_rates_for_bins(input_dataframe, bin_num, plot_result=plot):
+        def compute_average_fit_rates_for_bins(input_dataframe, bin_num, plot_result=plot_results,
+                                               overlay_individual_slopes=show_slopes):
             '''
             Calculate the average fit rates for each bin and store particle
             IDs with rates in each bin.
@@ -822,6 +798,8 @@ class FitAndAverage:
             ARGUMENT
                 input_dataframe: a particle dataframe
                 bin_num: the number of bins to partition the embryo, default is equal to num_bins
+                plot_result: whether to plot the result, default is True
+                overlay_individual_slopes: whether to overlay individual particle slopes, default is False
 
             OUTPUTS
                 1. A dictionary giving the following details:
@@ -846,6 +824,10 @@ class FitAndAverage:
             mean_fit_rates = np.zeros(bin_num)
             bin_particles_rates = np.zeros(bin_num, dtype=object)
             SE_fit_rates = np.zeros(bin_num)
+
+            # Store all particles' AP positions and rates for potential overlay
+            all_particle_ap_positions = []
+            all_particle_rates = []
 
             for i in range(bin_num):
                 # pass bins that has no particles
@@ -873,10 +855,29 @@ class FitAndAverage:
                         .values
                     )
 
+                    # For overlay, store each particle's position within the bin
+                    if overlay_individual_slopes:
+                        # Get the actual AP position for each particle (not binned)
+                        # Use the mean AP value for each particle
+                        for j, particle_id in enumerate(particles):
+                            # Only include particles with valid rates
+                            if not np.isnan(rates[j]):
+                                # Get the actual AP position for this particle
+                                particle_ap = approved_binned_dataframe.loc[
+                                    approved_binned_dataframe['particle'] == particle_id, 'ap'
+                                ].values[0]
+
+                                # If ap is an array, take its mean
+                                if isinstance(particle_ap, np.ndarray):
+                                    particle_ap = np.mean(particle_ap)
+
+                                all_particle_ap_positions.append(particle_ap)
+                                all_particle_rates.append(rates[j])
+
                     # Store the particle IDs with their rates in each bin for further analysis
                     bin_particles_rates[i] = {
-                        'bin': i+1,
-                        'bin_ap_position': i/self.bin_num,
+                        'bin': i + 1,
+                        'bin_ap_position': i / bin_num,
                         'bin_particle_counts': bin_counts[i],
                         'particles': particles,
                         'rates': rates,
@@ -893,22 +894,55 @@ class FitAndAverage:
             not_nan = ~np.isnan(mean_fit_rates)
 
             bin_indices = np.arange(bin_num)
-            ap_positions = bin_indices * 1 / bin_num
+
+            # Calculate bin edges and centers
+            bin_width = 1 / bin_num
+            bin_edges = np.arange(0, 1 + bin_width, bin_width)  # Include right edge of last bin
+            ap_positions = bin_indices * bin_width + (bin_width / 2)  # Bin centers
 
             bin_slopes = mean_fit_rates[not_nan]
             bin_slope_errs = SE_fit_rates[not_nan]
 
             max_bin_slope = np.max(bin_slopes)
-            ylim_up = 1.5 * max_bin_slope
+            # Adjust y-limit to include individual particles if they are plotted
+            if overlay_individual_slopes and all_particle_rates:
+                max_individual_slope = np.max(all_particle_rates)
+                ylim_up = 1.5 * max(max_bin_slope, max_individual_slope)
+            else:
+                ylim_up = 1.5 * max_bin_slope
 
             if plot_result:
                 # Plot the average slope of trace fits for each bin number
-                plt.figure()
-                plt.errorbar(ap_positions[not_nan], bin_slopes, yerr=bin_slope_errs, capsize=2, fmt='o')
+                plt.figure(figsize=(10, 6))
+
+                # Plot individual particle slopes if requested
+                if overlay_individual_slopes and all_particle_rates:
+                    plt.scatter(all_particle_ap_positions, all_particle_rates,
+                                alpha=0.3, color='gray', s=10, label='Individual particles')
+
+                # Plot the average rates with error bars
+                plt.errorbar(ap_positions[not_nan], bin_slopes, yerr=bin_slope_errs,
+                             capsize=2, fmt='o', color='blue', label='Bin averages')
+
+                # Determine the range where we have data
+                active_bins = bin_indices[not_nan]
+                if len(active_bins) > 0:
+                    min_bin_with_data = min(active_bins)
+                    max_bin_with_data = max(active_bins)
+
+                    # Plot vertical lines at bin boundaries (not at bin centers)
+                    for i in range(min_bin_with_data, max_bin_with_data + 2):
+                        # edge_position = i * bin_width
+                        plt.axvline(x=bin_edges[i], color='lightgray', linestyle='--', alpha=0.7)
+
                 plt.xlabel('AP Position')
-                plt.ylabel('Average rate of trace fits (AU/min)')
-                plt.title('Average rate of trace fits vs. AP position')
+                plt.ylabel('Rate of trace fits (AU/min)')
+                plt.title('Rate of trace fits vs. AP position')
                 plt.ylim(0, ylim_up)
+
+                if overlay_individual_slopes:
+                    plt.legend()
+
                 plt.show()
 
             return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
@@ -923,13 +957,12 @@ class AverageAndFit:
     '''
     time_bin_width: please use dataset.export_frame_metadata[0]['t_s'][1, 0]
     '''
-    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path, fit_and_average=None):
+    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path):
         self.compiled_dataframe = compiled_dataframe
         self.nc14_start_frame = nc14_start_frame
         self.time_bin_width = time_bin_width
         self.bin_num = bin_num
         self.dataset_name = dataset_folder_path
-        self.fit_and_average = fit_and_average
 
         self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
         self.checked_bin_fits_previous = os.path.isfile(self.checked_bin_fits_file_path)
@@ -949,15 +982,8 @@ class AverageAndFit:
         else:
             print('No previous bin fit checking results detected. Do bin fitting for the dataframe.')
 
-            dataframe_nc14 = self.compiled_dataframe[self.compiled_dataframe['frame'].apply(min)
-                                                          >= self.nc14_start_frame]
-            
-            # Filter dataframe based on the approval status of FitAndAverage (if provided)
-            if self.fit_and_average and self.fit_and_average.compiled_dataframe_fits_checked is not None:
-                approved_particles = self.fit_and_average.compiled_dataframe_fits_checked[
-                    self.fit_and_average.compiled_dataframe_fits_checked['approval_status'] == 1]['particle']
-                dataframe_nc14 = dataframe_nc14[dataframe_nc14['particle'].isin(approved_particles)]
-            
+            dataframe_nc14 = self.compiled_dataframe[self.compiled_dataframe['frame'].apply(lambda x: x[0] >= nc14_start_frame)].reset_index()
+
             binned_dataframe_nc14, _ = bin_particles(dataframe_nc14, self.bin_num)
 
             binned_particles_nc14 = [None] * self.bin_num

@@ -282,6 +282,7 @@ def segmentation_df(
     segmentation_mask,
     intensity_image,
     frame_metadata,
+    spatial_axes="zyx",
     *,
     initial_frame_index=0,
     num_nuclei_per_fov=None,
@@ -301,6 +302,8 @@ def segmentation_df(
     :type segmentation_mask: np.ndarray[np.int]
     :param dict frame_metadata: Dictionary of frame-by-frame metadata for all files and
         series in a dataset.
+    :param str spatial_axes: String specifying the spatial axes of the image. Default is
+        "zyx".
     :param int initial_frame_index: Index of first frame, used to offset the recorded
         frame numbers. This is useful if execution is being parallelized by mapping onto
         chunks of a movie.
@@ -372,7 +375,7 @@ def segmentation_df(
     # Rename centroid columns
     num_dim_frame = segmentation_mask.ndim - 1
     rename_columns = {}
-    spatial_axes = "zyx"
+    # spatial_axes = "zyx"
     for i in range(num_dim_frame):
         old_column_name = "".join(["centroid_weighted-", str(i)])
         new_column_name = spatial_axes[i]
@@ -383,19 +386,28 @@ def segmentation_df(
     # Add imaging time for each particle. The if-else statement is required to avoid
     # errors due to single-pixel labels that throw np.nan when the centroid is requested.
     time = process_metadata.extract_time(frame_metadata)[0]
-    time_apply = lambda row: (
-        np.nan if np.isnan(row["z"]) else time(int(row["original_frame"]), row["z"])
-    )
-    movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
+    try:
+        time_apply = lambda row: (
+            np.nan if np.isnan(row["z"]) else time(int(row["original_frame"]), row["z"])
+        )
+        movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
+    except KeyError:
+        time_apply = lambda row: time(int(row["original_frame"]), 0)
+        movie_properties["t_s"] = movie_properties.apply(time_apply, axis=1)
+
 
     # Add imaging time in number of frames for each particles.
     time_frame = process_metadata.extract_renormalized_frame(frame_metadata)
-    time_frame_apply = lambda row: (
-        np.nan
-        if np.isnan(row["z"])
-        else time_frame(int(row["original_frame"]), row["z"])
-    )
-    movie_properties["t_frame"] = movie_properties.apply(time_frame_apply, axis=1)
+    try:
+        time_frame_apply = lambda row: (
+            np.nan
+            if np.isnan(row["z"])
+            else time_frame(int(row["original_frame"]), row["z"])
+        )
+        movie_properties["t_frame"] = movie_properties.apply(time_frame_apply, axis=1)
+    except KeyError:
+        time_frame_apply = lambda row: time_frame(int(row["original_frame"]), 0)
+        movie_properties["t_frame"] = movie_properties.apply(time_frame_apply, axis=1)
 
     # Add columns with reversed frame and t_frame to enable reverse tracking
     _reverse_segmentation_df(movie_properties)

@@ -52,7 +52,7 @@ def choose_nuclear_analysis_parameters(
     :rtype: dict
     """
     # Query resolution of imaging to translate from physical size to pixels
-    mppZ = channel_global_metadata["PixelsPhysicalSizeZ"]
+    mppZ = channel_global_metadata.get("PixelsPhysicalSizeZ", 1)
     mppY = channel_global_metadata["PixelsPhysicalSizeY"]
     mppX = channel_global_metadata["PixelsPhysicalSizeX"]
 
@@ -335,6 +335,7 @@ class Nuclear:
         nuclear_size=[8.0, 4.2, 4.2],
         division_trigger="num_objects",
         sigma_ratio=5,
+        spatial_axes='zyx',
         pos_columns=["y", "x"],
         search_range_um=3.5,
         stitch=True,
@@ -368,6 +369,7 @@ class Nuclear:
             self.nuclear_size = nuclear_size
             self.division_trigger = division_trigger
             self.sigma_ratio = sigma_ratio
+            self.spatial_axes = spatial_axes
             self.pos_columns = pos_columns
             self.search_range_um = search_range_um
             self.stitch = stitch
@@ -563,6 +565,7 @@ class Nuclear:
                 self.labels,
                 self.data,
                 self.frame_metadata,
+                self.spatial_axes,
                 **(self.default_params["segmentation_df_params"]),
             )
 

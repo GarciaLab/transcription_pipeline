@@ -504,6 +504,7 @@ def binarize_frame(
     # surface background
     has_background = _check_for_backgound(binarized_stack, cc_min_span)
 
+    ### This is the function removes surface background from the image and produces the large black swaths
     # If stack has surface background, make a mask of background by blurring
     # heavily in xy and binarizing
     if has_background:

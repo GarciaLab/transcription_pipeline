@@ -458,14 +458,17 @@ class FullEmbryoImport:
 
             setattr(self, "".join(["channels_full_dataset_", name]), [])
             for file in file_list:
-                if mode == "zarr":
-                    getattr(self, "".join(["channels_full_dataset_", name])).append(
-                        zarr.load(file)
-                    )
-                elif mode == "tiff":
-                    getattr(self, "".join(["channels_full_dataset_", name])).append(
-                        imread(file, plugin="tifffile")
-                    )
+                # Check for matching name patterns to determine which channels to import
+                local_path = file.split(name_folder)[1]
+                if name in local_path.lower():
+                    if mode == "zarr":
+                        getattr(self, "".join(["channels_full_dataset_", name])).append(
+                            zarr.load(file)
+                        )
+                    elif mode == "tiff":
+                        getattr(self, "".join(["channels_full_dataset_", name])).append(
+                            imread(file, plugin="tifffile")
+                        )
 
         _read_saved_fullembryo("mid")
         _read_saved_fullembryo("surf")
@@ -532,6 +535,7 @@ class FullEmbryoImport:
                                     self, "".join(["export_global_metadata_", name])
                                 )[i]
                             )["ImageName"],
+                            str(i),
                             ".tiff",
                         ]
                     )
@@ -547,6 +551,7 @@ class FullEmbryoImport:
                                     self, "".join(["export_global_metadata_", name])
                                 )[i]
                             )["ImageName"],
+                            str(i),
                             ".zarr",
                         ]
                     )

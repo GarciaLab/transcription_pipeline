@@ -35,13 +35,18 @@ def extract_time(frame_metadata):
     frame_scan_time = np.median(time_between_frames)
 
     if time_by_frame:
-        num_slices = frame_metadata["z"].max() + 1
-        time_per_slice = frame_scan_time / num_slices
+        try:
+            num_slices = frame_metadata["z"].max() + 1
+            time_per_slice = frame_scan_time / num_slices
 
-        time_func = (
-            lambda frame_number, z_position: frame_times[frame_number - 1, 0]
-            + time_per_slice * z_position
-        )
+            time_func = (
+                lambda frame_number, z_position: frame_times[frame_number - 1, 0]
+                + time_per_slice * z_position
+            )
+        except AttributeError:
+            time_func = (
+                lambda frame_number, z_position: frame_times[frame_number - 1, 0]
+            )
 
     else:
 
@@ -83,6 +88,14 @@ def extract_renormalized_frame(frame_metadata):
         Helper function to calculate imaging time, in units of the frame scanning
         time, from the frame number and position in the z-stack.
         """
-        return int(time_func(frame_number, z_position) / time_between_frames)
+        time_value = time_func(frame_number, z_position)
+        # Ensure time_value is a scalar
+        if isinstance(time_value, np.ndarray):
+            if time_value.size == 1:
+                time_value = time_value.item()  # Convert single-element array to scalar
+            else:
+                raise ValueError(f"Expected scalar, but got array: {time_value}")
+
+        return int(time_value / time_between_frames)
 
     return frame_time_func
