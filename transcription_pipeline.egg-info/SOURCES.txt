@@ -12,6 +12,7 @@ transcription_pipeline.egg-info/dependency_links.txt
 transcription_pipeline.egg-info/entry_points.txt
 transcription_pipeline.egg-info/requires.txt
 transcription_pipeline.egg-info/top_level.txt
+transcription_pipeline/docs/source/conf.py
 transcription_pipeline/nuclear_analysis/__init__.py
 transcription_pipeline/nuclear_analysis/segmentation.py
 transcription_pipeline/preprocessing/__init__.py
@@ -22,6 +23,9 @@ transcription_pipeline/spot_analysis/__init__.py
 transcription_pipeline/spot_analysis/compile_data.py
 transcription_pipeline/spot_analysis/detection.py
 transcription_pipeline/spot_analysis/fitting.py
+transcription_pipeline/spot_analysis/fluctuation_correlation.py
+transcription_pipeline/spot_analysis/refine_traces.py
+transcription_pipeline/spot_analysis/smMS2_calibration.py
 transcription_pipeline/spot_analysis/track_filtering.py
 transcription_pipeline/step_detection/potts_l1.py
 transcription_pipeline/tracking/__init__.py
@@ -34,4 +38,3 @@ transcription_pipeline/utils/label_manipulation.py
 transcription_pipeline/utils/neighborhood_manipulation.py
 transcription_pipeline/utils/parallel_computing.py
 transcription_pipeline/utils/plottable.py
-transcription_pipeline/utils/smMS2_calibration.py

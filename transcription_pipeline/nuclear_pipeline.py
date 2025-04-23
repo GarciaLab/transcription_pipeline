@@ -844,5 +844,8 @@ class Nuclear:
                 warnings.warn("".join([dataframe, " not found, keeping as `None`."]))
 
         # Import saved parameters
-        with open(results_path / "nuclear_analysis_parameters.pkl", "rb") as f:
-            self.default_params = pickle.load(f)
+        try:
+            with open(results_path / "nuclear_analysis_parameters.pkl", "rb") as f:
+                self.default_params = pickle.load(f)
+        except FileNotFoundError:
+            self.default_params = None

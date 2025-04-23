@@ -1,4 +1,4 @@
-name: transcription_pipeline
+name: notch_analysis
 channels:
   - bioconda
   - conda-forge

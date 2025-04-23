@@ -192,7 +192,10 @@ def collate_global_metadata(
         for field in input_global_metadata:
             if field in fields_num_channels:
                 if num_channels > 1:
-                    channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    try:
+                        channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    except TypeError:
+                        channel_global_metadata[field] = input_global_metadata[field]
                 else:
                     channel_global_metadata[field] = input_global_metadata[field]
             elif field in fields_num_series:
@@ -241,99 +244,61 @@ def collate_global_metadata(
 
 
 def collate_frame_metadata(
-    input_frame_metadata,
-    output_global_metadata,
-    trim_series,
-    num_channels,
-    time_delta_from_0,
+        input_frame_metadata,
+        output_global_metadata,
+        trim_series,
+        num_channels,
+        time_delta_from_0,
 ):
-    """
-    Helper function that uses the metadata from the files being processed
-    to write a consistent frame-by-frame metadata dictionary for the
-    collated file.
-
-    :param input_frame_metadata: Frame-by-frame metadata dictionary for
-        an extracted dataset.
-    :type input_frame_metadata: dict
-    :param output_global_metadata: Global metadata dictionary for the
-        exported (collated) data file, as output by
-        :func:`~collate_global_metadata`.
-    :type output_global_metadata: dict
-    :param bool trim_series: If True, deletes the last frame of each series.
-        This should be used when acquisition was stopped in the middle of a
-        z-stack.
-    :param int num_channels: Number of imaging channels.
-    :param list time_delta_from_0: List of time difference between the
-        start of each series and the start of the first series in the dataset.
-        This is used to make an accurate timestamp of the frames in all
-        series in a dataset since each series records its timestamps relative
-        to its own start time.
-    :return: Dictionary of global metadata for the exported (collated) file.
-    :rtype: dict
-    """
     output_frame_metadata = []
+
     for i in range(num_channels):
         channel_frame_metadata = {}
 
-        total_planes = (output_global_metadata[i])["PlaneCount"]
-        total_timepoints = (output_global_metadata[i])["PixelsSizeT"]
-        pixel_size_z = (output_global_metadata[i])["PixelsSizeZ"]
+        total_planes = output_global_metadata[i]["PlaneCount"]
+        total_timepoints = output_global_metadata[i]["PixelsSizeT"]
+        pixel_size_z = output_global_metadata[i].get("PixelsSizeZ", 1)  # Default to 1 if missing
+
         frame_indices = np.arange(total_planes)
-        new_shape = (total_timepoints, pixel_size_z)
+        new_shape = (total_timepoints, pixel_size_z) if pixel_size_z > 1 else (total_timepoints,)
         frame_indices = np.reshape(frame_indices, new_shape)
         channel_frame_metadata["frame"] = frame_indices
-
         channel_frame_metadata["series"] = 0
 
         def clear_duplicates(x):
             return x[0] if all_equal(x) else "inconsistent_metadata"
 
         single_value_metadata = [
-            "mpp",
-            "mppZ",
-            "x",
-            "y",
-            "x_um",
-            "y_um",
-            "axes",
-            "coords",
+            "mpp", "mppZ", "x", "y", "x_um", "y_um", "axes", "coords"
         ]
         for key in single_value_metadata:
-            try:
-                channel_frame_metadata[key] = clear_duplicates(
-                    input_frame_metadata[key]
-                )
-            except KeyError:
-                channel_frame_metadata[key] = "No record."
+            channel_frame_metadata[key] = clear_duplicates(input_frame_metadata.get(key, ["No record."]))
 
         c = np.ones(new_shape) * i
         channel_frame_metadata["c"] = c
 
         try:
-            channel_frame_metadata["colors"] = (
-                clear_duplicates(input_frame_metadata["colors"])
-            )[i]
+            channel_frame_metadata["colors"] = clear_duplicates(input_frame_metadata["colors"])[i]
         except KeyError:
             channel_frame_metadata["colors"] = "No record."
 
-        if trim_series:
-            end = -1
+        end = -1 if trim_series else None
+
+        if "z" in input_frame_metadata and pixel_size_z > 1:
+            try:
+                if num_channels > 1:
+                    z_list = [
+                        (z_original[:end])[:, i, :]
+                        for z_original in input_frame_metadata["z"]
+                    ]
+                else:
+                    z_list = [z_original[:end] for z_original in input_frame_metadata["z"]]
+            except ValueError:
+                z_list = "inconsistent_metadata"
         else:
-            end = None
+            z_list = "noZ_metadata"  # Handle images without a z-dimension
 
-        try:
-            if num_channels > 1:
-                z_list = [
-                    (z_original[:end])[:, i, :]
-                    for z_original in input_frame_metadata["z"]
-                ]
-            else:
-                z_list = [z_original[:end] for z_original in input_frame_metadata["z"]]
-            z = np.concatenate(z_list)
-
-        except ValueError:
-            z = "inconsistent_metadata"
-
+        z = np.concatenate(z_list)
         channel_frame_metadata["z"] = z
 
         try:
@@ -709,12 +674,30 @@ def import_dataset(
     for file in file_list:
         # Open a reader for the first series of the file
         series = pims.Bioformats(file, read_mode="jpype", series=0)
-        try:
-            series.bundle_axes = "tczyx"
-            multichannel = True
-        except ValueError:
-            series.bundle_axes = "tzyx"
-            multichannel = False
+
+        # Try the most common cases first
+        primary_axes = ["tczyx", "zyx"]
+        fallback_axes = ["tzyx", "tcyx", "czyx"]
+        multichannel_axes = {"tczyx", "tcyx", "czyx"}  # Multichannel cases
+
+        # correct_axes = None  # Store detected or user-specified axes
+
+        for axes in primary_axes:
+            try:
+                series.bundle_axes = axes
+                multichannel = axes in multichannel_axes
+                correct_axes = axes  # Store detected axes
+                break
+            except ValueError:
+                continue
+        else:
+            print(f"Failed to auto-detect bundle axes for {file}.")
+            print("Please specify one of the following: tzyx, tcyx, czyx")
+            correct_axes = input("Enter bundle axes: ").strip()
+            if correct_axes not in fallback_axes:
+                raise ValueError(f"Invalid selection: {correct_axes}. Must be one of {fallback_axes}")
+            series.bundle_axes = correct_axes
+            multichannel = correct_axes in multichannel_axes
 
         data.append(series)
         num_frames_series.append(series.shape[1])
@@ -728,10 +711,7 @@ def import_dataset(
         num_series = checked_file_metadata["ImageCount"]
         for i in range(1, num_series):
             series = pims.Bioformats(file, read_mode="jpype", series=i)
-            if multichannel:
-                series.bundle_axes = "tczyx"
-            else:
-                series.bundle_axes = "tzyx"
+            series.bundle_axes = correct_axes
             data.append(series)
             num_frames_series.append(series.shape[1])
 
