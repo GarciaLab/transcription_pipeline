@@ -1,0 +1,29 @@
+name: "Sphinx: Render docs"
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10.11'
+    - name: Install dependencies
+      run: |
+        pip install sphinx sphinx_book_theme myst_parser
+    - name: Install pipeline
+      run: pip install .
+    - name: Build HTML
+      run: cd transcription_pipeline/docs && make clean && make html
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: transcription_pipeline/docs/build/html
