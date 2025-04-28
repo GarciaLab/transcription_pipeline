@@ -76,6 +76,7 @@ def _threshold_triangle(hist, bin_centers, nbins):
     # the length, but here we omit it as it does not affect the location of the
     # minimum.
     length = peak_height * x1 - width * y1
+    print(length)
     arg_level = np.argmax(length) + arg_low_level
 
     if flip:
@@ -90,7 +91,7 @@ def _bandpass_movie(movie, low_sigma, high_sigma):
     frame of a movie before collating the results in a bandpass-filtered movie of the
     same shape as input `movie`.
     """
-    bandpassed_movie = np.empty_like(movie, dtype=float)
+    bandpassed_movie = np.empty_like(movie, dtype=np.float16)
 
     num_timepoints = movie.shape[0]
     for i in range(num_timepoints):
@@ -101,10 +102,10 @@ def _bandpass_movie(movie, low_sigma, high_sigma):
             # https://stackoverflow.com/a/36307291
             nan_mask = np.isnan(frame)
 
-            frame_cast_zero = frame.astype(float)
+            frame_cast_zero = frame.astype(np.float16)
             frame_cast_zero[nan_mask] = 0
 
-            frame_norm = np.ones_like(frame, dtype=float)
+            frame_norm = np.ones_like(frame, dtype=np.float16)
             frame_norm[nan_mask] = 0
 
             low_sigma_gaussian = gaussian(frame_cast_zero, sigma=low_sigma)
