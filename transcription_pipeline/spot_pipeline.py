@@ -615,7 +615,7 @@ class Spot:
         working_memory_mode="zarr",
         working_memory_folder=None,
         only_retrack=False,
-        retrack_after_filter=True,
+        retrack_after_filter=None,
         stitch=True,
         monitor_progress=True,
         trackpy_log_path="/tmp/trackpy_log",
@@ -659,7 +659,8 @@ class Spot:
         # Update stitch conditional
         self.stitch = stitch
         # Update retracking conditional
-        self.retrack_after_filter = retrack_after_filter
+        if retrack_after_filter is not None:
+            self.retrack_after_filter = retrack_after_filter
 
         # If `data` is passed as a zarr array, we wrap it as a list of futures
         # that read each chunk - the parallelization is fully determined by the
@@ -726,7 +727,7 @@ class Spot:
                         self.data,
                         overwrite=True,
                         store=results_path / "bandpassed_movie.zarr",
-                        dtype=float,
+                        dtype=np.float32,
                     )
                 else:
                     bandpassed_array = None

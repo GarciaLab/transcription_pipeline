@@ -1,0 +1,2 @@
+[console_scripts]
+install_bioformats_jar = transcription_pipeline.prerequisites.install_bioformats:install_bioformats
