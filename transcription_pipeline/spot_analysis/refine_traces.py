@@ -11,6 +11,7 @@ def _compile_traces_background_averaging(
     min_frames,
     pos_columns=["z", "y", "x"],
     compile_columns=[],
+    centroid="relative",
     nuclear_tracking_dataframe=None,
     compile_columns_nuclear=["nuclear_cycle"],
     ignore_negative_spots=True,
@@ -42,10 +43,15 @@ def _compile_traces_background_averaging(
     filtered_compiled_traces.reset_index(inplace=True, drop=True)
 
     def _compile_centroids(row):
-        return (
-            np.vstack(row[pos_columns].to_numpy()).T
-            - np.array([*row["coordinates_start"]])[:, 1:]
-        )
+        if centroid == "relative":
+            return (
+                np.vstack(row[pos_columns].to_numpy()).T
+                - np.array([*row["coordinates_start"]])[:, 1:]
+            )
+        elif centroid == "absolute":
+            return np.vstack(row[pos_columns].to_numpy()).T
+        else:
+            raise ValueError("`centroids` must be either 'relative' or 'absolute'.")
 
     filtered_compiled_traces["centroid"] = None
     filtered_compiled_traces["centroid"] = filtered_compiled_traces["centroid"].astype(
@@ -300,6 +306,7 @@ def refine_compile_traces(
     min_frames,
     pos_columns=["z", "y", "x"],
     compile_columns=[],
+    centroid="relative",
     nuclear_tracking_dataframe=None,
     compile_columns_nuclear=["nuclear_cycle"],
     ignore_negative_spots=True,
@@ -337,6 +344,9 @@ def refine_compile_traces(
         to column names, or single-entry dictionaries with the key pointing to the
         column name to compile from, and the value pointing to the new column name
         to give the compiled property in the compiled dictionary.
+    :param centroid: Selects whether centroids should be given relative to the image
+        (`absolute`) or cutout (`relative`) coordinates.
+    :type centroid: {"relative", "absolute"}
     :param nuclear_tracking_dataframe: DataFrame containing information about detected
         and tracked nuclei.
     :type nuclear_tracking_dataframe: pandas DataFrame
@@ -388,6 +398,7 @@ def refine_compile_traces(
         tracked_spots_dataframe,
         min_frames=min_frames,
         pos_columns=pos_columns,
+        centroid=centroid,
         compile_columns=compile_columns,
         nuclear_tracking_dataframe=nuclear_tracking_dataframe,
         compile_columns_nuclear=compile_columns_nuclear,

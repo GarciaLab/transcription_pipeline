@@ -13,6 +13,7 @@ transcription_pipeline.egg-info/entry_points.txt
 transcription_pipeline.egg-info/requires.txt
 transcription_pipeline.egg-info/top_level.txt
 transcription_pipeline/docs/source/conf.py
+transcription_pipeline/gui/check_spots.py
 transcription_pipeline/nuclear_analysis/__init__.py
 transcription_pipeline/nuclear_analysis/segmentation.py
 transcription_pipeline/preprocessing/__init__.py

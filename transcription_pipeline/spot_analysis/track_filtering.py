@@ -230,6 +230,10 @@ def filter_spots_by_tracks(tracked_spot_dataframe, min_track_length):
     :return: None
     :rtype: None
     """
+    if min_track_length < 1:
+        tracked_spot_dataframe["include_spot_by_track"] = True
+        return None
+
     track_lengths = tracked_spot_dataframe.groupby(
         "trackpy_label", as_index=False, sort=False
     ).size()

@@ -1,5 +1,5 @@
 # Transcription spot analysis pipeline
-Python pipeline for transcription spot tracking and analysis.
+Python pipeline for transcription spot tracking and analysis. Full documentation can be found [here](https://garcialab.berkeley.edu/transcription_pipeline/).
 
 # Installation instructions
 1. (Optional) Create a mamba/conda virtualenv from the `environment.yml` file.

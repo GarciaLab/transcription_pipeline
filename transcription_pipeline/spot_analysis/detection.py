@@ -1,6 +1,7 @@
 from skimage.filters import gaussian, difference_of_gaussians, threshold_triangle
 from skimage.measure import label
 from skimage.morphology import remove_small_objects
+from skimage.util import img_as_float32
 import numpy as np
 import pandas as pd
 from functools import partial
@@ -76,7 +77,6 @@ def _threshold_triangle(hist, bin_centers, nbins):
     # the length, but here we omit it as it does not affect the location of the
     # minimum.
     length = peak_height * x1 - width * y1
-    print(length)
     arg_level = np.argmax(length) + arg_low_level
 
     if flip:
@@ -91,7 +91,7 @@ def _bandpass_movie(movie, low_sigma, high_sigma):
     frame of a movie before collating the results in a bandpass-filtered movie of the
     same shape as input `movie`.
     """
-    bandpassed_movie = np.empty_like(movie, dtype=np.float16)
+    bandpassed_movie = np.empty_like(movie, dtype=np.float32)
 
     num_timepoints = movie.shape[0]
     for i in range(num_timepoints):
@@ -102,10 +102,11 @@ def _bandpass_movie(movie, low_sigma, high_sigma):
             # https://stackoverflow.com/a/36307291
             nan_mask = np.isnan(frame)
 
-            frame_cast_zero = frame.astype(np.float16)
+            # Converting to float32 instead of float64 to save some memory.
+            frame_cast_zero = img_as_float32(frame)
             frame_cast_zero[nan_mask] = 0
 
-            frame_norm = np.ones_like(frame, dtype=np.float16)
+            frame_norm = np.ones_like(frame, dtype=np.float32)
             frame_norm[nan_mask] = 0
 
             low_sigma_gaussian = gaussian(frame_cast_zero, sigma=low_sigma)
@@ -226,7 +227,7 @@ def make_spot_mask(
     client=None,
 ):
     """
-    Constructs a labelled mask separating spots from background, bandpassing and
+    Constructs a labelled mask separating spots from background, bandpass filtering and
     thresholding the image and removing objects smaller than the specified size.
     If a Dask Client is passed as a `client` kwarg, the bandpass filtering and
     thresholding will be parallelized across the client.
