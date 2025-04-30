@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: transcription_pipeline
 Version: 0.0.1
 License-File: LICENSE
@@ -16,4 +16,6 @@ Requires-Dist: scipy==1.11.1
 Requires-Dist: scikit-image==0.21.0
 Requires-Dist: trackpy==0.6.1
 Requires-Dist: zarr==2.14.2
+Requires-Dist: numba-progress==1.1.0
 Requires-Dist: install-jdk
+Dynamic: license-file
