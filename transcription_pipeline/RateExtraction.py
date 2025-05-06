@@ -397,7 +397,7 @@ def unpack_functions():
         # Loop through dataframe and assign each trace to a bin based on mean ap position
         for i in range(len(dataframe)):
             particle = dataframe['particle'][i]
-            bin_indices[i] = (
+            bin_indices[i] = np.abs(
                     dataframe.loc[dataframe['particle'] == particle, 'ap']
                     .values[0].mean() // bin_width
             )
@@ -688,7 +688,7 @@ class FitAndAverage:
                 # Destroy the Tkinter root window
                 root.destroy()
 
-            elif event.key == 'f':
+            elif event.key == 'm':
                 # Fit based on a chosen range
                 def get_two_numbers():
                     # Create a window
@@ -863,9 +863,9 @@ class FitAndAverage:
                             # Only include particles with valid rates
                             if not np.isnan(rates[j]):
                                 # Get the actual AP position for this particle
-                                particle_ap = approved_binned_dataframe.loc[
+                                particle_ap = np.abs(approved_binned_dataframe.loc[
                                     approved_binned_dataframe['particle'] == particle_id, 'ap'
-                                ].values[0]
+                                ].values[0])
 
                                 # If ap is an array, take its mean
                                 if isinstance(particle_ap, np.ndarray):
@@ -898,10 +898,15 @@ class FitAndAverage:
             # Calculate bin edges and centers
             bin_width = 1 / bin_num
             bin_edges = np.arange(0, 1 + bin_width, bin_width)  # Include right edge of last bin
-            ap_positions = bin_indices * bin_width + (bin_width / 2)  # Bin centers
+            ap_positions = (bin_edges[:-1] + bin_edges[1:]) / 2
+
 
             bin_slopes = mean_fit_rates[not_nan]
             bin_slope_errs = SE_fit_rates[not_nan]
+
+            if bin_slopes.size == 0:
+                print("Warning: No valid bins with non-NaN average rates. Skipping plot.")
+                return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
 
             max_bin_slope = np.max(bin_slopes)
             # Adjust y-limit to include individual particles if they are plotted
@@ -1243,7 +1248,7 @@ class AverageAndFit:
                 bin_average_fit_dataframe.at[bin_index, 'approval_status'] = 0
                 bin_average_fit_dataframe.at[bin_index, 'bin_fit_result_modified'] = None
                 bin_average_fit_dataframe.at[bin_index, 'bin_fit_slope_modified'] = np.nan
-            elif event.key == 'f':
+            elif event.key == 'm':
                 # Fit based on a chosen range
                 def get_two_numbers():
                     # Create a window

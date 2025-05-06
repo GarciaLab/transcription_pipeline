@@ -1,27 +1,37 @@
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib
-from skimage import color, filters, morphology, util, measure, transform#, exposure, segmentation, io
+from skimage import color, filters, morphology, util, measure, transform
 from scipy.spatial import ConvexHull
 from skimage.draw import line
 import feret
 import cv2 as cv
 from skimage.transform import AffineTransform
+import pandas as pd
+import os
+
 
 class FullEmbryo:
-    def __init__(self, full_embryo, img_window, his_channel):
-        # Full embryo dataset and metadata
+    def __init__(self, dataset_path, full_embryo, img_window, his_channel):
+        # Full embryo data
         self.full_embryo_dataset_surf = full_embryo.channels_full_dataset_surf
         self.full_embryo_dataset_mid = full_embryo.channels_full_dataset_mid
         self.full_embryo_metadata_surf = full_embryo.export_global_metadata_surf
         self.full_embryo_metadata_mid = full_embryo.export_global_metadata_mid
-        # ImgWindow dataset and metadata
+
+        # Image window data
         self.img_window_dataset = img_window.channels_full_dataset
         self.img_window_metadata = img_window.export_global_metadata
         self.his_channel = his_channel
+        self.dataset_folder = dataset_path
 
-        # Uninitialized variables
+        # Initialize attributes to None
+        self._init_attributes()
+
+    def _init_attributes(self):
+        """Initialize class attributes"""
         self.ap_line = None
         self.ap90_line = None
         self.ap_d = None
@@ -29,159 +39,114 @@ class FullEmbryo:
         self.ap90_points = None
         self.anterior_point = None
         self.posterior_point = None
-
-
         self.max_loc = None
         self.ap_angle = None
         self.im_shape_scaled = None
-
         self.full_embryo_mask = None
         self.conv_result = None
 
     @staticmethod
     def contour_mask(binary_mask):
-        """
-        Generates a mask by flood filling the largest contour within the input binary_mask.
-        """
+        """Generate mask from largest contour"""
         contours = measure.find_contours(binary_mask)
-
-        # Identify the desired contour (e.g., the largest)
         largest_contour = max(contours, key=len)
-
-        # Fit a convex hull to the contour
         hull = ConvexHull(largest_contour)
-
-        # Initialize the FullEmbryo mask
         mask = np.zeros(binary_mask.shape)
 
-        # Extract points from the contour
-        pts0 = [(largest_contour[simplex, 1][0], largest_contour[simplex, 0][0]) for simplex in hull.simplices]
-        pts1 = [(largest_contour[simplex, 1][1], largest_contour[simplex, 0][1]) for simplex in hull.simplices]
-        pts = pts0 + pts1
-        pts = np.array(pts)
+        pts = FullEmbryo._get_hull_points(largest_contour, hull)
+        sorted_pts = FullEmbryo._sort_points_by_angle(pts)
+        contour_mask = FullEmbryo._draw_contour(sorted_pts, mask)
 
-        # Calculate reference point for determining polar angle
-        reference_point = np.mean(pts, axis=0)
-
-        # Function to calculate the polar angle relative to a reference point
-        def polar_angle(point):
-            x, y = point[0] - reference_point[0], point[1] - reference_point[1]
-            return np.arctan2(y, x)
-
-        # Sort points based on polar angle
-        sorted_pts = sorted(pts, key=polar_angle)
-
-        # Draw contour connecting sorted points
-        for i in range(len(sorted_pts)):
-            if i == len(sorted_pts) - 1:
-                x1, y1 = np.round(sorted_pts[i])
-                x2, y2 = np.round(sorted_pts[0])
-            else:
-                x1, y1 = np.round(sorted_pts[i])
-                x2, y2 = np.round(sorted_pts[i + 1])
-
-            x1 = int(x1)
-            y1 = int(y1)
-            x2 = int(x2)
-            y2 = int(y2)
-
-            rr, cc = line(y1, x1, y2, x2)
-            mask[rr, cc] = 1
-
-        # Save contour mask
-        contour_mask = mask
-
-        # Flood fill to generate the FullEmbryo mask
-        mask = morphology.flood_fill(mask, (0, 0), 1, connectivity=1)
+        # Flood fill to generate full mask
+        mask = morphology.flood_fill(contour_mask, (0, 0), 1, connectivity=1)
         mask = util.invert(mask)
 
         return mask, contour_mask
 
+    @staticmethod
+    def _get_hull_points(contour, hull):
+        """Extract points from contour hull"""
+        pts0 = [(contour[s, 1][0], contour[s, 0][0]) for s in hull.simplices]
+        pts1 = [(contour[s, 1][1], contour[s, 0][1]) for s in hull.simplices]
+        return np.array(pts0 + pts1)
+
+    @staticmethod
+    def _sort_points_by_angle(points):
+        """Sort points by polar angle from center"""
+        center = np.mean(points, axis=0)
+        return sorted(points, key=lambda p:
+        np.arctan2(p[1] - center[1], p[0] - center[0]))
+
+    @staticmethod
+    def _draw_contour(points, mask):
+        """Draw contour connecting sorted points"""
+        for i in range(len(points)):
+            p1 = np.round(points[i]).astype(int)
+            p2 = np.round(points[0] if i == len(points) - 1
+                          else points[i + 1]).astype(int)
+            rr, cc = line(p1[1], p1[0], p2[1], p2[0])
+            mask[rr, cc] = 1
+        return mask
+
     def gen_full_embryo_mask(self, tif_array, sigma=10, radius=5):
-        """
-        Creates a FullEmbryo mask by detecting the embryo edge through a Gaussian blur, thresholding, and a closing operation.
-        """
-        # Convert the image to grayscale if it's not already
-        # if tif_array.shape[-1] == 3:
-        #     grayscale_image = color.rgb2gray(tif_array)
-        # else:
-        #     grayscale_image = tif_array
+        """Create embryo mask using edge detection"""
+        # Preprocess image
+        blurred = filters.gaussian(tif_array, sigma)
+        threshold = filters.threshold_otsu(blurred)
+        binary = blurred > threshold
+        closed = morphology.closing(binary, morphology.disk(radius))
 
-        # Gaussian blur the image with given sigma
-        tif_array = filters.gaussian(tif_array, sigma)
-
-        # Otsu thresholding
-        threshold_value = filters.threshold_otsu(tif_array)
-        tif_array = tif_array > 1 * threshold_value
-
-        # Closing with disk of given radius
-        tif_array = morphology.closing(tif_array, morphology.disk(radius))
-
-        mask, contour = self.contour_mask(tif_array)
-        return mask, contour
+        return self.contour_mask(closed)
 
     @staticmethod
     def find_cross_points(img, contour, coord1, angle, t):
-        """
-        Draws the lines which run through the maxferet and minferet.
-        """
+        """Find intersection points of line with contour"""
         ymax, xmax = img.shape
-        # xs = np.linspace(0, xmax, 2)
-        if angle == np.pi / 2:
-            x1 = coord1[1]
-            y1 = 0
-            x2 = coord1[1]
-            y2 = ymax
-        elif angle == 0:
-            x1 = 0
-            y1 = coord1[0]
-            x2 = xmax
-            y2 = coord1[0]
-        else:
-            x1 = 0
-            y1 = t
-            x2 = xmax
-            y2 = np.tan(angle) * xmax + t
+        x1, y1, x2, y2 = FullEmbryo._get_line_endpoints(coord1, angle, t, ymax, xmax)
 
-        x1 = int(x1)
-        y1 = int(y1)
-        x2 = int(x2)
-        y2 = int(y2)
-
-        mask_height, mask_width = img.shape
-
-        def is_inside_mask(x, y):
-            return 0 <= x < mask_width and 0 <= y < mask_height
+        def is_valid_point(x, y, w, h):
+            return 0 <= x < w and 0 <= y < h
 
         def is_intersection(x, y):
             if contour[y, x] == 1:
                 return True
             try:
-                if contour[y - 1, x] == 1 or contour[y + 1, x] == 1:
-                    return True
-                elif contour[y, x - 1] == 1 or contour[y, x + 1] == 1:
-                    return True
-                else:
-                    return False
+                neighbors = [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]
+                return any(contour[ny, nx] == 1 for ny, nx in neighbors)
             except:
                 return False
 
-        def is_point_inside_mask(x, y):
-            return is_inside_mask(x, y) and is_intersection(x, y)
+        intersections = FullEmbryo._find_intersections(x1, y1, x2, y2,
+                                                       lambda x, y: is_valid_point(x, y, xmax,
+                                                                                   ymax) and is_intersection(x, y))
 
-        intersections = []
+        return FullEmbryo._reduce_intersection_points(intersections)
 
-        # Bresenham's line algorithm
+    @staticmethod
+    def _get_line_endpoints(coord1, angle, t, ymax, xmax):
+        """Get endpoints for line defined by angle and intercept"""
+        if angle == np.pi / 2:
+            return coord1[1], 0, coord1[1], ymax
+        elif angle == 0:
+            return 0, coord1[0], xmax, coord1[0]
+        else:
+            x1, y1 = 0, t
+            x2, y2 = xmax, np.tan(angle) * xmax + t
+            return int(x1), int(y1), int(x2), int(y2)
+
+    @staticmethod
+    def _find_intersections(x1, y1, x2, y2, is_valid):
+        """Find intersections using Bresenham's algorithm"""
         dx = abs(x2 - x1)
         dy = abs(y2 - y1)
         sx = 1 if x1 < x2 else -1
         sy = 1 if y1 < y2 else -1
         err = dx - dy
+        intersections = []
 
         while True:
-            if is_point_inside_mask(x1, y1):
+            if is_valid(x1, y1):
                 intersections.append((x1, y1))
-
             if x1 == x2 and y1 == y2:
                 break
 
@@ -193,576 +158,429 @@ class FullEmbryo:
                 err += dx
                 y1 += sy
 
-        # Filter duplicate intersection points
-        intersections = list(set(intersections))
+        return list(set(intersections))
 
-        intersections = np.array(intersections)
+    @staticmethod
+    def _reduce_intersection_points(points, max_dist=5):
+        """Collapse nearby points to average location"""
+        reduced = []
+        points = np.array(points)
 
-        # Collapse points within a certain radius to the average point to reduce the number of detected intersections
-        def reduce_points(points, max_distance):
-            reduced_points = []
+        while len(points) > 0:
+            p = points[0]
+            points = points[1:]
+            close = [p]
 
-            while len(points) > 0:
-                current_point = points[0]
-                points = points[1:]
+            for other in points:
+                if np.linalg.norm(p - other) <= max_dist:
+                    close.append(other)
 
-                close_points = [current_point]
+            avg = np.mean(close, axis=0)
+            reduced.append(avg)
+            points = [p for p in points if np.linalg.norm(avg - p) > max_dist]
 
-                for p in points:
-                    distance = np.linalg.norm(current_point - p)
-                    if distance <= max_distance:
-                        close_points.append(p)
+        return np.array(reduced)
 
-                average_point = np.mean(close_points, axis=0)
-                reduced_points.append(average_point)
+    def find_ap_axis(self, make_plots=False, sigma=10, radius=5,
+                     load_previous=True, save_results=True, ap_method='minf90'):
+        """Find anterior-posterior axis and perpendicular"""
+        self.full_embryo_mask, contour = self.gen_full_embryo_mask(
+            self.full_embryo_dataset_mid[self.his_channel][1, :, :],
+            sigma, radius)
 
-                points = [p for p in points if np.linalg.norm(average_point - p) > max_distance]
-
-            return np.array(reduced_points)
-
-        unique_intersections = reduce_points(intersections, 5)
-
-        return unique_intersections
-
-    def find_ap_axis(self, make_plots=False, sigma=10, radius=5, remove_small_objects=False, ap_method='minf90'):
-        """
-        Main method to find the Anterior-Posterior axis.
-        Users can press 'm' to manually select anterior and posterior points,
-        then define the AP_perp axis by clicking where it intersects the embryo boundaries.
-        """
-        # Calculate the Full embryo mask using the mid z-slice from the Mid image
-
-        if remove_small_objects:
-            # Remove small objects from the mid image
-            # Get the image data
-            mid_image = self.full_embryo_dataset_mid[self.his_channel][1, :, :]
-
-            # Apply Otsu's thresholding method
-            thresh = filters.threshold_otsu(mid_image)
-            binary_mask = mid_image < thresh
-            mid_image = np.where(binary_mask, mid_image, 0)
-            self.full_embryo_mask, contour = self.gen_full_embryo_mask(mid_image, sigma, radius)
+        if load_previous:
+            self._load_previous_points()
         else:
-            # Use the original mid image without thresholding
-            self.full_embryo_mask, contour = self.gen_full_embryo_mask(
-                self.full_embryo_dataset_mid[self.his_channel][1, :, :],
-                sigma, radius)
+            feret_result = feret.calc(self.full_embryo_mask)
+            if not self._calculate_ap_points(feret_result, contour, ap_method):
+                return
+            self._calculate_scaling_parameters()
 
-        # Calculate the Feret diameters
-        feret_result = feret.calc(self.full_embryo_mask)
+        if make_plots:
+            self._setup_interactive_plot()
 
-        '''
-        The following code finds the cross points of the AP and AP90 lines. Depending on the method chosen, it will
-        use either the minf90 or maxf method to find the cross points. The AP and AP90 lines are then drawn on the
-        image. The points are stored in the class variables ap_line and ap90_line. The distance between the AP points
-        and the centroid of the embryo is also calculated.
-        '''
+        return self._create_ap_points_dataframe(save_results)
+
+    def _load_previous_points(self):
+        """Try to load previously saved AP points"""
+        self.ap_points_file = os.path.join(self.dataset_folder, 'ap_points_df.pkl')
+        try:
+            with open(self.ap_points_file, 'rb') as f:
+                ap_points = pickle.load(f)
+                for k, v in ap_points.items():
+                    setattr(self, k, v[0])
+            print("Previous AP points loaded.")
+            return True
+        except:
+            print("No previous AP points found. Calculating AP points.")
+            return False
+
+    def _calculate_ap_points(self, feret_result, contour, ap_method):
+        """Calculate AP axis points and measurements"""
+        # Get intersection points based on method
         if ap_method == 'minf90':
-            ap_pts = self.find_cross_points(self.full_embryo_mask, contour, feret_result.minf90_coords[0],
-                                            feret_result.minf90_angle, feret_result.minf90_t)
-            ap90_pts = self.find_cross_points(self.full_embryo_mask, contour, feret_result.minf_coords[0],
-                                              feret_result.minf_angle, feret_result.minf_t)
+            ap_pts = self.find_cross_points(self.full_embryo_mask, contour,
+                                            feret_result.minf90_coords[0],
+                                            feret_result.minf90_angle,
+                                            feret_result.minf90_t)
+            ap90_pts = self.find_cross_points(self.full_embryo_mask, contour,
+                                              feret_result.minf_coords[0],
+                                              feret_result.minf_angle,
+                                              feret_result.minf_t)
             self.ap_angle = feret_result.minf90_angle
         elif ap_method == 'maxf':
-            ap_pts = self.find_cross_points(self.full_embryo_mask, contour, feret_result.maxf_coords[0],
-                                            feret_result.maxf_angle, feret_result.maxf_t)
-            ap90_pts = self.find_cross_points(self.full_embryo_mask, contour, feret_result.maxf90_coords[0],
-                                              feret_result.maxf90_angle, feret_result.maxf90_t)
+            ap_pts = self.find_cross_points(self.full_embryo_mask, contour,
+                                            feret_result.maxf_coords[0],
+                                            feret_result.maxf_angle,
+                                            feret_result.maxf_t)
+            ap90_pts = self.find_cross_points(self.full_embryo_mask, contour,
+                                              feret_result.maxf90_coords[0],
+                                              feret_result.maxf90_angle,
+                                              feret_result.maxf90_t)
             self.ap_angle = feret_result.maxf_angle
         else:
             print("Invalid AP method. Please choose 'minf90' or 'maxf'.")
-            return
+            return False
 
-        # Find the endpoints of the AP and AP90 lines
+        print("AP angle: ", np.degrees(self.ap_angle))
+        return self._set_ap_measurements(ap_pts, ap90_pts)
 
-        ## AP axis points
-        (y1, x1) = ap_pts[0]
-        (y2, x2) = ap_pts[1]
+    def _set_ap_measurements(self, ap_pts, ap90_pts):
+        """Set AP measurements from intersection points"""
+        # Extract points
+        (y1, x1), (y2, x2) = ap_pts
+        (y3, x3), (y4, x4) = ap90_pts
 
-        ## AP90 axis points
-        (y3, x3) = ap90_pts[0]
-        (y4, x4) = ap90_pts[1]
+        # Convert points to int
+        y1 = int(y1); x1 = int(x1)
+        y2 = int(y2); x2 = int(x2)
+        y3 = int(y3); x3 = int(x3)
+        y4 = int(y4); x4 = int(x4)
 
-        x1 = int(x1); y1 = int(y1)
-        x2 = int(x2); y2 = int(y2)
-        x3 = int(x3); y3 = int(y3)
-        x4 = int(x4); y4 = int(y4)
-
-        ## Draw the AP and AP90 lines
+        # Find connecting lines
         self.ap_line = line(y1, x1, y2, x2)
         self.ap90_line = line(y3, x3, y4, x4)
-
-        # Store ap90 points in class variables
         self.ap90_points = [(y3, x3), (y4, x4)]
 
-        # Label connected components in the binary mask
-        self.full_embryo_mask = self.full_embryo_mask.astype(int)
+        # Calculate centroid and determine anterior/posterior
+        props = measure.regionprops(self.full_embryo_mask.astype(int))[0]
+        x0, y0 = props.centroid
+        d1 = np.hypot(x1 - x0, y1 - y0)
+        d2 = np.hypot(x2 - x0, y2 - y0)
 
-        label_mask = measure.label(self.full_embryo_mask)
+        self.anterior_point = (y1, x1) if d1 > d2 else (y2, x2)
+        self.posterior_point = (y2, x2) if d1 > d2 else (y1, x1)
 
-        # Calculate object properties using regionprops
-        properties = measure.regionprops(self.full_embryo_mask)
+        # Calculate distances
+        self.ap_d = np.hypot(x1 - x2, y1 - y2)
+        self.ap90_d = np.hypot(x3 - x4, y3 - y4)
 
-        # Calculate the centroid for each labeled object
-        for idx, prop in enumerate(properties):
-            centroid = prop.centroid
+        return True
 
-        x0, y0 = centroid
-        # Distance between ap points and centroid
-        d1 = np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
-        d2 = np.sqrt((x2 - x0) ** 2 + (y2 - y0) ** 2)
-
-        # Length of ap and ap90 lines in pixels
-        self.ap_d = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-        self.ap90_d = np.sqrt((x3 - x4) ** 2 + (y3 - y4) ** 2)
-
-        if d1 > d2:
-            self.anterior_point = (y1, x1)
-            self.posterior_point = (y2, x2)
-        else:
-            self.anterior_point = (y2, x2)
-            self.posterior_point = (y1, x1)
-
-        # Pull last frame of histone channel from movie and histone channel of surf image
+    def _calculate_scaling_parameters(self):
+        """Calculate scaling parameters between image sets"""
+        # Get maximum intensity projections
         img_window = self.img_window_dataset[self.his_channel][-1, :, :, :]
         surf = self.full_embryo_dataset_surf[self.his_channel][:, :, :]
-
-        # Max projection of ImgWindow and Surf
         img_window_max = np.max(img_window, axis=0)
         surf_max = np.max(surf, axis=0)
 
-        # Pixel size for Surf
-        surf_dx = self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeX']
-        surf_dy = self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeY']
-        surf_dz = self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeZ']
+        # Calculate scaling factors
+        surf_spacing = (self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeZ'],
+                        self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeY'],
+                        self.full_embryo_metadata_surf[1]['PixelsPhysicalSizeX'])
 
-        surf_spacing = (surf_dz, surf_dy, surf_dx)
+        img_window_spacing = (self.img_window_metadata[1]['PixelsPhysicalSizeZ'],
+                              self.img_window_metadata[1]['PixelsPhysicalSizeY'],
+                              self.img_window_metadata[1]['PixelsPhysicalSizeX'])
 
-        # Pixel size for ImgWindow
-        img_window_dx = self.img_window_metadata[1]['PixelsPhysicalSizeX']
-        img_window_dy = self.img_window_metadata[1]['PixelsPhysicalSizeY']
-        img_window_dz = self.img_window_metadata[1]['PixelsPhysicalSizeZ']
-
-        img_window_spacing = (img_window_dz, img_window_dy, img_window_dx)
-
-        # Rescale ImgWindow_max to match the zoom of Surf
-        img_window_max_rescaled = transform.rescale(img_window_max,
-                                                    img_window_spacing[2] / surf_spacing[2],
-                                                    anti_aliasing=True)
-
-        template = img_window_max_rescaled
-        img = surf_max
-        img = img.astype(np.float32)
+        # Apply template matching
+        rescale_factor = img_window_spacing[2] / surf_spacing[2]
+        template = transform.rescale(img_window_max, rescale_factor, anti_aliasing=True)
         template = template.astype(np.float32)
-        w, h = template.shape[::-1]
-        self.im_shape_scaled = (w, h)
+        img = surf_max.astype(np.float32)
 
-        # Apply template Matching
-        method = cv.TM_CCOEFF_NORMED
-        conv_result = cv.matchTemplate(img, template, method)
-        min_val, max_val, min_loc, max_loc = cv.minMaxLoc(conv_result)
-        self.conv_result = conv_result
-        self.max_loc = max_loc
+        self.im_shape_scaled = template.shape[::-1]
+        self.conv_result = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
+        _, _, _, self.max_loc = cv.minMaxLoc(self.conv_result)
 
-        # Added by Josh: scale factor calculation
-        w_0 = img_window_max.shape[1]  # width of the original image
-        h_0 = img_window_max.shape[0]  # height of the original image
-        scale_factor_w = w / w_0
-        scale_factor_h = h / h_0
-        scale_factor = np.mean([scale_factor_w, scale_factor_h])
+    def _setup_interactive_plot(self):
+        """Setup interactive plotting"""
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+        mode = {'current': 'view'}
+        manual_points = []
+        ap_perp_points = []
+        ap_perp_line_info = {'origin': None, 'angle': None,
+                             'line_points': None, 'length': None}
 
-        if make_plots:
-            # Set up the plot for possible manual selection
-            fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+        def plot_current_state():
+            """Update plot with current state"""
+            for ax in axes:
+                ax.clear()
 
-            ## Surf image
-            img = np.max(self.full_embryo_dataset_surf[self.his_channel], axis=0)
-            rect = patches.Rectangle((self.max_loc[0], self.max_loc[1]), self.im_shape_scaled[0],
-                                     self.im_shape_scaled[1], linewidth=1, edgecolor='r', facecolor='none')
+            # Plot surf image
+            surf_img = np.max(self.full_embryo_dataset_surf[self.his_channel], axis=0)
+            rect = patches.Rectangle(self.max_loc,
+                                     self.im_shape_scaled[0],
+                                     self.im_shape_scaled[1],
+                                     linewidth=1, edgecolor='r', facecolor='none')
             axes[0].add_patch(rect)
-            axes[0].imshow(img, cmap='gray')
+            axes[0].imshow(surf_img, cmap='gray')
             axes[0].set_title('Overlay with Surf Image')
 
-            ## Mid image
-            rect = patches.Rectangle((self.max_loc[0], self.max_loc[1]), self.im_shape_scaled[0],
-                                     self.im_shape_scaled[1], linewidth=1, edgecolor='r', facecolor='none')
+            # Plot mid image with overlays
+            rect = patches.Rectangle(self.max_loc,
+                                     self.im_shape_scaled[0],
+                                     self.im_shape_scaled[1],
+                                     linewidth=1, edgecolor='r', facecolor='none')
             axes[1].add_patch(rect)
-            axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :], cmap='gray')
+            axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :],
+                           cmap='gray')
             axes[1].imshow(self.full_embryo_mask, alpha=0.2)
-            axes[1].plot(self.ap_line[0], self.ap_line[1])
-            axes[1].plot(self.ap90_line[0], self.ap90_line[1])
 
-            axes[1].scatter(self.anterior_point[0], self.anterior_point[1], s=20, alpha=0.8,
-                            label='Anterior', color='green')
-            axes[1].scatter(self.posterior_point[0], self.posterior_point[1], s=20, alpha=0.8,
-                            label='Posterior', color='magenta')
+            # Add AP lines and points if they exist
+            for attr, color in [('ap_line', 'orange'), ('ap90_line', 'b')]:
+                if hasattr(self, attr):
+                    line = getattr(self, attr)
+                    axes[1].plot(line[0], line[1], color)
 
-            axes[1].scatter(self.ap90_points[0][0], self.ap90_points[0][1], s=20, alpha=0.8,
-                            label='AP_perp', color='blue')
-            axes[1].scatter(self.ap90_points[1][0], self.ap90_points[1][1], s=20, alpha=0.8,
-                            color='blue')
+            if hasattr(self, 'anterior_point'):
+                axes[1].scatter(self.anterior_point[0], self.anterior_point[1],
+                                s=20, alpha=0.8, label='Anterior', color='green')
+            if hasattr(self, 'posterior_point'):
+                axes[1].scatter(self.posterior_point[0], self.posterior_point[1],
+                                s=20, alpha=0.8, label='Posterior', color='magenta')
+            if hasattr(self, 'ap90_points'):
+                for p in self.ap90_points:
+                    axes[1].scatter(p[0], p[1], s=20, alpha=0.8,
+                                    label='AP_perp', color='blue')
 
             axes[1].set_title('Overlay with Mid Image')
             axes[1].legend()
+            fig.tight_layout()
+            plt.draw()
 
-            # Flag to track current mode
-            mode = {'current': 'view'}  # Can be 'view', 'ap_select', or 'ap_perp_select'
+        def on_key(event):
+            """Handle keyboard events"""
+            if event.key == 'm' and mode['current'] == 'view':
+                mode['current'] = 'ap_select'
+                manual_points.clear()
+                ap_perp_points.clear()
+                axes[1].clear()
+                axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :],
+                               cmap='gray')
+                axes[1].imshow(self.full_embryo_mask, alpha=0.2)
+                axes[1].set_title('Click to select Anterior point, then Posterior point')
+                plt.draw()
+                print("Manual mode activated. Click to select Anterior point, then Posterior point.")
 
-            # Store clicks for manual selection
-            manual_points = []
-            ap_perp_points = []
+            elif event.key == 'n' and mode['current'] == 'view':
+                if hasattr(self, 'anterior_point') and hasattr(self, 'posterior_point'):
+                    self.anterior_point, self.posterior_point = (
+                        self.posterior_point, self.anterior_point)
+                    # Modify the ap_angle appropriately
+                    self.ap_angle = np.pi + self.ap_angle
+                    plot_current_state()
+                    print("Anterior and Posterior points swapped.")
 
-            # Store AP_perp line information for proximity calculation
-            ap_perp_line_info = {'origin': None, 'angle': None, 'line_points': None, 'length': None}
+        def on_click(event):
+            """Handle mouse click events"""
+            if event.inaxes != axes[1]:
+                return
 
-            def get_closest_point_on_line(point, origin, angle):
-                """Get point on line defined by origin and angle closest to given point"""
-                # Project point onto line
-                dx = point[1] - origin[1]
-                dy = point[0] - origin[0]
-                # Dot product with unit direction vector
-                t = dx * np.cos(angle) + dy * np.sin(angle)
-                # Closest point
-                x = origin[1] + t * np.cos(angle)
-                y = origin[0] + t * np.sin(angle)
-                return x, y
+            y, x = event.xdata, event.ydata
 
-            def on_key(event):
-                if event.key == 'm':
-                    if mode['current'] == 'view':
-                        mode['current'] = 'ap_select'
-                        # Clear the right plot and prepare for manual selection
-                        axes[1].clear()
-                        axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :], cmap='gray')
-                        axes[1].imshow(self.full_embryo_mask, alpha=0.2)
-                        axes[1].set_title('Click to select Anterior point, then Posterior point')
-                        plt.draw()
-                        print("Manual mode activated. Click to select Anterior point, then Posterior point.")
+            if mode['current'] == 'ap_select':
+                self._handle_ap_selection(y, x, manual_points, axes[1], mode,
+                                          ap_perp_line_info, plot_current_state)
 
-            def on_click(event):
-                if event.inaxes != axes[1]:
-                    return  # Ignore clicks outside the right axis
+            elif mode['current'] == 'ap_perp_select':
+                self._handle_ap_perp_selection(y, x, ap_perp_points, axes[1],
+                                               ap_perp_line_info, mode,
+                                               plot_current_state)
 
-                x, y = event.xdata, event.ydata
-
-                if mode['current'] == 'ap_select':
-                    manual_points.append((int(y), int(x)))  # Store as (y, x) for consistency
-
-                    if len(manual_points) == 1:
-                        # First click - Anterior point
-                        axes[1].scatter(x, y, s=20, alpha=0.8, color='green', label='Anterior (Manual)')
-                        axes[1].set_title('Now click to select Posterior point')
-                        plt.draw()
-
-                    elif len(manual_points) == 2:
-                        # Second click - Posterior point
-                        axes[1].scatter(x, y, s=20, alpha=0.8, color='magenta', label='Posterior (Manual)')
-
-                        # Update AP axis
-                        self.anterior_point = manual_points[0]
-                        self.posterior_point = manual_points[1]
-
-                        # Calculate new AP angle
-                        dy = self.posterior_point[0] - self.anterior_point[0]
-                        dx = self.posterior_point[1] - self.anterior_point[1]
-                        self.ap_angle = np.arctan2(dy, dx)
-
-                        # Draw new AP line
-                        self.ap_line = line(self.anterior_point[0], self.anterior_point[1],
-                                            self.posterior_point[0], self.posterior_point[1])
-
-                        # Calculate perpendicular angle for AP90
-                        ap90_angle = self.ap_angle + np.pi / 2
-
-                        # Calculate midpoint of AP line
-                        mid_y = (self.anterior_point[0] + self.posterior_point[0]) / 2
-                        mid_x = (self.anterior_point[1] + self.posterior_point[1]) / 2
-                        mid_point = (mid_y, mid_x)
-
-                        # Calculate length of AP line
-                        self.ap_d = np.sqrt((self.anterior_point[1] - self.posterior_point[1]) ** 2 +
-                                            (self.anterior_point[0] - self.posterior_point[0]) ** 2)
-
-                        # Draw AP perpendicular line that extends across the entire embryo
-                        # We'll make it much longer than needed to ensure it crosses the embryo
-                        img_height, img_width = self.full_embryo_mask.shape
-                        extension_length = min(img_height, img_width)
-
-                        # Calculate endpoints of extended AP90 line
-                        ap90_x1 = int(mid_x + extension_length * np.cos(ap90_angle))
-                        ap90_y1 = int(mid_y + extension_length * np.sin(ap90_angle))
-                        ap90_x2 = int(mid_x - extension_length * np.cos(ap90_angle))
-                        ap90_y2 = int(mid_y - extension_length * np.sin(ap90_angle))
-
-                        # Store the extended line for display
-                        extended_ap90_line = line(ap90_y1, ap90_x1, ap90_y2, ap90_x2)
-
-                        # Store information about this line for calculations
-                        ap_perp_line_info['origin'] = mid_point
-                        ap_perp_line_info['angle'] = ap90_angle
-                        ap_perp_line_info['line_points'] = [(ap90_y1, ap90_x1), (ap90_y2, ap90_x2)]
-
-                        # Draw the AP axis and extended AP90 line
-                        axes[1].plot([p for p in self.ap_line[1]], [p for p in self.ap_line[0]], 'r-',
-                                     label='AP axis (Manual)')
-                        axes[1].plot([p for p in extended_ap90_line[1]], [p for p in extended_ap90_line[0]], 'b--',
-                                     label='Extended AP90 line')
-
-                        # Transition to AP perpendicular selection mode
-                        mode['current'] = 'ap_perp_select'
-                        axes[1].set_title('Click where AP_perp line intersects embryo boundaries (2 points)')
-                        axes[1].legend()
-                        plt.draw()
-
-                        print(
-                            "AP axis defined. Now click where the perpendicular line intersects the embryo boundaries.")
-
-                elif mode['current'] == 'ap_perp_select':
-                    # Handling clicks for AP perpendicular points
-                    # Get the clicked point
-                    click_point = (y, x)  # (y, x) format for consistency
-
-                    # Find closest point on the AP_perp line
-                    closest_x, closest_y = get_closest_point_on_line(
-                        (y, x),  # Input as (y, x)
-                        ap_perp_line_info['origin'],  # Origin is already in (y, x) format
-                        ap_perp_line_info['angle']
-                    )
-
-                    # Store the point on the line
-                    ap_perp_points.append((int(closest_y), int(closest_x)))  # Store as (y, x)
-
-                    # Display the selected point
-                    axes[1].scatter(closest_x, closest_y, s=20, alpha=0.8, color='cyan',
-                                    marker='x' if len(ap_perp_points) == 1 else 'o')
-
-                    if len(ap_perp_points) == 1:
-                        axes[1].set_title('Click where AP_perp intersects the other side of the embryo')
-                        plt.draw()
-
-                    elif len(ap_perp_points) == 2:
-                        # Calculate distance between the two AP_perp points
-                        self.ap90_d = np.sqrt((ap_perp_points[0][1] - ap_perp_points[1][1]) ** 2 +
-                                              (ap_perp_points[0][0] - ap_perp_points[1][0]) ** 2)
-
-                        # Update AP90 information
-                        self.ap90_line = line(ap_perp_points[0][0], ap_perp_points[0][1],
-                                              ap_perp_points[1][0], ap_perp_points[1][1])
-                        self.ap90_points = ap_perp_points
-
-                        # Redraw everything with final measurements
-                        axes[1].clear()
-                        axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :], cmap='gray')
-                        axes[1].imshow(self.full_embryo_mask, alpha=0.2)
-
-                        # Draw AP line
-                        axes[1].plot([p for p in self.ap_line[1]], [p for p in self.ap_line[0]], 'r-', label='AP axis')
-                        axes[1].scatter(self.anterior_point[1], self.anterior_point[0], s=20, alpha=0.8,
-                                        color='green', label='Anterior')
-                        axes[1].scatter(self.posterior_point[1], self.posterior_point[0], s=20, alpha=0.8,
-                                        color='magenta', label='Posterior')
-
-                        # Draw AP90 line
-                        axes[1].plot([p for p in self.ap90_line[1]], [p for p in self.ap90_line[0]], 'b-',
-                                     label='AP90 axis')
-                        axes[1].scatter(ap_perp_points[0][1], ap_perp_points[0][0], s=20, alpha=0.8,
-                                        color='blue', label='AP90 point 1')
-                        axes[1].scatter(ap_perp_points[1][1], ap_perp_points[1][0], s=20, alpha=0.8,
-                                        color='blue', label='AP90 point 2')
-
-                        axes[1].set_title('Manual AP and AP90 axes defined')
-                        axes[1].legend()
-                        plt.draw()
-
-                        mode['current'] = 'view'  # Return to view mode
-
-                        print(f"Manual AP and AP90 axes defined.")
-                        print(f"Anterior Point: {self.anterior_point}")
-                        print(f"Posterior Point: {self.posterior_point}")
-                        print(f"AP Angle: {np.degrees(self.ap_angle):.2f} degrees")
-                        print(f"AP distance: {self.ap_d:.2f} pixels")
-                        print(f"AP90 distance: {self.ap90_d:.2f} pixels")
-
-            # Connect event handlers
-            fig.canvas.mpl_connect('key_press_event', on_key)
-            fig.canvas.mpl_connect('button_press_event', on_click)
-
-            plt.tight_layout()
-            plt.show()
-
-        return
-
-    def gen_plots(self, show_conv_result=False):
-        if self.conv_result is None:
-            print('Please run the find_ap_axis method first.')
-            print('Running find_ap_axis...')
-            self.find_ap_axis() # Run the find_ap_axis method if it hasn't been run yet
-            return
-
-        if show_conv_result:
-            # Plot the template matching result
-            plt.figure(figsize=(12, 6))
-            plt.imshow(self.conv_result, cmap='gray')
-            plt.scatter(self.max_loc[0], self.max_loc[1], s=10, alpha=0.8, color='red')
-            plt.title('Template Matching')
-            plt.show()
-
-        # Plot the overlay of the Surf and Mid images
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-        ## Surf image
-        img = np.max(self.full_embryo_dataset_surf[self.his_channel], axis=0)
-        rect = patches.Rectangle((self.max_loc[0], self.max_loc[1]), self.im_shape_scaled[0],
-                                 self.im_shape_scaled[1], linewidth=1, edgecolor='r', facecolor='none')
-        axes[0].add_patch(rect)
-        axes[0].imshow(img, cmap='gray')
-        axes[0].set_title('Overlay with Surf Image')
-
-        ## Mid image
-        rect = patches.Rectangle((self.max_loc[0], self.max_loc[1]), self.im_shape_scaled[0],
-                                 self.im_shape_scaled[1], linewidth=1, edgecolor='r', facecolor='none')
-        axes[1].add_patch(rect)
-        axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :], cmap='gray')
-        axes[1].imshow(self.full_embryo_mask, alpha=0.2)
-        axes[1].plot(self.ap_line[0], self.ap_line[1])
-        axes[1].plot(self.ap90_line[0], self.ap90_line[1])
-
-        axes[1].scatter(self.anterior_point[0], self.anterior_point[1], s=20, alpha=0.8,
-                        label='Anterior', color='green')
-        axes[1].scatter(self.posterior_point[0], self.posterior_point[1], s=20, alpha=0.8,
-                        label='Posterior', color='magenta')
-
-        axes[1].scatter(self.ap90_points[0][0], self.ap90_points[0][1], s=20, alpha=0.8,
-                        label='AP_perp', color='blue')
-        axes[1].scatter(self.ap90_points[1][0], self.ap90_points[1][1], s=20, alpha=0.8,
-                        color='blue')
-
-        axes[1].set_title('Overlay with Mid Image')
-        axes[1].legend()
-
-        plt.tight_layout()
+        # Connect event handlers and show plot
+        fig.canvas.mpl_connect('key_press_event', on_key)
+        fig.canvas.mpl_connect('button_press_event', on_click)
+        plot_current_state()
         plt.show()
 
-        return
+    def _handle_ap_selection(self, y, x, manual_points, ax, mode,
+                             ap_perp_line_info, plot_current_state):
+        """Handle AP axis point selection"""
+        manual_points.append((int(y), int(x)))
 
-    def swap_ap_points(self, make_plots=False):
-        """
-        Swaps the anterior and posterior points and changes ap_angle.
-        """
-        self.anterior_point, self.posterior_point = self.posterior_point, self.anterior_point
-        self.ap_angle = np.pi - self.ap_angle
+        if len(manual_points) == 1:
+            # First click - anterior point
+            ax.scatter(y, x, s=20, alpha=0.8, color='green',
+                       label='Anterior (Manual)')
+            ax.set_title('Now click to select Posterior point')
+            plt.draw()
 
-        if make_plots:
-            self.gen_plots()
+        elif len(manual_points) == 2:
+            # Second click - posterior point
+            ax.scatter(y, x, s=20, alpha=0.8, color='magenta',
+                       label='Posterior (Manual)')
 
-        return
+            # Update AP measurements
+            self.anterior_point = manual_points[0]
+            self.posterior_point = manual_points[1]
+            dy = self.posterior_point[0] - self.anterior_point[0]
+            dx = self.posterior_point[1] - self.anterior_point[1]
+            self.ap_angle = np.arctan2(dy, dx)
+            print("AP angle: ", np.degrees(self.ap_angle))
 
-    import matplotlib.pyplot as plt
+            # Draw AP line
+            self.ap_line = line(self.anterior_point[0], self.anterior_point[1],
+                                self.posterior_point[0], self.posterior_point[1])
 
+            # Calculate AP perpendicular
+            ap90_angle = self.ap_angle + np.pi / 2
+            mid_y = (self.anterior_point[0] + self.posterior_point[0]) / 2
+            mid_x = (self.anterior_point[1] + self.posterior_point[1]) / 2
+            mid_point = (mid_y, mid_x)
+            self.ap_d = np.hypot(self.anterior_point[1] - self.posterior_point[1],
+                                 self.anterior_point[0] - self.posterior_point[0])
 
+            # Draw extended AP90 line
+            img_height, img_width = self.full_embryo_mask.shape
+            ext_len = min(img_height, img_width)
+            ap90_x1 = int(mid_x + ext_len * np.cos(ap90_angle))
+            ap90_y1 = int(mid_y + ext_len * np.sin(ap90_angle))
+            ap90_x2 = int(mid_x - ext_len * np.cos(ap90_angle))
+            ap90_y2 = int(mid_y - ext_len * np.sin(ap90_angle))
+            extended_ap90_line = line(ap90_y1, ap90_x1, ap90_y2, ap90_x2)
 
-    def define_ap_points(self):
-        """
-        Allows the user to manually define the anterior and posterior points by clicking on the plot
-        of the full embryo mid image. The user clicks on the anterior point first, followed by the posterior point.
-        """
-        # Display the mid image with the current mask overlay
-        matplotlib.use('Qt5Agg')
-        fig, ax = plt.subplots(figsize=(8, 8))
-        ax.imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :], cmap='gray')
-        ax.imshow(self.full_embryo_mask, alpha=0.2)
-        plt.title('Click on the anterior point first, then the posterior point.')
+            # Store line info and update plot
+            ap_perp_line_info.update({
+                'origin': mid_point,
+                'angle': ap90_angle,
+                'line_points': [(ap90_y1, ap90_x1), (ap90_y2, ap90_x2)]
+            })
 
-        # Function to capture click events
-        def onclick(event):
-            if onclick.count == 0:
-                self.anterior_point = (int(event.ydata), int(event.xdata))
-                plt.scatter(event.xdata, event.ydata, color='green', s=50, label='Anterior Point')
-                plt.legend()
-                plt.draw()
-                onclick.count += 1
-            elif onclick.count == 1:
-                self.posterior_point = (int(event.ydata), int(event.xdata))
-                plt.scatter(event.xdata, event.ydata, color='magenta', s=50, label='Posterior Point')
-                plt.legend()
-                plt.draw()
-                plt.close()  # Close the plot once both points are defined
-                onclick.count += 1
+            ax.plot([p for p in self.ap_line[0]], [p for p in self.ap_line[1]],
+                    'r-', label='AP axis (Manual)')
+            ax.plot([p for p in extended_ap90_line[0]],
+                    [p for p in extended_ap90_line[1]], 'b--',
+                    label='Extended AP90 line')
 
-        onclick.count = 0  # Initialize click counter
+            # Switch to AP perpendicular selection
+            mode['current'] = 'ap_perp_select'
+            ax.set_title('Click where AP_perp line intersects embryo boundaries (2 points)')
+            ax.legend()
+            plt.draw()
+            print("AP axis defined. Now click where the perpendicular line intersects the embryo boundaries.")
 
-        # Connect the click event handler to the figure
-        # fig.canvas.mpl_connect('button_press_event', onclick)
+    def _handle_ap_perp_selection(self, y, x, ap_perp_points, ax,
+                                  ap_perp_line_info, mode, plot_current_state):
+        """Handle AP perpendicular point selection"""
+        click_point = (y, x)
+        closest_x, closest_y = self._get_closest_point_on_line(
+            click_point,
+            ap_perp_line_info['origin'],
+            ap_perp_line_info['angle'])
 
-        plt.show()
+        ap_perp_points.append((int(closest_y), int(closest_x)))
+        marker = 'x' if len(ap_perp_points) == 1 else 'o'
+        ax.scatter(closest_y, closest_x, s=20, alpha=0.8,
+                   color='cyan', marker=marker)
 
-        # Calculate the angle of the manually defined AP axis
-        dy = self.posterior_point[0] - self.anterior_point[0]
-        dx = self.posterior_point[1] - self.anterior_point[1]
-        self.ap_angle = np.arctan2(dy, dx)
+        if len(ap_perp_points) == 1:
+            ax.set_title('Click where AP_perp intersects the other side of the embryo')
+            plt.draw()
 
-        # Update the AP line
-        self.ap_line = line(self.anterior_point[0], self.anterior_point[1],
-                            self.posterior_point[0], self.posterior_point[1])
+        elif len(ap_perp_points) == 2:
+            # Calculate final measurements
+            self.ap90_d = np.hypot(ap_perp_points[0][1] - ap_perp_points[1][1],
+                                   ap_perp_points[0][0] - ap_perp_points[1][0])
+            self.ap90_line = line(ap_perp_points[0][0], ap_perp_points[0][1],
+                                  ap_perp_points[1][0], ap_perp_points[1][1])
+            self.ap90_points = ap_perp_points
 
+            # Update display
+            plot_current_state()
+            mode['current'] = 'view'
+            self._print_measurements()
+
+    def _get_closest_point_on_line(self, point, origin, angle):
+        """Find closest point on line to given point"""
+        dx = point[1] - origin[1]
+        dy = point[0] - origin[0]
+        t = dx * np.cos(angle) + dy * np.sin(angle)
+        x = origin[1] + t * np.cos(angle)
+        y = origin[0] + t * np.sin(angle)
+        return x, y
+
+    def _print_measurements(self):
+        """Print AP measurement results"""
+        print(f"Manual AP and AP90 axes defined.")
         print(f"Anterior Point: {self.anterior_point}")
         print(f"Posterior Point: {self.posterior_point}")
         print(f"AP Angle: {np.degrees(self.ap_angle):.2f} degrees")
+        print(f"AP distance: {self.ap_d:.2f} pixels")
+        print(f"AP90 distance: {self.ap90_d:.2f} pixels")
 
-        return
+    def _create_ap_points_dataframe(self, save_results):
+        """Create and optionally save dataframe of AP measurements"""
+        ap_points_df = pd.DataFrame({
+            'ap_line': [self.ap_line],
+            'ap90_line': [self.ap90_line],
+            'ap_d': [self.ap_d],
+            'ap90_d': [self.ap90_d],
+            'anterior_point': [self.anterior_point],
+            'posterior_point': [self.posterior_point],
+            'ap90_points': [self.ap90_points],
+            'ap_angle': [self.ap_angle],
+            'max_loc': [self.max_loc],
+            'im_shape_scaled': [self.im_shape_scaled],
+            'full_embryo_mask': [self.full_embryo_mask],
+        })
+
+        if save_results:
+            ap_points_df.to_pickle(os.path.join(self.dataset_folder,
+                                                "ap_points_df.pkl"))
+
+        return ap_points_df
 
     def xy_to_ap(self, compiled_data):
-
-        # extract the spot position arrays from compiled_data
+        """Convert xy coordinates to AP axis coordinates"""
+        # Get coordinates
         x = compiled_data.x
         y = compiled_data.y
 
+        # Calculate scaling factor
         img_window = self.img_window_dataset[self.his_channel][-1, :, :, :]
         img_window_max = np.max(img_window, axis=0)
-
-        # Added by Josh: scale factor calculation
         w, h = self.im_shape_scaled
-        w_0 = img_window_max.shape[1]  # width of the original image
-        h_0 = img_window_max.shape[0]  # height of the original image
-        # print(f'image size: {w_0} by {h_0}')
-        scale_factor_w = w / w_0
-        scale_factor_h = h / h_0
-        scale_factor = np.mean([scale_factor_w, scale_factor_h])
+        scale_w = w / img_window_max.shape[1]
+        scale_h = h / img_window_max.shape[0]
+        scale = np.mean([scale_w, scale_h])
 
-        # Convert spot positions to the coordinates in the imaging window in the full embryo image
-        scaled_x = scale_factor * x
-        scaled_y = scale_factor * y
+        # Transform coordinates
+        scaled_x = scale * x
+        scaled_y = scale * y
+        full_x = scaled_x + self.max_loc[0]
+        full_y = scaled_y + self.max_loc[1]
 
-        # Shift the coordinates to the full image coordinate system
-        full_image_x = scaled_x + self.max_loc[0]
-        full_image_y = scaled_y + self.max_loc[1]
+        # Prepare coordinates for transformation
+        xy_pairs = np.transpose(np.stack((full_x, full_y)), (1, 0))
+        spots = [np.stack(pair, axis=1) for pair in xy_pairs]
 
-        # Reshape the x, y coordinates and pair them up to prep for the transformation
-        reshaped_xy = np.transpose(np.stack((full_image_x, full_image_y)),
-                                   (1, 0))  # exchange the axes so that the first axis is by particle, not by xy
-        spots_coords = [np.stack(xy_pair, axis=1) for xy_pair in reshaped_xy]  # pair the xy coordinates into 2-tuples
+        # Apply transformations
+        transform1 = AffineTransform(translation=(-self.anterior_point[0],
+                                                  -self.anterior_point[1]))
+        transform2 = AffineTransform(rotation=-(self.ap_angle % np.pi))
 
-        # Define the affine transformation matrix
-        anterior_point = self.anterior_point
-        ap_angle = self.ap_angle
-        ap_d = self.ap_d
-        ap90_d = self.ap90_d
+        # Transform and normalize coordinates
+        ap_coords = [transform2(transform1(spot)) / np.array([self.ap_d, self.ap90_d])
+                     for spot in spots]
 
-        transform_matrix1 = AffineTransform(translation=(-anterior_point[0], -anterior_point[1]))
-        transform_matrix2 = AffineTransform(rotation=-(ap_angle % np.pi))
+        # Split into AP and AP90 coordinates
+        ap = [coords[:, 0] for coords in ap_coords]
+        ap90 = [coords[:, 1] for coords in ap_coords]
 
-        # Apply the affine transformation to the larger image coordinates and calculate the transformed coordinates in terms of (AP, AP90) percentages
-        transformed_spots_ap_coords = [transform_matrix2(transform_matrix1(spot_coords)) / np.array([ap_d, ap90_d]) for
-                                       spot_coords in spots_coords]
-
-        # Split the coordinates back into AP and AP90 arrays and append them to a new row in compiled_data
-        transformed_ap = [transformed_spot_ap_coords[:, 0] for transformed_spot_ap_coords in
-                          transformed_spots_ap_coords]
-        transformed_ap90 = [transformed_spot_ap_coords[:, 1] for transformed_spot_ap_coords in
-                            transformed_spots_ap_coords]
-
-        new_compiled_data = compiled_data.copy()
-        new_compiled_data['ap'] = transformed_ap
-        new_compiled_data['ap90'] = transformed_ap90
-
-        return new_compiled_data
+        # Return updated data
+        new_data = compiled_data.copy()
+        new_data['ap'] = ap
+        new_data['ap90'] = ap90
+        return new_data
