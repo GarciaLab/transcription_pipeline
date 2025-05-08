@@ -397,7 +397,7 @@ def unpack_functions():
         # Loop through dataframe and assign each trace to a bin based on mean ap position
         for i in range(len(dataframe)):
             particle = dataframe['particle'][i]
-            bin_indices[i] = np.abs(
+            bin_indices[i] = (
                     dataframe.loc[dataframe['particle'] == particle, 'ap']
                     .values[0].mean() // bin_width
             )
@@ -688,7 +688,7 @@ class FitAndAverage:
                 # Destroy the Tkinter root window
                 root.destroy()
 
-            elif event.key == 'm':
+            elif event.key == 'f':
                 # Fit based on a chosen range
                 def get_two_numbers():
                     # Create a window
@@ -766,7 +766,7 @@ class FitAndAverage:
 
         self.compiled_dataframe_fits_checked = traces_compiled_dataframe_fits_checked
 
-    def average_particle_fits(self, plot_results=True, show_slopes=True):
+    def average_particle_fits(self, plot=True):
         '''
         Take the average of all the approved fits of individual particles in each bin,
         with an option to plot them by bins.
@@ -789,8 +789,7 @@ class FitAndAverage:
 
 
         # compute_average_fit_rates_for_bins: a function that calculates the average fit rates for each bin
-        def compute_average_fit_rates_for_bins(input_dataframe, bin_num, plot_result=plot_results,
-                                               overlay_individual_slopes=show_slopes):
+        def compute_average_fit_rates_for_bins(input_dataframe, bin_num, plot_result=plot):
             '''
             Calculate the average fit rates for each bin and store particle
             IDs with rates in each bin.
@@ -798,8 +797,6 @@ class FitAndAverage:
             ARGUMENT
                 input_dataframe: a particle dataframe
                 bin_num: the number of bins to partition the embryo, default is equal to num_bins
-                plot_result: whether to plot the result, default is True
-                overlay_individual_slopes: whether to overlay individual particle slopes, default is False
 
             OUTPUTS
                 1. A dictionary giving the following details:
@@ -824,10 +821,6 @@ class FitAndAverage:
             mean_fit_rates = np.zeros(bin_num)
             bin_particles_rates = np.zeros(bin_num, dtype=object)
             SE_fit_rates = np.zeros(bin_num)
-
-            # Store all particles' AP positions and rates for potential overlay
-            all_particle_ap_positions = []
-            all_particle_rates = []
 
             for i in range(bin_num):
                 # pass bins that has no particles
@@ -855,29 +848,10 @@ class FitAndAverage:
                         .values
                     )
 
-                    # For overlay, store each particle's position within the bin
-                    if overlay_individual_slopes:
-                        # Get the actual AP position for each particle (not binned)
-                        # Use the mean AP value for each particle
-                        for j, particle_id in enumerate(particles):
-                            # Only include particles with valid rates
-                            if not np.isnan(rates[j]):
-                                # Get the actual AP position for this particle
-                                particle_ap = np.abs(approved_binned_dataframe.loc[
-                                    approved_binned_dataframe['particle'] == particle_id, 'ap'
-                                ].values[0])
-
-                                # If ap is an array, take its mean
-                                if isinstance(particle_ap, np.ndarray):
-                                    particle_ap = np.mean(particle_ap)
-
-                                all_particle_ap_positions.append(particle_ap)
-                                all_particle_rates.append(rates[j])
-
                     # Store the particle IDs with their rates in each bin for further analysis
                     bin_particles_rates[i] = {
-                        'bin': i + 1,
-                        'bin_ap_position': i / bin_num,
+                        'bin': i+1,
+                        'bin_ap_position': i/self.bin_num,
                         'bin_particle_counts': bin_counts[i],
                         'particles': particles,
                         'rates': rates,
@@ -894,60 +868,22 @@ class FitAndAverage:
             not_nan = ~np.isnan(mean_fit_rates)
 
             bin_indices = np.arange(bin_num)
-
-            # Calculate bin edges and centers
-            bin_width = 1 / bin_num
-            bin_edges = np.arange(0, 1 + bin_width, bin_width)  # Include right edge of last bin
-            ap_positions = (bin_edges[:-1] + bin_edges[1:]) / 2
-
+            ap_positions = bin_indices * 1 / bin_num
 
             bin_slopes = mean_fit_rates[not_nan]
             bin_slope_errs = SE_fit_rates[not_nan]
 
-            if bin_slopes.size == 0:
-                print("Warning: No valid bins with non-NaN average rates. Skipping plot.")
-                return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
-
             max_bin_slope = np.max(bin_slopes)
-            # Adjust y-limit to include individual particles if they are plotted
-            if overlay_individual_slopes and all_particle_rates:
-                max_individual_slope = np.max(all_particle_rates)
-                ylim_up = 1.5 * max(max_bin_slope, max_individual_slope)
-            else:
-                ylim_up = 1.5 * max_bin_slope
+            ylim_up = 1.5 * max_bin_slope
 
             if plot_result:
                 # Plot the average slope of trace fits for each bin number
-                plt.figure(figsize=(10, 6))
-
-                # Plot individual particle slopes if requested
-                if overlay_individual_slopes and all_particle_rates:
-                    plt.scatter(all_particle_ap_positions, all_particle_rates,
-                                alpha=0.3, color='gray', s=10, label='Individual particles')
-
-                # Plot the average rates with error bars
-                plt.errorbar(ap_positions[not_nan], bin_slopes, yerr=bin_slope_errs,
-                             capsize=2, fmt='o', color='blue', label='Bin averages')
-
-                # Determine the range where we have data
-                active_bins = bin_indices[not_nan]
-                if len(active_bins) > 0:
-                    min_bin_with_data = min(active_bins)
-                    max_bin_with_data = max(active_bins)
-
-                    # Plot vertical lines at bin boundaries (not at bin centers)
-                    for i in range(min_bin_with_data, max_bin_with_data + 2):
-                        # edge_position = i * bin_width
-                        plt.axvline(x=bin_edges[i], color='lightgray', linestyle='--', alpha=0.7)
-
+                plt.figure()
+                plt.errorbar(ap_positions[not_nan], bin_slopes, yerr=bin_slope_errs, capsize=2, fmt='o')
                 plt.xlabel('AP Position')
-                plt.ylabel('Rate of trace fits (AU/min)')
-                plt.title('Rate of trace fits vs. AP position')
+                plt.ylabel('Average rate of trace fits (AU/min)')
+                plt.title('Average rate of trace fits vs. AP position')
                 plt.ylim(0, ylim_up)
-
-                if overlay_individual_slopes:
-                    plt.legend()
-
                 plt.show()
 
             return ap_positions, mean_fit_rates, SE_fit_rates, bin_counts, bin_particles_rates
@@ -1248,7 +1184,7 @@ class AverageAndFit:
                 bin_average_fit_dataframe.at[bin_index, 'approval_status'] = 0
                 bin_average_fit_dataframe.at[bin_index, 'bin_fit_result_modified'] = None
                 bin_average_fit_dataframe.at[bin_index, 'bin_fit_slope_modified'] = np.nan
-            elif event.key == 'm':
+            elif event.key == 'f':
                 # Fit based on a chosen range
                 def get_two_numbers():
                     # Create a window
