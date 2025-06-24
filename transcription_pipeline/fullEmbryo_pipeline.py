@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib
-from skimage import color, filters, morphology, util, measure, transform
+from skimage import color, filters, morphology, util, measure, transform, exposure
 from scipy.spatial import ConvexHull
 from skimage.draw import line
 import feret
@@ -184,17 +184,24 @@ class FullEmbryo:
     def find_ap_axis(self, make_plots=False, sigma=10, radius=5,
                      load_previous=True, save_results=True, ap_method='minf90'):
         """Find anterior-posterior axis and perpendicular"""
+        mid_z_index = self.full_embryo_dataset_mid[self.his_channel].shape[0] // 2
+
         self.full_embryo_mask, contour = self.gen_full_embryo_mask(
-            self.full_embryo_dataset_mid[self.his_channel][1, :, :],
+            self.full_embryo_dataset_mid[self.his_channel][mid_z_index, :, :],
             sigma, radius)
 
         if load_previous:
-            self._load_previous_points()
+            if not self._load_previous_points():
+                feret_result = feret.calc(self.full_embryo_mask)
+                self._calculate_ap_points(feret_result, contour, ap_method)
+                self._calculate_scaling_parameters()
         else:
             feret_result = feret.calc(self.full_embryo_mask)
-            if not self._calculate_ap_points(feret_result, contour, ap_method):
-                return
+            self._calculate_ap_points(feret_result, contour, ap_method)
             self._calculate_scaling_parameters()
+
+        # Print AP axis measurements
+        self._print_measurements()
 
         if make_plots:
             self._setup_interactive_plot()
@@ -242,7 +249,6 @@ class FullEmbryo:
             print("Invalid AP method. Please choose 'minf90' or 'maxf'.")
             return False
 
-        print("AP angle: ", np.degrees(self.ap_angle))
         return self._set_ap_measurements(ap_pts, ap90_pts)
 
     def _set_ap_measurements(self, ap_pts, ap90_pts):
@@ -304,6 +310,12 @@ class FullEmbryo:
         self.conv_result = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
         _, _, _, self.max_loc = cv.minMaxLoc(self.conv_result)
 
+    def _apply_adaptive_hist(self, img, apply_hist):
+        """Apply adaptive histogram equalization if enabled"""
+        if apply_hist:
+            return exposure.equalize_adapthist(img / np.max(img), clip_limit=0.5)
+        return img
+
     def _setup_interactive_plot(self):
         """Setup interactive plotting"""
         fig, axes = plt.subplots(1, 2, figsize=(12, 6))
@@ -312,6 +324,7 @@ class FullEmbryo:
         ap_perp_points = []
         ap_perp_line_info = {'origin': None, 'angle': None,
                              'line_points': None, 'length': None}
+        view_state = {'adaptive_hist': False}
 
         def plot_current_state():
             """Update plot with current state"""
@@ -320,6 +333,7 @@ class FullEmbryo:
 
             # Plot surf image
             surf_img = np.max(self.full_embryo_dataset_surf[self.his_channel], axis=0)
+            surf_img = self._apply_adaptive_hist(surf_img, view_state['adaptive_hist'])
             rect = patches.Rectangle(self.max_loc,
                                      self.im_shape_scaled[0],
                                      self.im_shape_scaled[1],
@@ -329,13 +343,15 @@ class FullEmbryo:
             axes[0].set_title('Overlay with Surf Image')
 
             # Plot mid image with overlays
+            mid_z_index = self.full_embryo_dataset_mid[self.his_channel].shape[0] // 2
+            mid_img = self.full_embryo_dataset_mid[self.his_channel][mid_z_index, :, :]
+            mid_img = self._apply_adaptive_hist(mid_img, view_state['adaptive_hist'])
             rect = patches.Rectangle(self.max_loc,
                                      self.im_shape_scaled[0],
                                      self.im_shape_scaled[1],
                                      linewidth=1, edgecolor='r', facecolor='none')
             axes[1].add_patch(rect)
-            axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :],
-                           cmap='gray')
+            axes[1].imshow(mid_img, cmap='gray')
             axes[1].imshow(self.full_embryo_mask, alpha=0.2)
 
             # Add AP lines and points if they exist
@@ -367,7 +383,11 @@ class FullEmbryo:
                 manual_points.clear()
                 ap_perp_points.clear()
                 axes[1].clear()
-                axes[1].imshow(self.full_embryo_dataset_mid[self.his_channel][0, :, :],
+                mid_z_index = self.full_embryo_dataset_mid[self.his_channel].shape[0] // 2
+                mid_image = self._apply_adaptive_hist(
+                    self.full_embryo_dataset_mid[self.his_channel][mid_z_index, :, :]
+                , view_state['adaptive_hist'])
+                axes[1].imshow(mid_image,
                                cmap='gray')
                 axes[1].imshow(self.full_embryo_mask, alpha=0.2)
                 axes[1].set_title('Click to select Anterior point, then Posterior point')
@@ -382,6 +402,11 @@ class FullEmbryo:
                     self.ap_angle = np.pi + self.ap_angle
                     plot_current_state()
                     print("Anterior and Posterior points swapped.")
+            elif event.key == 'r' and mode['current'] == 'view':
+                view_state['adaptive_hist'] = not view_state['adaptive_hist']
+                plot_current_state()
+                print("Adaptive histogram equalization toggled:",
+                      "ON" if view_state['adaptive_hist'] else "OFF")
 
         def on_click(event):
             """Handle mouse click events"""
@@ -427,8 +452,7 @@ class FullEmbryo:
             self.posterior_point = manual_points[1]
             dy = self.posterior_point[0] - self.anterior_point[0]
             dx = self.posterior_point[1] - self.anterior_point[1]
-            self.ap_angle = np.arctan2(dy, dx)
-            print("AP angle: ", np.degrees(self.ap_angle))
+            self.ap_angle = np.arctan2(dx,dy)
 
             # Draw AP line
             self.ap_line = line(self.anterior_point[0], self.anterior_point[1],
@@ -445,10 +469,10 @@ class FullEmbryo:
             # Draw extended AP90 line
             img_height, img_width = self.full_embryo_mask.shape
             ext_len = min(img_height, img_width)
-            ap90_x1 = int(mid_x + ext_len * np.cos(ap90_angle))
-            ap90_y1 = int(mid_y + ext_len * np.sin(ap90_angle))
-            ap90_x2 = int(mid_x - ext_len * np.cos(ap90_angle))
-            ap90_y2 = int(mid_y - ext_len * np.sin(ap90_angle))
+            ap90_x1 = int(mid_x + ext_len * np.sin(ap90_angle))
+            ap90_y1 = int(mid_y + ext_len * np.cos(ap90_angle))
+            ap90_x2 = int(mid_x - ext_len * np.sin(ap90_angle))
+            ap90_y2 = int(mid_y - ext_len * np.cos(ap90_angle))
             extended_ap90_line = line(ap90_y1, ap90_x1, ap90_y2, ap90_x2)
 
             # Store line info and update plot
@@ -506,14 +530,14 @@ class FullEmbryo:
         """Find closest point on line to given point"""
         dx = point[1] - origin[1]
         dy = point[0] - origin[0]
-        t = dx * np.cos(angle) + dy * np.sin(angle)
-        x = origin[1] + t * np.cos(angle)
-        y = origin[0] + t * np.sin(angle)
+        t = dx * np.sin(angle) + dy * np.cos(angle)
+        x = origin[1] + t * np.sin(angle)
+        y = origin[0] + t * np.cos(angle)
         return x, y
 
     def _print_measurements(self):
         """Print AP measurement results"""
-        print(f"Manual AP and AP90 axes defined.")
+        print(f"AP and AP90 axes defined.")
         print(f"Anterior Point: {self.anterior_point}")
         print(f"Posterior Point: {self.posterior_point}")
         print(f"AP Angle: {np.degrees(self.ap_angle):.2f} degrees")
@@ -576,7 +600,7 @@ class FullEmbryo:
                      for spot in spots]
 
         # Split into AP and AP90 coordinates
-        ap = [coords[:, 0] for coords in ap_coords]
+        ap = [np.abs(coords[:, 0]) for coords in ap_coords]
         ap90 = [coords[:, 1] for coords in ap_coords]
 
         # Return updated data
