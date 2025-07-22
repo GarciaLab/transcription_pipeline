@@ -13,6 +13,7 @@ from tkinter import messagebox
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import time
+from scipy import stats
 
 from transcription_pipeline.spot_analysis import compile_data
 from transcription_pipeline.utils import plottable
@@ -63,89 +64,355 @@ def unpack_functions():
                 2. An array of the number of particles in each bin
     '''
 
-    # Version with normalization and regularization
     def make_half_cycle(basal, t_on, t_dwell, rate, t_interp):
+        """
+        Generate a half-cycle model with basal level, onset time, dwell time, and rate.
+
+        Parameters:
+        -----------
+        basal : float
+            Baseline value before onset
+        t_on : float
+            Time of onset
+        t_dwell : float
+            Duration of the linear increase phase
+        rate : float
+            Rate of increase during dwell period
+        t_interp : array-like
+            Time points for interpolation
+
+        Returns:
+        --------
+        half_cycle : ndarray
+            Model values at interpolation points
+        """
+        t_interp = np.asarray(t_interp)
         half_cycle = np.zeros_like(t_interp)
-        half_cycle[t_interp < t_on] = basal
-        half_cycle[(t_interp >= t_on) & (t_interp < t_on + t_dwell)] = basal + rate * (
-                t_interp[(t_interp >= t_on) & (t_interp < t_on + t_dwell)] - t_on)
-        half_cycle[t_interp >= t_on + t_dwell] = basal + rate * t_dwell
+
+        # Before onset: constant basal level
+        mask_before = t_interp < t_on
+        half_cycle[mask_before] = basal
+
+        # During dwell: linear increase
+        mask_during = (t_interp >= t_on) & (t_interp < t_on + t_dwell)
+        half_cycle[mask_during] = basal + rate * (t_interp[mask_during] - t_on)
+
+        # After dwell: constant at final level
+        mask_after = t_interp >= t_on + t_dwell
+        half_cycle[mask_after] = basal + rate * t_dwell
+
         return half_cycle
 
     def fit_func(params, MS2, timepoints, t_interp):
-        return np.interp(timepoints, t_interp, make_half_cycle(*params, t_interp)) - MS2
+        """
+        Calculate residuals between half-cycle model and observations.
+
+        Parameters:
+        -----------
+        params : array-like
+            Model parameters [basal, t_on, t_dwell, rate]
+        MS2 : array-like
+            Observed MS2 values
+        timepoints : array-like
+            Time points corresponding to observations
+        t_interp : array-like
+            Interpolation time grid
+
+        Returns:
+        --------
+        residuals : ndarray
+            Difference between model and observations
+        """
+        model_values = make_half_cycle(*params, t_interp)
+        interpolated_values = np.interp(timepoints, t_interp, model_values)
+        return interpolated_values - MS2
 
     def initial_guess(MS2, timepoints):
-        # Initial guess for the parameters
-        basal0 = MS2[0]
-        t_on0 = timepoints[0]
-        t_dwell0 = (2 / 3) * (timepoints[-1] - timepoints[0])
-        rate0 = 1
-        # print(np.max(mean_dy_dx))
+        """
+        Generate improved initial parameter estimates for half-cycle model.
+
+        Parameters:
+        -----------
+        MS2 : array-like
+            Observed MS2 values
+        timepoints : array-like
+            Time points corresponding to observations
+
+        Returns:
+        --------
+        params : list
+            Initial parameter estimates [basal, t_on, t_dwell, rate]
+        """
+        MS2 = np.asarray(MS2)
+        timepoints = np.asarray(timepoints)
+
+        # Improved initial guesses
+        basal0 = np.median(MS2[:3]) if len(MS2) >= 3 else MS2[0]  # More robust basal estimate
+
+        # Find potential onset time by looking for significant changes
+        if len(MS2) > 3:
+            # Look for the point where the signal starts to increase consistently
+            diff = np.diff(MS2)
+            smooth_diff = np.convolve(diff, np.ones(3) / 3, mode='valid')  # Simple smoothing
+            if len(smooth_diff) > 0:
+                onset_idx = np.argmax(smooth_diff > 0.1 * np.std(MS2))
+                t_on0 = timepoints[onset_idx] if onset_idx > 0 else timepoints[0]
+            else:
+                t_on0 = timepoints[0]
+        else:
+            t_on0 = timepoints[0]
+
+        # Estimate dwell time - look for when signal levels off
+        total_duration = timepoints[-1] - timepoints[0]
+        t_dwell0 = 0.5 * total_duration  # More conservative estimate
+
+        # Estimate rate from the overall change
+        if t_dwell0 > 0:
+            rate0 = max(0.1, (np.max(MS2) - basal0) / t_dwell0)
+        else:
+            rate0 = 1.0
+
         return [basal0, t_on0, t_dwell0, rate0]
 
-    def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000):
+    def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000, confidence_level=0.95):
+        """
+        Fit a half-cycle model to MS2 data with improved parameter estimation and confidence intervals.
+
+        Parameters:
+        -----------
+        MS2 : array-like
+            Observed MS2 values
+        timepoints : array-like
+            Time points corresponding to MS2 observations
+        t_interp : array-like
+            Interpolation time grid
+        std_errors : array-like
+            Standard errors for each observation
+        max_nfev : int
+            Maximum number of function evaluations for optimization
+        confidence_level : float
+            Confidence level for intervals (default 0.95 for 95% CI)
+
+        Returns:
+        --------
+        basal : float
+            Fitted basal parameter
+        t_on : float
+            Fitted onset time parameter
+        t_dwell : float
+            Fitted dwell time parameter
+        rate : float
+            Fitted rate parameter
+        CI : ndarray
+            Confidence intervals using standard deviation [lower_bounds, upper_bounds]
+        """
+        # Convert inputs to numpy arrays for safety
+        MS2 = np.asarray(MS2)
+        timepoints = np.asarray(timepoints)
+        t_interp = np.asarray(t_interp)
+        std_errors = np.asarray(std_errors)
+
+        # Validate inputs
+        if len(MS2) != len(timepoints) or len(MS2) != len(std_errors):
+            raise ValueError("MS2, timepoints, and std_errors must have the same length")
+
+        if np.any(std_errors <= 0):
+            raise ValueError("All standard errors must be positive")
+
+        if len(MS2) < 4:
+            raise ValueError("Need at least 4 data points to fit half-cycle model")
+
         # Initial guess
         x0 = initial_guess(MS2, timepoints)
 
-        # Parameter bounds
-        lb = [np.min(MS2), 0, 0, 0]  # Ensure t_dwell is non-negative
-        ub = [np.max(MS2), np.max(timepoints), np.max(timepoints), 1e7]
+        # Improved parameter bounds with more realistic constraints
+        time_range = timepoints[-1] - timepoints[0]
+        MS2_range = np.max(MS2) - np.min(MS2)
 
-        # Scaling factors to normalize parameters
-        scale_factors = np.array([np.max(MS2), np.max(timepoints), np.max(timepoints), 100])
+        # Lower bounds: [basal_min, t_on_min, t_dwell_min, rate_min]
+        lb = [
+            np.min(MS2) - 0.5 * MS2_range,  # Allow basal to be below minimum
+            timepoints[0] - 0.1 * time_range,  # Allow onset before first timepoint
+            0.01 * time_range,  # Minimum meaningful dwell time
+            0.001  # Minimum positive rate
+        ]
 
-        # Scaled bounds
+        # Upper bounds: [basal_max, t_on_max, t_dwell_max, rate_max]
+        ub = [
+            np.max(MS2) + 0.5 * MS2_range,  # Allow basal to be above maximum
+            timepoints[-1],  # Onset cannot be after last timepoint
+            2 * time_range,  # Allow generous dwell time
+            10 * MS2_range / (0.01 * time_range)  # Reasonable maximum rate
+        ]
+
+        # Improved scaling factors
+        def calculate_scale_factors(x0, MS2, timepoints):
+            """Calculate robust scaling factors for each parameter."""
+            MS2_scale = np.max(np.abs(MS2)) if np.max(np.abs(MS2)) > 0 else 1.0
+            time_scale = np.max(timepoints) if np.max(timepoints) > 0 else 1.0
+            rate_scale = max(1.0, np.abs(x0[3])) if x0[3] != 0 else 1.0
+
+            return np.array([MS2_scale, time_scale, time_scale, rate_scale])
+
+        scale_factors = calculate_scale_factors(x0, MS2, timepoints)
+
+        # Scaled bounds and initial guess
         lb_scaled = np.array(lb) / scale_factors
         ub_scaled = np.array(ub) / scale_factors
         x0_scaled = np.array(x0) / scale_factors
 
+        # Ensure initial guess is within bounds
+        x0_scaled = np.clip(x0_scaled, lb_scaled + 1e-6, ub_scaled - 1e-6)
+
         # Scaled fit function
         def fit_func_scaled(params, MS2, timepoints, t_interp):
+            """Scaled version of fit function for numerical stability."""
             params_unscaled = params * scale_factors
             return fit_func(params_unscaled, MS2, timepoints, t_interp)
 
-        # Negative log-likelihood function
-        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
-            residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
-            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
-            regularization = reg * np.sum(params[:] ** 2)
-            nll = 0.5 * np.sum(residuals ** 2) + regularization
-            return nll
+        # Improved negative log-likelihood function
+        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-6):
+            """
+            Negative log-likelihood with proper error weighting and regularization.
+            """
+            # Check bounds
+            if np.any(params < lb_scaled) or np.any(params > ub_scaled):
+                return 1e10
+
+            try:
+                residuals = fit_func_scaled(params, MS2, timepoints, t_interp)
+
+                # Weight residuals by standard errors
+                weighted_residuals = residuals / std_errors
+
+                # Handle numerical issues more robustly
+                weighted_residuals = np.clip(weighted_residuals, -1e3, 1e3)
+
+                # Weak regularization to prevent extreme parameter values
+                regularization = reg * np.sum(params ** 2)
+
+                # Calculate negative log-likelihood
+                nll = 0.5 * np.sum(weighted_residuals ** 2) + regularization
+
+                if not np.isfinite(nll):
+                    return 1e10
+
+                return nll
+
+            except Exception:
+                return 1e10
 
         # Initial parameter estimation using least_squares
-        res = least_squares(negative_log_likelihood,
-                            x0_scaled, bounds=(lb_scaled, ub_scaled),
-                            args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
+        try:
+            res = least_squares(
+                negative_log_likelihood,
+                x0_scaled,
+                bounds=(lb_scaled, ub_scaled),
+                args=(MS2, timepoints, t_interp, std_errors),
+                max_nfev=max_nfev,
+                method='trf'  # Trust Region Reflective algorithm
+            )
+
+            if not res.success:
+                print(f"Warning: Optimization did not converge. Status: {res.message}")
+
+        except Exception as e:
+            print(f"Error in initial optimization: {e}")
+            # Fallback to initial guess
+            res = type('obj', (object,), {'x': x0_scaled, 'success': False})()
 
         # Define log-probability function for MCMC
-        def log_prob(params, MS2, timepoints, t_interp, std_errors, scale_factors, lb_scaled, ub_scaled):
+        def log_prob(params, MS2, timepoints, t_interp, std_errors):
+            """Log-probability function for MCMC sampling."""
+            # Bounds checking
             if np.any(params < lb_scaled) or np.any(params > ub_scaled):
                 return -np.inf
-            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
-            return -nll  # Convert to log-probability
 
-        # MCMC parameters
-        nwalkers = 10
+            # Additional physical constraints
+            params_unscaled = params * scale_factors
+            basal, t_on, t_dwell, rate = params_unscaled
+
+            # Ensure physical meaningfulness
+            if t_dwell <= 0 or rate <= 0:
+                return -np.inf
+
+            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=0)
+
+            if not np.isfinite(nll) or nll > 1e9:
+                return -np.inf
+
+            return -nll
+
+        # MCMC parameters - improved defaults
         ndim = len(x0_scaled)
-        nsteps = 1000
-        initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
-        # Run MCMC
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(MS2, timepoints,
-                                                                        t_interp, std_errors,
-                                                                        scale_factors, lb_scaled, ub_scaled))
-        # Run MCMC until the acceptance fraction is at least 0.5
-        sampler.run_mcmc(initial_pos, nsteps,
-                         progress=False, tune=True)
+        nwalkers = max(20, 6 * ndim)  # Ensure sufficient walkers for 4D problem
+        nsteps = min(3000, max(1500, 200 * ndim))  # Scale steps with dimensionality
 
-        # Flatten the chain and discard burn-in steps
-        flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
+        # Initialize walkers around the best fit with appropriate spread
+        if res.success:
+            spread = 0.01 * np.abs(res.x) + 1e-4
+            initial_pos = res.x[None, :] + spread[None, :] * np.random.randn(nwalkers, ndim)
+        else:
+            # Fallback initialization
+            spread = 0.1 * (ub_scaled - lb_scaled)
+            initial_pos = x0_scaled[None, :] + spread[None, :] * np.random.randn(nwalkers, ndim)
 
-        # Extract and rescale fit parameters
-        basal, t_on, t_dwell, rate = np.median(flat_samples, axis=0) * scale_factors
+        # Ensure all walkers are within bounds
+        initial_pos = np.clip(initial_pos, lb_scaled[None, :] + 1e-6, ub_scaled[None, :] - 1e-6)
 
-        # Calculate confidence intervals
-        CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors[:, np.newaxis]
+        # Run MCMC with better error handling
+        try:
+            sampler = emcee.EnsembleSampler(
+                nwalkers, ndim, log_prob,
+                args=(MS2, timepoints, t_interp, std_errors)
+            )
+
+            # Run MCMC
+            sampler.run_mcmc(initial_pos, nsteps, progress=False)
+
+            # Check MCMC convergence
+            acceptance_fraction = np.mean(sampler.acceptance_fraction)
+            if acceptance_fraction < 0.1:
+                print(f"Warning: Low MCMC acceptance fraction: {acceptance_fraction:.3f}")
+
+            # More conservative burn-in and thinning
+            burn_in = min(nsteps // 3, 1000)
+            thin = max(1, (nsteps - burn_in) // 1000)  # Aim for ~1000 samples
+
+            flat_samples = sampler.get_chain(discard=burn_in, thin=thin, flat=True)
+
+            if len(flat_samples) < 100:
+                print("Warning: Few MCMC samples remaining after burn-in and thinning")
+
+        except Exception as e:
+            print(f"Error in MCMC sampling: {e}")
+            # Fallback: use optimization result with assumed uncertainty
+            if res.success:
+                base_params = res.x
+            else:
+                base_params = x0_scaled
+
+            # Create synthetic samples around the best estimate
+            param_uncertainty = 0.1 * np.abs(base_params) + 0.01 * (ub_scaled - lb_scaled)
+            flat_samples = base_params[None, :] + param_uncertainty[None, :] * np.random.randn(500, ndim)
+            flat_samples = np.clip(flat_samples, lb_scaled[None, :], ub_scaled[None, :])
+
+        # Extract parameters using median (more robust than mean)
+        params_scaled = np.median(flat_samples, axis=0)
+        basal, t_on, t_dwell, rate = params_scaled * scale_factors
+
+        # Calculate confidence intervals using standard deviation
+        params_std = np.std(flat_samples, axis=0) * scale_factors
+
+        # Convert confidence level to z-score
+        alpha = 1 - confidence_level
+        z_score = stats.norm.ppf(1 - alpha / 2)
+
+        # Calculate confidence intervals: [parameter - z*std, parameter + z*std]
+        params_unscaled = np.array([basal, t_on, t_dwell, rate])
+        CI_lower = params_unscaled - z_score * params_std
+        CI_upper = params_unscaled + z_score * params_std
+        CI = np.array([CI_lower, CI_upper])
 
         return basal, t_on, t_dwell, rate, CI
 
@@ -295,81 +562,208 @@ def unpack_functions():
 
         return fit_result
 
+    def fit_linear(MS2, timepoints, t_interp, std_errors, max_nfev=3000, confidence_level=0.95):
+        """
+        Fit a linear model to MS2 data with improved parameter estimation and confidence intervals.
 
-    def fit_linear(MS2, timepoints, t_interp, std_errors, max_nfev=3000):
+        Parameters:
+        -----------
+        MS2 : array-like
+            Observed MS2 values
+        timepoints : array-like
+            Time points corresponding to MS2 observations
+        t_interp : array-like
+            Interpolation time grid
+        std_errors : array-like
+            Standard errors for each observation
+        max_nfev : int
+            Maximum number of function evaluations for optimization
+        confidence_level : float
+            Confidence level for intervals (default 0.95 for 95% CI)
 
-        # Scaling factors to normalize parameters
-        ceiling = lambda x: -(-x // 1)
-        slope = lambda y, x: (np.max(y) - np.min(y)) / (np.max(x) - np.min(x))
+        Returns:
+        --------
+        slope : float
+            Fitted slope parameter
+        intercept : float
+            Fitted intercept parameter
+        CI : ndarray
+            Confidence intervals using standard deviation [lower_bounds, upper_bounds]
+        """
+        # import numpy as np
+        # from scipy.optimize import least_squares
+        # import emcee
+        from scipy import stats
 
-        estimated_slope = slope(MS2, timepoints)
-        order_of_mag_slope = ceiling(np.log10(estimated_slope))
-        slope_scale_factor = 10 ** order_of_mag_slope
+        # Convert inputs to numpy arrays for safety
+        MS2 = np.asarray(MS2)
+        timepoints = np.asarray(timepoints)
+        t_interp = np.asarray(t_interp)
+        std_errors = np.asarray(std_errors)
 
-        scale_factors = np.array([slope_scale_factor, np.max(timepoints)])
+        # Validate inputs
+        if len(MS2) != len(timepoints) or len(MS2) != len(std_errors):
+            raise ValueError("MS2, timepoints, and std_errors must have the same length")
+
+        if np.any(std_errors <= 0):
+            raise ValueError("All standard errors must be positive")
+
+        # Improved scaling factors calculation
+        def calculate_scale_factors(MS2, timepoints):
+            """Calculate robust scaling factors for parameter normalization."""
+            # Use robust slope estimation
+            slope_est = np.polyfit(timepoints, MS2, 1)[0]
+            if slope_est == 0:
+                slope_scale = 1.0
+            else:
+                # Round to nearest order of magnitude
+                slope_scale = 10 ** np.ceil(np.log10(np.abs(slope_est)))
+
+            # Scale factor for intercept based on data range
+            intercept_scale = np.max(np.abs(MS2)) if np.max(np.abs(MS2)) > 0 else 1.0
+
+            return np.array([slope_scale, intercept_scale])
+
+        scale_factors = calculate_scale_factors(MS2, timepoints)
 
         def initial_guess(MS2, timepoints):
-            # initial guess for the parameters
-            # dy = np.max(MS2)-np.min(MS2)
-            # dx = np.max(timepoints) - np.min(timepoints)
-            slope0 = slope(MS2, timepoints)
+            """Improved initial parameter estimation using linear regression."""
+            # Use numpy's polyfit for robust initial guess
+            coeffs = np.polyfit(timepoints, MS2, 1)
+            slope0, intercept0 = coeffs[0], coeffs[1]
+            return np.array([slope0, intercept0])
 
-            intercept0 = np.min(MS2) - np.min(timepoints)
-
-            return [slope0, intercept0]
-
-        # x0 = [(np.max(MS2)-np.min(MS2))/(np.max(timepoints) - np.min(timepoints)), np.min(MS2)]
+        # Get initial parameters and scale them
         x0 = initial_guess(MS2, timepoints)
         x0_scaled = x0 / scale_factors
 
-        f = lambda k, b, x: k * x + b
+        # Linear model function
+        def linear_model(params, x):
+            """Linear model: y = slope * x + intercept"""
+            slope, intercept = params
+            return slope * x + intercept
 
-        # Fit function
+        # Fit function with proper interpolation
         def fit_func(params, MS2, timepoints, t_interp):
-            return np.interp(timepoints, t_interp, f(*params, t_interp)) - MS2
+            """Calculate residuals between model and observations."""
+            model_values = linear_model(params, t_interp)
+            interpolated_values = np.interp(timepoints, t_interp, model_values)
+            return interpolated_values - MS2
 
         # Scaled fit function
         def fit_func_scaled(params, MS2, timepoints, t_interp):
+            """Scaled version of fit function for numerical stability."""
             params_unscaled = params * scale_factors
             return fit_func(params_unscaled, MS2, timepoints, t_interp)
 
-        # Negative log-likelihood function
-        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-3):
-            residuals = fit_func_scaled(params, MS2, timepoints, t_interp) / std_errors
-            residuals = np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
-            regularization = reg * np.sum(params[:] ** 2)
-            nll = 0.5 * np.sum(residuals ** 2) + regularization
+        # Improved negative log-likelihood function
+        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-6):
+            """
+            Negative log-likelihood with proper error weighting and regularization.
+            """
+            residuals = fit_func_scaled(params, MS2, timepoints, t_interp)
+
+            # Weight residuals by standard errors
+            weighted_residuals = residuals / std_errors
+
+            # Handle numerical issues more robustly
+            weighted_residuals = np.clip(weighted_residuals, -1e3, 1e3)
+
+            # Weak regularization to prevent extreme parameter values
+            regularization = reg * np.sum(params ** 2)
+
+            # Calculate negative log-likelihood
+            nll = 0.5 * np.sum(weighted_residuals ** 2) + regularization
+
             return nll
 
-        # Initial parameter estimation using least_squares
-        res = least_squares(negative_log_likelihood, x0_scaled,
-                            args=(MS2, timepoints, t_interp, std_errors), max_nfev=max_nfev)
+        # Initial parameter estimation using least_squares with bounds
+        try:
+            # Set reasonable bounds for scaled parameters
+            bounds = ([-10, -10], [10, 10])  # Adjust as needed
+            res = least_squares(
+                negative_log_likelihood,
+                x0_scaled,
+                args=(MS2, timepoints, t_interp, std_errors),
+                max_nfev=max_nfev,
+                bounds=bounds
+            )
+
+            if not res.success:
+                print(f"Warning: Optimization did not converge. Status: {res.message}")
+
+        except Exception as e:
+            print(f"Error in initial optimization: {e}")
+            # Fallback to unscaled initial guess
+            res = type('obj', (object,), {'x': x0_scaled, 'success': False})()
 
         # Define log-probability function for MCMC
         def log_prob(params, MS2, timepoints, t_interp, std_errors):
-            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors)
-            return -nll  # Convert to log-probability
+            """Log-probability function for MCMC sampling."""
+            # Add bounds checking to prevent extreme parameter values
+            if np.any(np.abs(params) > 50):  # Reasonable bounds for scaled parameters
+                return -np.inf
 
-        # MCMC parameters
-        nwalkers = 10
+            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=0)
+
+            if not np.isfinite(nll):
+                return -np.inf
+
+            return -nll
+
+        # MCMC parameters - improved defaults
+        nwalkers = max(20, 4 * len(x0))  # Ensure sufficient walkers
         ndim = len(x0)
-        nsteps = 1000
-        initial_pos = res.x + 1e-4 * np.random.randn(nwalkers, ndim)
-        # Run MCMC
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, args=(MS2, timepoints,
-                                                                        t_interp, std_errors))
-        # Run MCMC until the acceptance fraction is at least 0.5
-        sampler.run_mcmc(initial_pos, nsteps,
-                         progress=False, tune=True)
+        nsteps = min(2000, max(1000, 100 * ndim))  # Scale steps with dimensionality
 
-        # Flatten the chain and discard burn-in steps
-        flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
+        # Initialize walkers around the best fit with appropriate spread
+        spread = 0.01 * np.abs(res.x) + 1e-4  # Adaptive spread
+        initial_pos = res.x[None, :] + spread[None, :] * np.random.randn(nwalkers, ndim)
 
-        # Extract and rescale fit parameters
-        slope, intercept = np.median(flat_samples, axis=0) * scale_factors
+        # Run MCMC with better error handling
+        try:
+            sampler = emcee.EnsembleSampler(
+                nwalkers, ndim, log_prob,
+                args=(MS2, timepoints, t_interp, std_errors)
+            )
 
-        # Calculate confidence intervals
-        CI = np.percentile(flat_samples, [5, 95], axis=0).T * scale_factors
+            # Run MCMC with progress tracking disabled
+            sampler.run_mcmc(initial_pos, nsteps, progress=False)
+
+            # Check MCMC convergence
+            acceptance_fraction = np.mean(sampler.acceptance_fraction)
+            if acceptance_fraction < 0.1:
+                print(f"Warning: Low MCMC acceptance fraction: {acceptance_fraction:.3f}")
+
+            # More conservative burn-in and thinning
+            burn_in = min(500, nsteps // 4)
+            thin = max(1, (nsteps - burn_in) // 1000)  # Aim for ~1000 samples
+
+            flat_samples = sampler.get_chain(discard=burn_in, thin=thin, flat=True)
+
+            if len(flat_samples) < 100:
+                print("Warning: Few MCMC samples remaining after burn-in and thinning")
+
+        except Exception as e:
+            print(f"Error in MCMC sampling: {e}")
+            # Fallback: use optimization result with assumed uncertainty
+            flat_samples = res.x[None, :] + 0.1 * np.abs(res.x)[None, :] * np.random.randn(100, ndim)
+
+        # Extract parameters using median (more robust than mean)
+        params_scaled = np.median(flat_samples, axis=0)
+        slope, intercept = params_scaled * scale_factors
+
+        # Calculate confidence intervals using standard deviation
+        params_std = np.std(flat_samples, axis=0) * scale_factors
+
+        # Convert confidence level to z-score
+        alpha = 1 - confidence_level
+        z_score = stats.norm.ppf(1 - alpha / 2)
+
+        # Calculate confidence intervals: [parameter - z*std, parameter + z*std]
+        CI_lower = np.array([slope, intercept]) - z_score * params_std
+        CI_upper = np.array([slope, intercept]) + z_score * params_std
+        CI = np.array([CI_lower, CI_upper])
 
         return slope, intercept, CI
 
@@ -1084,7 +1478,7 @@ class AverageAndFit:
                                                       'approval_status': [0] * self.bin_num})
 
             for bin in range(self.bin_num):
-                self.bin_average_fit_dataframe['bin_particle_number'][bin] = bin_particle_num[bin]
+                self.bin_average_fit_dataframe.loc[bin, 'bin_particle_number'] = bin_particle_num[bin]
                 try:
                     [time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs] = bin_average_over_time_bins(
                         binned_particles_nc14[bin])
@@ -1104,7 +1498,7 @@ class AverageAndFit:
                     except:
                         self.bin_average_fit_dataframe['approval_status'][bin] = -1
                 except:
-                    self.bin_average_fit_dataframe['approval_status'][bin] = -1
+                    self.bin_average_fit_dataframe.loc[bin, 'approval_status'] = -1
 
 
     def check_bin_fits(self, show_denoised_plot=False, show_fit=True, show_std_dev=True, show_std_err=True):

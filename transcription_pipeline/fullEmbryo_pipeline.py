@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.widgets import RectangleSelector
 import matplotlib
 from skimage import color, filters, morphology, util, measure, transform, exposure
 from scipy.spatial import ConvexHull
@@ -44,6 +45,7 @@ class FullEmbryo:
         self.im_shape_scaled = None
         self.full_embryo_mask = None
         self.conv_result = None
+        self.template_search_box = None
 
     @staticmethod
     def contour_mask(binary_mask):
@@ -253,6 +255,24 @@ class FullEmbryo:
 
     def _set_ap_measurements(self, ap_pts, ap90_pts):
         """Set AP measurements from intersection points"""
+
+        if len(ap_pts) < 2 or len(ap90_pts) < 2:
+            print("Not enough points found for AP axis. Please check the image and try again.")
+            return False
+        if len(ap_pts) > 2:
+            print("More than 2 points found for AP axis. Using first two points.")
+            ap_pts = ap_pts[:2]
+        if len(ap90_pts) > 2:
+            print("More than 2 points found for AP90 axis. Using first two points.")
+            ap90_pts = ap90_pts[:2]
+        # Ensure points are in correct format
+        if not (isinstance(ap_pts, np.ndarray) and ap_pts.shape == (2, 2)):
+            print("Invalid AP points format. Expected a 2x2 array.")
+            return False
+        if not (isinstance(ap90_pts, np.ndarray) and ap90_pts.shape == (2, 2)):
+            print("Invalid AP90 points format. Expected a 2x2 array.")
+            return False
+
         # Extract points
         (y1, x1), (y2, x2) = ap_pts
         (y3, x3), (y4, x4) = ap90_pts
@@ -283,6 +303,17 @@ class FullEmbryo:
 
         return True
 
+    def _adjust_search_box(self, template):
+        h_template, w_template = template.shape[:2]
+        x, y, w, h = self.template_search_box
+
+        if h < h_template or w < w_template:
+            print("Expanding search box to fit template")
+            w = max(w, w_template)
+            h = max(h, h_template)
+
+        self.template_search_box = (x, y, w, h)
+
     def _calculate_scaling_parameters(self):
         """Calculate scaling parameters between image sets"""
         # Get maximum intensity projections
@@ -307,8 +338,23 @@ class FullEmbryo:
         img = surf_max.astype(np.float32)
 
         self.im_shape_scaled = template.shape[::-1]
-        self.conv_result = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
-        _, _, _, self.max_loc = cv.minMaxLoc(self.conv_result)
+        if self.template_search_box:
+            self._adjust_search_box(template) # Adjust search box if needed
+            x, y, w, h = self.template_search_box
+            img_crop = img[y:y + h, x:x + w]
+            if img_crop.shape[0] < template.shape[0] or img_crop.shape[1] < template.shape[1]:
+                print("Template is larger than the search image — skipping match.")
+                return
+            result = cv.matchTemplate(img_crop, template, cv.TM_CCOEFF_NORMED)
+            min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
+            self.max_loc = (x + max_loc[0], y + max_loc[1])
+            self.conv_result = result
+        else:
+            if img.shape[0] < template.shape[0] or img.shape[1] < template.shape[1]:
+                print("Template is larger than the search image — skipping match.")
+                return
+            self.conv_result = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
+            _, _, _, self.max_loc = cv.minMaxLoc(self.conv_result)
 
     def _apply_adaptive_hist(self, img, apply_hist):
         """Apply adaptive histogram equalization if enabled"""
@@ -326,6 +372,33 @@ class FullEmbryo:
                              'line_points': None, 'length': None}
         view_state = {'adaptive_hist': False}
 
+        def on_select(eclick, erelease):
+            print("on_select triggered")
+            """Handle rectangle selection to constrain template matching"""
+            x1, y1 = int(eclick.xdata), int(eclick.ydata)
+            x2, y2 = int(erelease.xdata), int(erelease.ydata)
+            xmin, xmax = sorted([x1, x2])
+            ymin, ymax = sorted([y1, y2])
+            self.template_search_box = (xmin, ymin, xmax - xmin, ymax - ymin)
+            print(f"Template matching constrained to box: {self.template_search_box}")
+
+            # Recalculate template matching
+            self._calculate_scaling_parameters()
+
+
+            # Redraw interactive plot
+            plot_current_state()
+
+        selector = RectangleSelector(
+            ax=axes[0],
+            onselect=on_select,
+            useblit=True,
+            button=[1],
+            minspanx=5, minspany=5,
+            spancoords='pixels',
+            interactive=True
+        )
+
         def plot_current_state():
             """Update plot with current state"""
             for ax in axes:
@@ -339,6 +412,10 @@ class FullEmbryo:
                                      self.im_shape_scaled[1],
                                      linewidth=1, edgecolor='r', facecolor='none')
             axes[0].add_patch(rect)
+            if self.template_search_box:
+                x, y, w, h = self.template_search_box
+                sel_rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor='yellow', facecolor='none')
+                axes[0].add_patch(sel_rect)
             axes[0].imshow(surf_img, cmap='gray')
             axes[0].set_title('Overlay with Surf Image')
 
