@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import least_squares
+from scipy.optimize import minimize
 from scipy.stats import chi2
 from scipy import stats
 import pandas as pd
@@ -304,13 +304,13 @@ def unpack_functions():
 
         # Initial parameter estimation using least_squares
         try:
-            res = least_squares(
+            res = minimize(
                 negative_log_likelihood,
                 x0_scaled,
-                bounds=(lb_scaled, ub_scaled),
+                bounds=list(zip(lb_scaled, ub_scaled)),
                 args=(MS2, timepoints, t_interp, std_errors),
-                max_nfev=max_nfev,
-                method='trf'  # Trust Region Reflective algorithm
+                method='L-BFGS-B',
+                options={'maxfun': max_nfev}
             )
 
             if not res.success:
@@ -609,32 +609,24 @@ def unpack_functions():
             raise ValueError("All standard errors must be positive")
 
         # Improved scaling factors calculation
-        def calculate_scale_factors(MS2, timepoints):
+        def initial_guess_factors(MS2, timepoints):
             """Calculate robust scaling factors for parameter normalization."""
             # Use robust slope estimation
-            slope_est = np.polyfit(timepoints, MS2, 1)[0]
-            if slope_est == 0:
+            coeffs = np.polyfit(timepoints, MS2, 1)
+            slope0, intercept0 = coeffs[0], coeffs[1]
+            if slope0 == 0:
                 slope_scale = 1.0
             else:
                 # Round to nearest order of magnitude
-                slope_scale = 10 ** np.ceil(np.log10(np.abs(slope_est)))
+                slope_scale = 10 ** np.ceil(np.log10(np.abs(slope0)))
 
             # Scale factor for intercept based on data range
             intercept_scale = np.max(np.abs(MS2)) if np.max(np.abs(MS2)) > 0 else 1.0
 
-            return np.array([slope_scale, intercept_scale])
-
-        scale_factors = calculate_scale_factors(MS2, timepoints)
-
-        def initial_guess(MS2, timepoints):
-            """Improved initial parameter estimation using linear regression."""
-            # Use numpy's polyfit for robust initial guess
-            coeffs = np.polyfit(timepoints, MS2, 1)
-            slope0, intercept0 = coeffs[0], coeffs[1]
-            return np.array([slope0, intercept0])
+            return np.array([slope0, intercept0]), np.array([slope_scale, intercept_scale])
 
         # Get initial parameters and scale them
-        x0 = initial_guess(MS2, timepoints)
+        x0, scale_factors = initial_guess_factors(MS2, timepoints)
         x0_scaled = x0 / scale_factors
 
         # Linear model function
@@ -681,12 +673,12 @@ def unpack_functions():
         try:
             # Set reasonable bounds for scaled parameters
             bounds = ([-10, -10], [10, 10])  # Adjust as needed
-            res = least_squares(
+            res = minimize(
                 negative_log_likelihood,
                 x0_scaled,
                 args=(MS2, timepoints, t_interp, std_errors),
-                max_nfev=max_nfev,
-                bounds=bounds
+                method='L-BFGS-B',
+                options={'maxfun': max_nfev}
             )
 
             if not res.success:
