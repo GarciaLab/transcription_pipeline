@@ -410,8 +410,8 @@ def unpack_functions():
 
         # Calculate confidence intervals: [parameter - z*std, parameter + z*std]
         params_unscaled = np.array([basal, t_on, t_dwell, rate])
-        CI_lower = params_unscaled - z_score * params_std
-        CI_upper = params_unscaled + z_score * params_std
+        CI_lower = np.percentile(flat_samples, 100 * (alpha / 2), axis=0) * scale_factors
+        CI_upper = np.percentile(flat_samples, 100 * (1 - alpha / 2), axis=0) * scale_factors
         CI = np.array([CI_lower, CI_upper])
 
         return basal, t_on, t_dwell, rate, CI

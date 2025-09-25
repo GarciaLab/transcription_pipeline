@@ -779,7 +779,13 @@ def detect_and_gather_spots(
         )
 
         if return_spot_dataframe:
-            spot_dataframe = pd.concat(client.gather(spot_dataframe_futures))
+            df_futures = client.gather(spot_dataframe_futures)
+            spot_dataframe_clean = []
+        
+            for futures_df in df_futures:
+                if ~futures_df.empty:
+                    spot_dataframe_clean.append(futures_df)
+            spot_dataframe = pd.concat(spot_dataframe_clean)
             spot_dataframe.drop(labels=["frame"], axis=1, inplace=True)
             spot_dataframe.rename({"original_frame": "frame"}, axis=1, inplace=True)
         else:

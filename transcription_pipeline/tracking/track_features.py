@@ -369,6 +369,11 @@ def segmentation_df(
             frame_properties = pd.DataFrame.from_dict(frame_properties)
             movie_properties.append(frame_properties)
 
+    movie_properties_clean = []
+    for frame_df in movie_properties:
+        if ~frame_df.empty:
+            movie_properties_clean.append(frame_df)
+
     movie_properties = pd.concat(movie_properties)
     movie_properties = movie_properties.reset_index(drop=True)  # Reset index of rows
 
