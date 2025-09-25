@@ -374,7 +374,7 @@ def segmentation_df(
         if ~frame_df.empty:
             movie_properties_clean.append(frame_df)
 
-    movie_properties = pd.concat(movie_properties)
+    movie_properties = pd.concat(movie_properties_clean)
     movie_properties = movie_properties.reset_index(drop=True)  # Reset index of rows
 
     # Rename centroid columns
