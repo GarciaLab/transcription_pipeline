@@ -1117,7 +1117,7 @@ class Spot:
             self.spot_dataframe["frame"] -= 1
 
     def save_results(
-        self, *, name_folder, save_array_as="zarr", save_all=False, save_attrs=[]
+        self, *, name_folder, save_array_as="zarr", save_all=False, save_attrs=[], output_folder="spot_analysis_results",
     ):
         """
         Saves results of spot segmentation and tracking to disk as HDF5, with the
@@ -1130,10 +1130,11 @@ class Spot:
         :param bool save_all: If true, saves a tiff file for each intermediate step
             of the spot analysis pipeline
         :param list[str] save_attrs: Names of extra class attributes to pickle and save.
+        :param str output_folder: Name of folder to save results in.
         """
         # Make `spot_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
-        results_path = name_path / "spot_analysis_results"
+        results_path = name_path / output_folder
         results_path.mkdir(exist_ok=True, parents=True)
 
         # Save movies, saving intermediate steps if requested
@@ -1190,7 +1191,7 @@ class Spot:
                 pickle.dump(getattr(self, element), f)
 
     def read_results(
-        self, *, name_folder, import_all=False, import_params=False, read_attrs=[]
+        self, *, name_folder, import_all=False, import_params=False, read_attrs=[], source_folder="spot_analysis_results",
     ):
         """
         Imports results from a saved run of `extract_spot_traces` into the corresponding
@@ -1207,7 +1208,7 @@ class Spot:
         :param list[str] read_attrs: Names of extra class attributes to pickle and save.
         """
         name_path = Path(name_folder)
-        results_path = name_path / "spot_analysis_results"
+        results_path = name_path / source_folder
 
         # Import arrays
         import_arrays = ["reordered_spot_labels"]

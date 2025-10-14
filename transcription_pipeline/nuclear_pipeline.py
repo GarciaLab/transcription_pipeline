@@ -720,7 +720,7 @@ class Nuclear:
             del self.labels
             self.labels = None
 
-    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
+    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False, output_folder="nuclear_analysis_results"):
         """
         Saves results of nuclear segmentation and tracking to disk as HDF5, with the
         labelled segmentation mask saved as zarr or TIFF as specified.
@@ -731,10 +731,11 @@ class Nuclear:
         :type save_array_as: {"zarr", "tiff"}
         :param bool save_all: If true, saves a tiff file for each intermediate step
             of the nuclear analysis pipeline
+        :param str output_folder: Name of folder where results will be saved.
         """
         # Make `nuclear_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
-        results_path = name_path / "nuclear_analysis_results"
+        results_path = name_path / output_folder
         results_path.mkdir(exist_ok=True)
 
         # Save movies, saving intermediate steps if requested
@@ -792,7 +793,7 @@ class Nuclear:
         with open(nuclear_analysis_param_path, "wb") as f:
             pickle.dump(self.default_params, f)
 
-    def read_results(self, *, name_folder, import_all=False):
+    def read_results(self, *, name_folder, import_all=False, source_folder="nuclear_analysis_results"):
         """
         Imports results from a saved run of `track_nuclei` into the corresponding
         class attributes.
@@ -805,7 +806,7 @@ class Nuclear:
             directory.
         """
         name_path = Path(name_folder)
-        results_path = name_path / "nuclear_analysis_results"
+        results_path = name_path / source_folder
 
         # Import arrays
         import_arrays = ["reordered_labels"]

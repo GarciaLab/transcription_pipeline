@@ -15,6 +15,7 @@ import matplotlib as mpl
 import time
 from scipy import stats
 
+# from MS2_analysis_streamlined import ylim_up
 from transcription_pipeline.spot_analysis import compile_data
 from transcription_pipeline.utils import plottable
 
@@ -174,7 +175,7 @@ def unpack_functions():
 
         return [basal0, t_on0, t_dwell0, rate0]
 
-    def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000, confidence_level=0.95):
+    def fit_half_cycle(MS2, timepoints, t_interp, std_errors, max_nfev=3000, confidence_level=0.50):
         """
         Fit a half-cycle model to MS2 data with improved parameter estimation and confidence intervals.
 
@@ -552,210 +553,117 @@ def unpack_functions():
 
         # Compute the fit values
         try:
-            basal, t_on, t_dwell, rate, CI = fit_half_cycle(MS2, timepoints, t_interp, MS2_std)
+            basal, t_on, t_dwell, rate, _ = fit_half_cycle(MS2, timepoints, t_interp, MS2_std)
 
-            fit_result = [timepoints, t_interp, MS2, make_half_cycle(basal, t_on, t_dwell, rate, t_interp),
-                          [basal, t_on, t_dwell, rate, CI]]
+            print(f'length of MS2: {len(MS2)}, length of t_interp: {len(timepoints)}')
+
+            # Select points within the range of x_min and x_max
+            mask = (timepoints >= t_on) & (timepoints <= t_on + t_dwell)
+            MS2_trunc = MS2[mask]
+            timepoints_trunc = timepoints[mask]
+            MS2_std_trunc = MS2_std[mask]
+
+            t_interp_trunc = np.linspace(min(timepoints_trunc), max(timepoints_trunc), 1000)
+
+            # The linear regime------------------------------------------
+            f = lambda k, b, x: k * x + b
+            try:
+                slope, intercept, CI = fit_linear(MS2_trunc, timepoints_trunc, t_interp_trunc, MS2_std_trunc)
+
+                slope_conf_interval = CI[0]
+                intercept_conf_interval = CI[1]
+
+                fit_result = [timepoints_trunc, t_interp_trunc, MS2_trunc, f(slope, intercept, t_interp_trunc),
+                                           [intercept, np.nan, np.nan, slope,
+                                            np.array([intercept_conf_interval, [np.nan, np.nan],
+                                                      [np.nan, np.nan], slope_conf_interval])]]
+            except:
+                print(f"Failed to fit trace {bin_index + 1}")
+                pass
         except Exception as e:
             print(f"Failed to fit average trace {bin_index + 1}: {e}")
             fit_result = [timepoints, t_interp, MS2, None, None]
 
         return fit_result
 
-    def fit_linear(MS2, timepoints, t_interp, std_errors, max_nfev=3000, confidence_level=0.95):
+    def fit_linear(MS2, timepoints, t_interp, std_errors, confidence_level=0.95):
         """
-        Fit a linear model to MS2 data with improved parameter estimation and confidence intervals.
+        Fit a linear model (y = slope * x + intercept) to MS2 data using
+        weighted least squares regression. Calculate error in slope and
+        intercept using standard formulas.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         MS2 : array-like
             Observed MS2 values
         timepoints : array-like
             Time points corresponding to MS2 observations
         t_interp : array-like
-            Interpolation time grid
+            Interpolation time grid (not really needed for plain regression,
+            but kept for compatibility)
         std_errors : array-like
-            Standard errors for each observation
-        max_nfev : int
-            Maximum number of function evaluations for optimization
+            Standard errors for each observation (used as weights)
         confidence_level : float
             Confidence level for intervals (default 0.95 for 95% CI)
 
-        Returns:
-        --------
+        Returns
+        -------
         slope : float
             Fitted slope parameter
         intercept : float
             Fitted intercept parameter
         CI : ndarray
-            Confidence intervals using standard deviation [lower_bounds, upper_bounds]
+            Confidence intervals for [slope, intercept]:
+            [[slope_lower, intercept_lower],
+             [slope_upper, intercept_upper]]
         """
-        # import numpy as np
-        # from scipy.optimize import least_squares
-        # import emcee
-        from scipy import stats
 
-        # Convert inputs to numpy arrays for safety
+        # Convert to arrays
         MS2 = np.asarray(MS2)
         timepoints = np.asarray(timepoints)
-        t_interp = np.asarray(t_interp)
         std_errors = np.asarray(std_errors)
 
-        # Validate inputs
         if len(MS2) != len(timepoints) or len(MS2) != len(std_errors):
             raise ValueError("MS2, timepoints, and std_errors must have the same length")
 
         if np.any(std_errors <= 0):
             raise ValueError("All standard errors must be positive")
 
-        # Improved scaling factors calculation
-        def initial_guess_factors(MS2, timepoints):
-            """Calculate robust scaling factors for parameter normalization."""
-            # Use robust slope estimation
-            coeffs = np.polyfit(timepoints, MS2, 1)
-            slope0, intercept0 = coeffs[0], coeffs[1]
-            if slope0 == 0:
-                slope_scale = 1.0
-            else:
-                # Round to nearest order of magnitude
-                slope_scale = 10 ** np.ceil(np.log10(np.abs(slope0)))
+        # Weights = 1 / variance
+        weights = 1.0 / (std_errors ** 2)
 
-            # Scale factor for intercept based on data range
-            intercept_scale = np.max(np.abs(MS2)) if np.max(np.abs(MS2)) > 0 else 1.0
+        # Weighted least squares normal equations
+        W = np.diag(weights)
+        X = np.column_stack((timepoints, np.ones_like(timepoints)))  # [x, 1]
+        XtWX = X.T @ W @ X
+        XtWy = X.T @ W @ MS2
 
-            return np.array([slope0, intercept0]), np.array([slope_scale, intercept_scale])
+        beta_hat = np.linalg.inv(XtWX) @ XtWy
+        slope, intercept = beta_hat
 
-        # Get initial parameters and scale them
-        x0, scale_factors = initial_guess_factors(MS2, timepoints)
-        x0_scaled = x0 / scale_factors
+        # Residuals
+        y_fit = X @ beta_hat
+        residuals = MS2 - y_fit
 
-        # Linear model function
-        def linear_model(params, x):
-            """Linear model: y = slope * x + intercept"""
-            slope, intercept = params
-            return slope * x + intercept
+        # Estimate variance of residuals (reduced chi-squared style)
+        dof = len(MS2) - 2
+        sigma2 = np.sum(weights * residuals ** 2) / dof
 
-        # Fit function with proper interpolation
-        def fit_func(params, MS2, timepoints, t_interp):
-            """Calculate residuals between model and observations."""
-            model_values = linear_model(params, t_interp)
-            interpolated_values = np.interp(timepoints, t_interp, model_values)
-            return interpolated_values - MS2
+        # Covariance matrix of parameters
+        cov_beta = sigma2 * np.linalg.inv(XtWX)
 
-        # Scaled fit function
-        def fit_func_scaled(params, MS2, timepoints, t_interp):
-            """Scaled version of fit function for numerical stability."""
-            params_unscaled = params * scale_factors
-            return fit_func(params_unscaled, MS2, timepoints, t_interp)
+        slope_err = np.sqrt(cov_beta[0, 0])
+        intercept_err = np.sqrt(cov_beta[1, 1])
 
-        # Improved negative log-likelihood function
-        def negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=1e-6):
-            """
-            Negative log-likelihood with proper error weighting and regularization.
-            """
-            residuals = fit_func_scaled(params, MS2, timepoints, t_interp)
-
-            # Weight residuals by standard errors
-            weighted_residuals = residuals / std_errors
-
-            # Handle numerical issues more robustly
-            weighted_residuals = np.clip(weighted_residuals, -1e3, 1e3)
-
-            # Weak regularization to prevent extreme parameter values
-            regularization = reg * np.sum(params ** 2)
-
-            # Calculate negative log-likelihood
-            nll = 0.5 * np.sum(weighted_residuals ** 2) + regularization
-
-            return nll
-
-        # Initial parameter estimation using least_squares with bounds
-        try:
-            # Set reasonable bounds for scaled parameters
-            bounds = ([-10, -10], [10, 10])  # Adjust as needed
-            res = minimize(
-                negative_log_likelihood,
-                x0_scaled,
-                args=(MS2, timepoints, t_interp, std_errors),
-                method='L-BFGS-B',
-                options={'maxfun': max_nfev}
-            )
-
-            if not res.success:
-                print(f"Warning: Optimization did not converge. Status: {res.message}")
-
-        except Exception as e:
-            print(f"Error in initial optimization: {e}")
-            # Fallback to unscaled initial guess
-            res = type('obj', (object,), {'x': x0_scaled, 'success': False})()
-
-        # Define log-probability function for MCMC
-        def log_prob(params, MS2, timepoints, t_interp, std_errors):
-            """Log-probability function for MCMC sampling."""
-            # Add bounds checking to prevent extreme parameter values
-            if np.any(np.abs(params) > 50):  # Reasonable bounds for scaled parameters
-                return -np.inf
-
-            nll = negative_log_likelihood(params, MS2, timepoints, t_interp, std_errors, reg=0)
-
-            if not np.isfinite(nll):
-                return -np.inf
-
-            return -nll
-
-        # MCMC parameters - improved defaults
-        nwalkers = max(20, 4 * len(x0))  # Ensure sufficient walkers
-        ndim = len(x0)
-        nsteps = min(2000, max(1000, 100 * ndim))  # Scale steps with dimensionality
-
-        # Initialize walkers around the best fit with appropriate spread
-        spread = 0.01 * np.abs(res.x) + 1e-4  # Adaptive spread
-        initial_pos = res.x[None, :] + spread[None, :] * np.random.randn(nwalkers, ndim)
-
-        # Run MCMC with better error handling
-        try:
-            sampler = emcee.EnsembleSampler(
-                nwalkers, ndim, log_prob,
-                args=(MS2, timepoints, t_interp, std_errors)
-            )
-
-            # Run MCMC with progress tracking disabled
-            sampler.run_mcmc(initial_pos, nsteps, progress=False)
-
-            # Check MCMC convergence
-            acceptance_fraction = np.mean(sampler.acceptance_fraction)
-            if acceptance_fraction < 0.1:
-                print(f"Warning: Low MCMC acceptance fraction: {acceptance_fraction:.3f}")
-
-            # More conservative burn-in and thinning
-            burn_in = min(500, nsteps // 4)
-            thin = max(1, (nsteps - burn_in) // 1000)  # Aim for ~1000 samples
-
-            flat_samples = sampler.get_chain(discard=burn_in, thin=thin, flat=True)
-
-            if len(flat_samples) < 100:
-                print("Warning: Few MCMC samples remaining after burn-in and thinning")
-
-        except Exception as e:
-            print(f"Error in MCMC sampling: {e}")
-            # Fallback: use optimization result with assumed uncertainty
-            flat_samples = res.x[None, :] + 0.1 * np.abs(res.x)[None, :] * np.random.randn(100, ndim)
-
-        # Extract parameters using median (more robust than mean)
-        params_scaled = np.median(flat_samples, axis=0)
-        slope, intercept = params_scaled * scale_factors
-
-        # Calculate confidence intervals using standard deviation
-        params_std = np.std(flat_samples, axis=0) * scale_factors
-
-        # Convert confidence level to z-score
+        # Confidence intervals
         alpha = 1 - confidence_level
         z_score = stats.norm.ppf(1 - alpha / 2)
 
-        # Calculate confidence intervals: [parameter - z*std, parameter + z*std]
-        CI_lower = np.array([slope, intercept]) - z_score * params_std
-        CI_upper = np.array([slope, intercept]) + z_score * params_std
-        CI = np.array([CI_lower, CI_upper])
+        slope_CI = [slope - z_score * slope_err, slope + z_score * slope_err]
+        intercept_CI = [intercept - z_score * intercept_err,
+                        intercept + z_score * intercept_err]
+
+        CI = np.array([slope_CI, intercept_CI])
 
         return slope, intercept, CI
 
@@ -1348,14 +1256,19 @@ class AverageAndFit:
     '''
     time_bin_width: please use dataset.export_frame_metadata[0]['t_s'][1, 0]
     '''
-    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path):
+    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path, shift_traces=True):
         self.compiled_dataframe = compiled_dataframe
         self.nc14_start_frame = nc14_start_frame
         self.time_bin_width = time_bin_width
         self.bin_num = bin_num
         self.dataset_name = dataset_folder_path
+        self.shift_traces = shift_traces
 
-        self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
+        if shift_traces:
+            self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
+        else:
+            self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked_noShift.pkl'
+
         self.checked_bin_fits_previous = os.path.isfile(self.checked_bin_fits_file_path)
 
         (make_half_cycle, fit_half_cycle, fit_all_traces,
@@ -1387,74 +1300,100 @@ class AverageAndFit:
 
             # bin_average_over_time_bins: a function taking the average of MS2 signals for each time bin along the time axis for an AP bin
 
-            def bin_average_over_time_bins(bin_dataframe, time_bin_width=self.time_bin_width,
-                                           shift_traces_to_same_start_time=True):
-
+            def bin_average_over_time_bins(bin_dataframe,
+                                           time_bin_width=self.time_bin_width,
+                                           shift_traces_to_same_start_time=self.shift_traces):
                 '''
                 This function should be applied on a dataframe of particles for a particular bin.
                 What this function does:
                 1. Split the time axis into time bins
                 2. Average all MS2 signals in each time bin
 
-                ARGUMENT
-                    bin_dataframe: a pandas dataframe for all the particles in an AP bin
-                    time_bin_width: float, the width of the time bin, default is the frame duration of the dataset
-                    shift_traces_to_same_start_time: bool, if true, shift the time array for each particle to start at 0.
+                ARGUMENTS
+                    bin_dataframe: pandas dataframe for all the particles in an AP bin
+                    time_bin_width: float, width of the time bin (default = frame duration)
+                    shift_traces_to_same_start_time: bool, if true, shift time arrays to start at 0
 
                 OUTPUT
-                    1. bin_centers: an array of the time bin centers
-                    2. bin_means: an array of the mean MS2 signal in each time bin
-                    3. bin_stds: an array of the standard deviation for the MS2 signals in each time bin
+                    1. time_bin_centers: array of time bin centers (in minutes)
+                    2. time_bin_means: array of mean MS2 signal in each bin (weighted)
+                    3. time_bin_stddevs: array of weighted standard deviations in each bin
+                    4. time_bin_stderrs: array of propagated errors in each bin
                 '''
 
-                # extract the time column
+                # Extract time arrays
                 t_s = bin_dataframe['t_s'].values
                 if shift_traces_to_same_start_time:
-                    t_s_shifted = [None] * len(t_s)
-                    for i in range(len(t_s)):
-                        t_first = t_s[i][0]
-                        shifted_t_s = t_s[i] - t_first
-                        t_s_shifted[i] = shifted_t_s
+                    t_s_shifted = []
+                    for t_arr in t_s:
+                        shifted_t = t_arr - t_arr[0]
+                        t_s_shifted.append(shifted_t)
                     t_s = t_s_shifted
 
-                # extract the intensity column
+                # Extract the intensity and its standard error columns
                 intensity = bin_dataframe['intensity_from_neighborhood'].values
-                # intensity_err = bin_dataframe['intensity_std_error_from_neighborhood'].values
+                intensity_err = bin_dataframe['intensity_std_error_from_neighborhood'].values
 
-                # Take averages of all the intensity values over time bins:
-                # 1. Flatten t_s and intensity into single arrays
+                # Flatten arrays
                 t_s_flat = np.concatenate(t_s)
                 intensity_flat = np.concatenate(intensity)
+                intensity_err_flat = np.concatenate(intensity_err)
 
-                # 2. Define time bin edges with specified width
+                # Define bin edges
                 x_min, x_max = min(t_s_flat), max(t_s_flat)
                 time_bins = np.arange(x_min, x_max + time_bin_width, time_bin_width)
 
-                # 3. Digitize t_s_flat into time bins
+                # Assign points to bins
                 time_bin_indices = np.digitize(t_s_flat, time_bins)
 
-                # 4. Compute the average and standard deviation for the intensity values in each time bin
-                time_bin_means = np.array([intensity_flat[time_bin_indices == i].mean() for i in range(1, len(time_bins))])
+                # Prepare result containers
+                time_bin_means = []
+                time_bin_stddevs = []
+                time_bin_stderrs = []
 
-                time_bin_stddevs = np.array([intensity_flat[time_bin_indices == i].std() for i in range(1, len(time_bins))])
+                # Iterate over bins
+                for i in range(1, len(time_bins)):
+                    mask = time_bin_indices == i
+                    vals = intensity_flat[mask]
+                    errs = intensity_err_flat[mask]
 
-                time_bin_stderrs = np.array([intensity_flat[time_bin_indices == i].std()
-                                             / np.sqrt(len(intensity_flat[time_bin_indices == i]))
-                                             for i in range(1, len(time_bins))])
+                    if len(vals) == 0:
+                        time_bin_means.append(np.nan)
+                        time_bin_stddevs.append(np.nan)
+                        time_bin_stderrs.append(np.nan)
+                        continue
 
-                # 5. Get the time bin centers for plotting
-                time_bin_centers = (time_bins[:-1] + time_bins[1:]) / 2
+                    # Weighted mean
+                    weights = 1.0 / np.square(errs)
+                    weighted_mean = np.sum(weights * vals) / np.sum(weights)
 
-                # 6. Drop the entries with nan means
-                nan_indices = np.isnan(time_bin_means)
+                    # Weighted variance (population form)
+                    weighted_var = np.sum(weights * (vals - weighted_mean) ** 2) / np.sum(weights)
+                    weighted_std = np.sqrt(weighted_var)
 
-                time_bin_centers = time_bin_centers[~nan_indices] / 60
-                time_bin_means = time_bin_means[~nan_indices]
-                time_bin_stddevs = time_bin_stddevs[~nan_indices]
-                time_bin_stderrs = time_bin_stderrs[~nan_indices]
+                    # Propagated standard error of the mean
+                    weighted_stderr = np.sqrt(1.0 / np.sum(weights))
+
+                    time_bin_means.append(weighted_mean)
+                    time_bin_stddevs.append(weighted_std)
+                    time_bin_stderrs.append(weighted_stderr)
+
+                # Convert lists to arrays
+                time_bin_means = np.array(time_bin_means)
+                time_bin_stddevs = np.array(time_bin_stddevs)
+                time_bin_stderrs = np.array(time_bin_stderrs)
+
+                # Compute bin centers (convert s → min)
+                time_bin_centers = (time_bins[:-1] + time_bins[1:]) / 2 / 60
+
+                # Drop NaN bins
+                valid = ~np.isnan(time_bin_means)
+                time_bin_centers = time_bin_centers[valid]
+                time_bin_means = time_bin_means[valid]
+                time_bin_stddevs = time_bin_stddevs[valid]
+                time_bin_stderrs = time_bin_stderrs[valid]
 
                 return np.array([time_bin_centers, time_bin_means, time_bin_stddevs, time_bin_stderrs])
-
 
             # Store the bin averages for all AP bins in a pandas dataframe
             self.bin_average_fit_dataframe = pd.DataFrame({'time_bin_centers': [None] * self.bin_num,
@@ -1489,7 +1428,8 @@ class AverageAndFit:
                         self.bin_average_fit_dataframe['bin_fit_slope'][bin] = bin_fit_result[4][3]
                     except:
                         self.bin_average_fit_dataframe['approval_status'][bin] = -1
-                except:
+                except Exception as e:
+                    print(f'Error in bin_average_fit_dataframe: {e}')
                     self.bin_average_fit_dataframe.loc[bin, 'approval_status'] = -1
 
 
@@ -1587,10 +1527,11 @@ class AverageAndFit:
                                     label=f'Modified fit (slope = {round(rate, 2)} AU/min)', linewidth=3)
                     else:
                         fit_result = bin_average_fit_dataframe.loc[bin_index, 'bin_fit_result']
-                        timepoints, t_interp, MS2, half_cycle_fit, [basal, t_on, t_dwell, rate, CI] = fit_result
-
+                        #timepoints, t_interp, MS2, half_cycle_fit, [basal, t_on, t_dwell, rate, CI] = fit_result
+                        timepoints, t_interp, MS2, linear_fit, [intercept, _, _, rate, CI] = fit_result
                         if show_fit:
-                            ax.plot(t_interp, half_cycle_fit, label=f'Fit (slope = {round(rate, 2)} AU/min)',
+                            ax.errorbar(timepoints, MS2, fmt=".", elinewidth=1, label='Selected data for new fit')
+                            ax.plot(t_interp, linear_fit, label=f'Linear Fit (slope = {round(rate, 2)} AU/min)',
                                     linewidth=3)
 
                 except:
@@ -1610,6 +1551,7 @@ class AverageAndFit:
                 ax.set_title(f'Bin {bin_index + 1}/{bin_num}')
                 ax.set_xlabel("Time (min)")
                 ax.set_ylabel("Spot intensity (AU)")
+                ax.grid(color='k', linestyle='-', linewidth=0.5)
                 ax.legend()
 
             except Exception as e:
@@ -1680,8 +1622,8 @@ class AverageAndFit:
 
                     bin_average_fit_dataframe.at[bin_index, 'approval_status'] = 2
 
-                except:
-                    pass
+                except Exception as e:
+                    print(f'Error processing bin {bin_index}: {e}')
 
             update_plot(bin_index)
 
@@ -1771,13 +1713,15 @@ class AverageAndFit:
 
         # plot the bin fits
         plt.figure()
-        plt.errorbar(ap_positions_for_plot, bin_slopes_for_plot, yerr=bin_slope_errs_for_plot, capsize=2, fmt='o')
+        plt.errorbar(ap_positions_for_plot, bin_slopes_for_plot, yerr=bin_slope_errs_for_plot,
+                     capsize=2, fmt='o')
+        plt.ylim(bottom=0)
         plt.xlabel('AP position')
         plt.ylabel('Fit rate of average trace (AU/min)')
         plt.title('Fit rate of average trace vs. AP position (with shifting)')
         plt.show()
 
-        return ap_positions, bin_slopes, bin_slope_errs
+        return ap_positions_for_plot, bin_slopes_for_plot, bin_slope_errs_for_plot
 
 
 

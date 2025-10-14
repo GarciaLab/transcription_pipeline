@@ -78,6 +78,7 @@ class DataImport:
         working_storage_mode=None,  # write doc
         collated_dataset_path=None,  # write doc
         zarr_chunk_memory_size=None,  # write doc
+        use_filtered = False
     ):
         """
         Constructor method. Instantiates class with imported data as attributes as
@@ -85,7 +86,7 @@ class DataImport:
         Class is instantiated as empty if `name_folder=None`.
         """
         if import_previous:
-            self.read(name_folder)
+            self.read(name_folder, use_filtered)
         else:
             self.name_folder = name_folder
             self.trim_series = trim_series
@@ -128,7 +129,7 @@ class DataImport:
                 zarr_chunk_nbytes=_parse_size(self.zarr_chunk_memory_size),
             )
 
-    def read(self, name_folder):
+    def read(self, name_folder, use_filtered):
         """
         Imports preprocessed and collated data along with metadata dictionaries extracted
         from a movie and saved to disk in the `name_folder` directory, loading it into
@@ -216,9 +217,21 @@ class DataImport:
         file_list.sort()
 
         self.channels_full_dataset = []
+
         for file in file_list:
+            # Skip any files with '_rechunk'
+            if "_rechunk" in file:
+                continue
+
             if mode == "zarr":
-                self.channels_full_dataset.append(zarr.open(file))
+                if use_filtered:
+                    # Load only time-filtered Zarr files
+                    if "_time_filtered.zarr" in file:
+                        self.channels_full_dataset.append(zarr.open(file))
+                else:
+                    # Load only non-time-filtered Zarr files
+                    if file.endswith(".zarr") and "_time_filtered" not in file:
+                        self.channels_full_dataset.append(zarr.open(file))
             elif mode == "tiff":
                 self.channels_full_dataset.append(imread(file, plugin="tifffile"))
 
