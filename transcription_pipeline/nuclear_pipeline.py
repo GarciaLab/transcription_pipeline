@@ -514,7 +514,7 @@ class Nuclear:
                 segment_evaluate = False
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "nuclear_analysis_results"
+                results_path = working_memory_path # / "nuclear_analysis_results"
                 results_path.mkdir(exist_ok=True)
 
                 labels = zarr.creation.zeros_like(

@@ -707,7 +707,7 @@ class Spot:
                 ] = False
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "spot_analysis_results"
+                results_path = working_memory_path # / "spot_analysis_results"
                 results_path.mkdir(exist_ok=True)
 
                 spot_labels = zarr.creation.zeros_like(
