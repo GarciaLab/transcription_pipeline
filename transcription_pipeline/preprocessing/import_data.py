@@ -192,7 +192,10 @@ def collate_global_metadata(
         for field in input_global_metadata:
             if field in fields_num_channels:
                 if num_channels > 1:
-                    channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    try:
+                        channel_global_metadata[field] = (input_global_metadata[field])[i]
+                    except TypeError:
+                        channel_global_metadata[field] = input_global_metadata[field]
                 else:
                     channel_global_metadata[field] = input_global_metadata[field]
             elif field in fields_num_series:
@@ -335,7 +338,8 @@ def collate_frame_metadata(
             z = "inconsistent_metadata"
 
         channel_frame_metadata["z"] = z
-
+        
+        series_lengths = []
         try:
             if num_channels > 1:
                 t_list = [
@@ -347,6 +351,7 @@ def collate_frame_metadata(
                     (t_original[:end]) for t_original in input_frame_metadata["t"]
                 ]
             t_list_offset = [np.copy(t_series) for t_series in t_list]
+            series_lengths = [t_series.shape[0] for t_series in t_list_offset]
             for j in range(1, len(t_list)):
                 t_list_offset[j] += t_list_offset[j - 1][-1, -1] + 1
             t = np.concatenate(t_list_offset)
@@ -355,6 +360,40 @@ def collate_frame_metadata(
             t = "inconsistent_metadata"
 
         channel_frame_metadata["t"] = t
+
+        timestamp_fallback = None
+        if isinstance(t, np.ndarray):
+            if not series_lengths:
+                series_lengths = [t.shape[0]]
+
+            def _coerce_numeric(value):
+                if isinstance(value, (list, tuple)):
+                    for entry in value:
+                        coerced = _coerce_numeric(entry)
+                        if np.isfinite(coerced):
+                            return coerced
+                    return np.nan
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return np.nan
+
+            plane_delta = (output_global_metadata[i]).get("PlaneDeltaT", np.nan)
+            plane_delta = _coerce_numeric(plane_delta)
+
+            if np.isfinite(plane_delta):
+                fallback_segments = []
+                start = 0
+                for series_idx, series_len in enumerate(series_lengths):
+                    end = start + series_len
+                    series_slice = t[start:end].astype(float)
+                    series_slice *= plane_delta
+                    if series_idx < len(time_delta_from_0):
+                        series_slice += time_delta_from_0[series_idx]
+                    fallback_segments.append(series_slice)
+                    start = end
+                if fallback_segments:
+                    timestamp_fallback = np.concatenate(fallback_segments)
 
         try:
             if num_channels > 1:
@@ -389,6 +428,19 @@ def collate_frame_metadata(
             t_s = "inconsistent_metadata"
 
         channel_frame_metadata["t_s"] = t_s
+
+        if (
+            isinstance(t_s, np.ndarray)
+            and timestamp_fallback is not None
+            and timestamp_fallback.shape == t_s.shape
+        ):
+            missing_mask = np.isnan(t_s)
+            if missing_mask.all():
+                channel_frame_metadata["t_s"] = timestamp_fallback
+            elif missing_mask.any():
+                filled = t_s.copy()
+                filled[missing_mask] = timestamp_fallback[missing_mask]
+                channel_frame_metadata["t_s"] = filled
 
         output_frame_metadata.append(channel_frame_metadata)
 
