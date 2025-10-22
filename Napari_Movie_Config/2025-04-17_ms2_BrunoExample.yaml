@@ -1,0 +1,28 @@
+paths:
+  h2b: "/hpc/projects/group.royer/people/bruno.moretti/data/epfl/2025-04-17/20250417_142938_Experiment/stabilized.zarr"
+  masked: "/hpc/projects/group.royer/people/bruno.moretti/data/epfl/2025-04-17/20250417_142938_Experiment/masked/cells_by_spot_intensity.ome.zarr"
+  output: "/hpc/projects/group.royer/people/bruno.moretti/data/epfl/2025-04-17/20250417_142938_Experiment/videos/spot_intensity_high_contrast"
+
+h2b_settings:
+  colormap: "gray"
+  contrast_limits: [0, 9000]
+  gamma: 1.5
+  opacity: 0.77
+
+masked_settings:
+  colormap: "plasma"
+  contrast_limits: [0, 40]
+  blending: "translucent"
+
+viewer_params:
+  scale: [1.0, 1, 0.347, 0.347]
+  ndisplay: 3
+  current_step: 0
+#  start_frame: 10
+#  end_frame: 20
+
+camera:
+  angles: [36, 13, 70]
+  zoom: 1.32
+  center: [130, 466, 286]
+  fps: 10
