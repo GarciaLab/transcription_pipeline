@@ -153,12 +153,14 @@ def temporal_filter_zarr(
             current_mean += (next_frame - prev_frame) / window
         elif mode == "mean":
             current_mean = cp.sum(window_array * weights, axis=0)
-        else:
+        elif mode == "median":
             current_mean = weighted_median(
                 window_array,
                 weights=weights,
                 arr_module=cp,
             )
+        else:
+            raise ValueError("`mode` not recognized.")
 
         buffer[buf_ptr] = current_mean
         buf_ptr += 1
