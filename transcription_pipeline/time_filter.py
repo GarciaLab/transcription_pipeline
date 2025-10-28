@@ -395,7 +395,7 @@ def weighted_median(values, weights, arr_module=np):
 
         return out
 
-def process_embryo_time_filter(embryo_rel_path, dataset_folder, time_chunk=50, temporal_window=21):
+def process_embryo_time_filter(embryo_rel_path, dataset_folder, mode = "mean", time_chunk=50, temporal_window=21):
     """
     Rechunk and apply temporal mean filtering to all collated_dataset*.zarr files in the embryo folder.
     Skips rechunking or filtering if output files already exist.
@@ -483,7 +483,7 @@ def process_embryo_time_filter(embryo_rel_path, dataset_folder, time_chunk=50, t
         temporal_filter_zarr(
             zarr.open(rechunk_store, mode="r"),
             temporal_window,
-            mode="mean",
+            mode=mode,
             out=dst_filtered
         )
 
