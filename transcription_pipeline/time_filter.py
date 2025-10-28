@@ -3,8 +3,9 @@ import zarr
 import numpy as np
 from tqdm import tqdm
 import warnings
+from glob import glob
+import shutil
 
-time_chunk = 42
 
 def temporal_filter_zarr(
         zarr_arr,
@@ -394,6 +395,240 @@ def weighted_median(values, weights, arr_module=np):
 
         return out
 
+def process_embryo_time_filter(embryo_rel_path, dataset_folder, time_chunk=50, temporal_window=21):
+    """
+    Rechunk and apply temporal mean filtering to all collated_dataset*.zarr files in the embryo folder.
+    Skips rechunking or filtering if output files already exist.
+
+    Parameters:
+        embryo_rel_path (str): Path relative to dataset_folder for the embryo
+        dataset_folder (str): Base dataset folder
+        time_chunk (int): Chunk size along time axis for rechunking
+        temporal_window (int): Window size for temporal mean filter
+    """
+    embryo_full_path = os.path.join(dataset_folder, embryo_rel_path, "collated_dataset")
+
+    # Find all collated_dataset*.zarr files
+    zarr_files = glob(os.path.join(embryo_full_path, "collated_dataset*.zarr"))
+
+    if not zarr_files:
+        print(f"\n[WARNING] No collated_dataset*.zarr files found in:\n  {embryo_full_path}\n")
+        return
+
+    print(f"\n{'=' * 70}")
+    print(f"PROCESSING TIME FILTER")
+    print(f"{'=' * 70}")
+    print(f"Embryo path: {embryo_rel_path}")
+    print(f"Found {len(zarr_files)} zarr file(s) to process\n")
+
+    for z_file in zarr_files:
+        base_name = os.path.basename(z_file)
+        
+        # Skip if this is already a rechunked or filtered file
+        if "_rechunk" in base_name or "_time_filtered" in base_name:
+            continue
+            
+        rechunk_store = os.path.join(
+            embryo_full_path,
+            base_name.replace(".zarr", "_rechunk.zarr")
+        )
+        filtered_store = os.path.join(
+            embryo_full_path,
+            base_name.replace(".zarr", "_time_filtered.zarr")
+        )
+
+        print(f"\n{'-' * 70}")
+        print(f"Processing: {base_name}")
+        print(f"{'-' * 70}")
+
+        # Skip if already filtered
+        if os.path.exists(filtered_store):
+            print(f"  ✓ Filtered file already exists - skipping all processing")
+            continue
+
+        # ------------------------------
+        # Rechunk
+        # ------------------------------
+        if not os.path.exists(rechunk_store):
+            print(f"  → Rechunking data (chunk size: {time_chunk})...")
+            os.makedirs(os.path.dirname(rechunk_store), exist_ok=True)
+            img = zarr.open(z_file, mode='r')
+            chunks = (time_chunk, *img.shape[1:])
+            dst_rechunk = zarr.open_array(
+                store=rechunk_store,
+                mode="w",
+                shape=img.shape,
+                chunks=chunks,
+                dtype=np.float32,
+            )
+            dst_rechunk[:] = img[:].astype(np.float32)
+            os.sync()
+            print(f"  ✓ Rechunking complete")
+        else:
+            print(f"  ✓ Rechunked file already exists - reusing")
+
+        # ------------------------------
+        # Temporal mean filter
+        # ------------------------------
+        print(f"  → Applying temporal mean filter (window: {temporal_window})...")
+        os.makedirs(os.path.dirname(filtered_store), exist_ok=True)
+        dst_filtered = zarr.open_array(
+            store=filtered_store,
+            mode="w",
+            shape=zarr.open(rechunk_store, mode='r').shape,
+            chunks=(time_chunk, *zarr.open(rechunk_store, mode='r').shape[1:]),
+            dtype=np.float32,
+        )
+
+        temporal_filter_zarr(
+            zarr.open(rechunk_store, mode="r"),
+            temporal_window,
+            mode="mean",
+            out=dst_filtered
+        )
+
+        print(f"  ✓ Time filtering complete\n")
+
+    print(f"{'=' * 70}")
+    print(f"PROCESSING COMPLETE")
+    print(f"{'=' * 70}\n")
+
+
+def clean_rechunk_time_filtering(embryo_rel_path, dataset_folder, overwrite_original=False):
+    """
+    Verify that time filtering was successful, delete temporary rechunk files if successful,
+    and rechunk the time_filtered zarr back to original chunking for both channels.
+
+    Parameters:
+        embryo_rel_path (str): Path relative to dataset_folder for the embryo
+        dataset_folder (str): Base dataset folder
+        overwrite_original (bool): If True, overwrite the original time_filtered zarr with the rechunked version
+    """
+    embryo_full_path = os.path.join(dataset_folder, embryo_rel_path, "collated_dataset")
+
+    # Find all original collated_dataset*.zarr files (not rechunk or time_filtered)
+    zarr_files = [f for f in glob(os.path.join(embryo_full_path, "collated_dataset*.zarr"))
+                  if "_rechunk" not in f and "_time_filtered" not in f]
+
+    if not zarr_files:
+        print(f"\n[WARNING] No original collated_dataset*.zarr files found in:\n  {embryo_full_path}\n")
+        return
+
+    print(f"\n{'=' * 70}")
+    print(f"CLEANING AND RECHUNKING FILTERED DATA")
+    print(f"{'=' * 70}")
+    print(f"Embryo path: {embryo_rel_path}")
+    print(f"Overwrite mode: {'ENABLED' if overwrite_original else 'DISABLED'}")
+    print(f"Found {len(zarr_files)} file(s) to process\n")
+
+    for z_file in zarr_files:
+        base_name = os.path.basename(z_file)
+        rechunk_store = os.path.join(
+            embryo_full_path,
+            base_name.replace(".zarr", "_rechunk.zarr")
+        )
+        filtered_store = os.path.join(
+            embryo_full_path,
+            base_name.replace(".zarr", "_time_filtered.zarr")
+        )
+        final_store = os.path.join(
+            embryo_full_path,
+            base_name.replace(".zarr", "_time_filtered_rechunked.zarr")
+        )
+
+        print(f"\n{'-' * 70}")
+        print(f"Processing: {base_name}")
+        print(f"{'-' * 70}")
+
+        # Check if filtered file exists
+        if not os.path.exists(filtered_store):
+            print(f"  ✗ Time filtered file not found - skipping")
+            continue
+
+        # Check if already processed (final rechunked version exists or overwrite already done)
+        if not overwrite_original and os.path.exists(final_store):
+            print(f"  ✓ Final rechunked file already exists - skipping")
+            # Still clean up rechunk file if it exists
+            if os.path.exists(rechunk_store):
+                print(f"  → Deleting temporary rechunk file...")
+                shutil.rmtree(rechunk_store)
+                print(f"  ✓ Temporary files removed")
+            continue
+
+        # Verify the filtered file is valid
+        try:
+            original = zarr.open(z_file, mode='r')
+            filtered = zarr.open(filtered_store, mode='r')
+
+            # Check shapes match
+            if original.shape != filtered.shape:
+                print(f"  ✗ Shape mismatch: original {original.shape} vs filtered {filtered.shape}")
+                continue
+
+            # Check data is not all zeros or NaN
+            sample_data = filtered[0:min(5, filtered.shape[0])]
+            if np.all(sample_data == 0) or np.all(np.isnan(sample_data)):
+                print(f"  ✗ Invalid filtered data detected (all zeros or NaN)")
+                continue
+
+            print(f"  ✓ Verification successful")
+
+            # Delete temporary rechunk file
+            if os.path.exists(rechunk_store):
+                print(f"  → Deleting temporary rechunk file...")
+                shutil.rmtree(rechunk_store)
+                print(f"  ✓ Temporary files removed")
+
+            # Rechunk filtered file back to original chunking
+            if overwrite_original:
+                temp_store = os.path.join(
+                    embryo_full_path,
+                    base_name.replace(".zarr", "_time_filtered_temp.zarr")
+                )
+
+                print(f"  → Rechunking to original chunks (will overwrite)...")
+                os.makedirs(os.path.dirname(temp_store), exist_ok=True)
+
+                dst_temp = zarr.open_array(
+                    store=temp_store,
+                    mode="w",
+                    shape=filtered.shape,
+                    chunks=original.chunks,
+                    dtype=filtered.dtype,
+                )
+                dst_temp[:] = filtered[:]
+                os.sync()
+
+                print(f"  → Replacing original with rechunked version...")
+                shutil.rmtree(filtered_store)
+                os.rename(temp_store, filtered_store)
+                print(f"  ✓ Overwrite complete")
+            else:
+                if not os.path.exists(final_store):
+                    print(f"  → Rechunking to original chunks...")
+                    os.makedirs(os.path.dirname(final_store), exist_ok=True)
+
+                    dst_final = zarr.open_array(
+                        store=final_store,
+                        mode="w",
+                        shape=filtered.shape,
+                        chunks=original.chunks,
+                        dtype=filtered.dtype,
+                    )
+                    dst_final[:] = filtered[:]
+                    os.sync()
+                    print(f"  ✓ Rechunking complete")
+                else:
+                    print(f"  ✓ Final rechunked file already exists")
+
+        except Exception as e:
+            print(f"  ✗ Error: {type(e).__name__}: {str(e)}")
+            continue
+
+    print(f"\n{'=' * 70}")
+    print(f"CLEANING COMPLETE")
+    print(f"{'=' * 70}\n")
+
 
 if __name__ == "__main__":
     in_store = "/mnt/Data4/Yovan/sols_pipeline/destriped_time_channel_0.ome.zarr"
@@ -405,6 +640,9 @@ if __name__ == "__main__":
     img = zarr.open(in_store)["data"] # type: ignore
 
     # Preallocate zarr array
+
+    time_chunk = 42
+
     os.makedirs(os.path.dirname(out_store), exist_ok=True)
     root = zarr.open(out_store, mode="w")
     chunks = (time_chunk, *img.shape[1:]) # type: ignore
