@@ -399,6 +399,7 @@ class Nuclear:
         trackpy_log_path="/tmp/trackpy_log",
         rescale=True,
         only_retrack=False,
+        time_filtered = False
     ):
         """
         Runs through the nuclear segmentation and tracking pipeline using the parameters
@@ -422,6 +423,7 @@ class Nuclear:
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
         :param bool only_retrack: If `True`, only steps subsequent to tracking are re-run.
+        :param bool time_filtered: If true, saves results to '_time_filtered' folders.
         """
         # If `data` is passed as a zarr array, we wrap it as a list of futures
         # that read each chunk - the parallelization is fully determined by the
@@ -512,7 +514,10 @@ class Nuclear:
                 segment_evaluate = False
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "nuclear_analysis_results"
+                if time_filtered:
+                    results_path = working_memory_path / "nuclear_analysis_results_time_filtered"
+                else:
+                    results_path = working_memory_path / "nuclear_analysis_results"
                 results_path.mkdir(exist_ok=True)
 
                 labels = zarr.creation.zeros_like(
@@ -663,7 +668,10 @@ class Nuclear:
                 reorder_evaluate = False
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "nuclear_analysis_results"
+                if time_filtered:
+                    results_path = working_memory_path / "nuclear_analysis_results_time_filtered"
+                else:
+                    results_path = working_memory_path / "nuclear_analysis_results"
                 results_path.mkdir(exist_ok=True)
 
                 reordered_labels = zarr.creation.zeros_like(
@@ -717,7 +725,7 @@ class Nuclear:
             del self.labels
             self.labels = None
 
-    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False):
+    def save_results(self, *, name_folder, save_array_as="zarr", save_all=False, time_filtered=False):
         """
         Saves results of nuclear segmentation and tracking to disk as HDF5, with the
         labelled segmentation mask saved as zarr or TIFF as specified.
@@ -728,10 +736,14 @@ class Nuclear:
         :type save_array_as: {"zarr", "tiff"}
         :param bool save_all: If true, saves a tiff file for each intermediate step
             of the nuclear analysis pipeline
+        :param bool time_filtered: If true, saves results to '_time_filtered' folders.
         """
         # Make `nuclear_analysis_results` directory if it doesn't exist
         name_path = Path(name_folder)
-        results_path = name_path / "nuclear_analysis_results"
+        if time_filtered:
+            results_path = name_path / "nuclear_analysis_results_time_filtered"
+        else:
+            results_path = name_path / "nuclear_analysis_results"
         results_path.mkdir(exist_ok=True)
 
         # Save movies, saving intermediate steps if requested
@@ -789,7 +801,7 @@ class Nuclear:
         with open(nuclear_analysis_param_path, "wb") as f:
             pickle.dump(self.default_params, f)
 
-    def read_results(self, *, name_folder, import_all=False):
+    def read_results(self, *, name_folder, import_all=False, time_filtered = False):
         """
         Imports results from a saved run of `track_nuclei` into the corresponding
         class attributes.
@@ -800,9 +812,13 @@ class Nuclear:
             intermediate steps of nuclear analysis if they have been saved to disk,
             showing a warning if a corresponding file cannot be found in the specified
             directory.
+        :param bool time_filtered: If true, read results from '_time_filtered' folders.
         """
         name_path = Path(name_folder)
-        results_path = name_path / "nuclear_analysis_results"
+        if time_filtered:
+            results_path = name_path / "nuclear_analysis_results_time_filtered"
+        else:
+            results_path = name_path / "nuclear_analysis_results"
 
         # Import arrays
         import_arrays = ["reordered_labels"]
