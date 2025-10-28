@@ -6,7 +6,7 @@ import warnings
 
 time_chunk = 42
 
-def temporal_mean_filter_zarr(
+def temporal_filter_zarr(
         zarr_arr,
         window,
         *,
@@ -27,7 +27,7 @@ def temporal_mean_filter_zarr(
     window : int
         Window size (must be odd).
     mode : str
-        Whether to mean filter or median filter (both using provided weight
+        Whether to 'mean' filter or 'median' filter (both using provided weight
         kernel).
     weights : cp.ndarray or np.ndarray, optional
         1D Weight kernel (centered at 0) to use in temporal mean filter.
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     # x = np.arange(-window//2 + 1, (window//2) + 1)
     # gaussian_kernel = np.exp(-0.5*(x/sigma) ** 2)
 
-    filtered = temporal_mean_filter_zarr(
+    filtered = temporal_filter_zarr(
         img,
         window=11,
         # weights=gaussian_kernel,
