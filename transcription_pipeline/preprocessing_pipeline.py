@@ -31,6 +31,8 @@ class DataImport:
         data and preprocessed and pickled metadata dicts from `collated_dataset`
         subdirectory instead of using the PIMS Bioformats reader to extract
         from the original microscopy format.
+    :param bool import_time_filtered: If True, preferentially loads arrays 
+        saved after filtered in time.
     :param bool trim_series: If True, deletes the last frame of each series.
         This should be used when acquisition was stopped in the middle of a
         z-stack.
@@ -71,6 +73,7 @@ class DataImport:
         *,
         name_folder,
         import_previous=False,
+        import_time_filtered=False,
         trim_series=False,
         peak_window=3,
         min_prominence=0.2,
@@ -85,7 +88,7 @@ class DataImport:
         Class is instantiated as empty if `name_folder=None`.
         """
         if import_previous:
-            self.read(name_folder)
+            self.read(name_folder, import_time_filtered = import_time_filtered)
         else:
             self.name_folder = name_folder
             self.trim_series = trim_series
@@ -128,11 +131,14 @@ class DataImport:
                 zarr_chunk_nbytes=_parse_size(self.zarr_chunk_memory_size),
             )
 
-    def read(self, name_folder):
+    def read(self, name_folder, import_time_filtered=False):
         """
         Imports preprocessed and collated data along with metadata dictionaries extracted
         from a movie and saved to disk in the `name_folder` directory, loading it into
         respective class attributes.
+
+        :param name_folder: Path to the dataset directory that contains the cached data.
+        :param import_time_filtered: If True, preferentially loads arrays saved after filtered in time.
         """
         self.name_folder = name_folder
         name_path = Path(self.name_folder)
@@ -190,9 +196,15 @@ class DataImport:
                 frame_global_metadata = pickle.load(f)
             self.export_frame_metadata.append(frame_global_metadata)
 
-        # Iterate over data files, and determine format before import
-        tiff_file_list = glob.glob(str(collated_path / "*.tiff"))
-        zarr_file_list = glob.glob(str(collated_path / "*.zarr"))
+        # Iterate over data files, determine format, and whether time filtered before import
+        if import_time_filtered:
+            tiff_pattern = "*_time_filtered.tiff"
+            zarr_pattern = "*_time_filtered.zarr"
+        else:
+            tiff_pattern = "*.tiff"
+            zarr_pattern = "*.zarr"
+        tiff_file_list = glob.glob(str(collated_path / tiff_pattern))
+        zarr_file_list = glob.glob(str(collated_path / zarr_pattern))
 
         if len(zarr_file_list) > 0:
             file_list = zarr_file_list
