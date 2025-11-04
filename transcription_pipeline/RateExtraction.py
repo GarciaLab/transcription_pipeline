@@ -1256,13 +1256,14 @@ class AverageAndFit:
     '''
     time_bin_width: please use dataset.export_frame_metadata[0]['t_s'][1, 0]
     '''
-    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path, shift_traces=True):
+    def __init__(self, compiled_dataframe, nc14_start_frame, time_bin_width, bin_num, dataset_folder_path, shift_traces=True, min_spots_per_time_bin=0):
         self.compiled_dataframe = compiled_dataframe
         self.nc14_start_frame = nc14_start_frame
         self.time_bin_width = time_bin_width
         self.bin_num = bin_num
         self.dataset_name = dataset_folder_path
         self.shift_traces = shift_traces
+        self.min_spots_per_time_bin = min_spots_per_time_bin
 
         if shift_traces:
             self.checked_bin_fits_file_path = self.dataset_name + '/bin_fits_checked.pkl'
@@ -1302,17 +1303,21 @@ class AverageAndFit:
 
             def bin_average_over_time_bins(bin_dataframe,
                                            time_bin_width=self.time_bin_width,
-                                           shift_traces_to_same_start_time=self.shift_traces):
+                                           shift_traces_to_same_start_time=self.shift_traces,
+                                           min_spots_per_time_bin=self.min_spots_per_time_bin):
                 '''
                 This function should be applied on a dataframe of particles for a particular bin.
                 What this function does:
                 1. Split the time axis into time bins
                 2. Average all MS2 signals in each time bin
+                3. Optionally enforce a minimum number of distinct spots (particles) per time bin when traces are not shifted.
 
                 ARGUMENTS
                     bin_dataframe: pandas dataframe for all the particles in an AP bin
                     time_bin_width: float, width of the time bin (default = frame duration)
                     shift_traces_to_same_start_time: bool, if true, shift time arrays to start at 0
+                    min_spots_per_time_bin: int, if > 0 and shift_traces_to_same_start_time is False, bins with
+                        spots <= this number will be suppressed (set to NaN and dropped downstream)
 
                 OUTPUT
                     1. time_bin_centers: array of time bin centers (in minutes)
@@ -1342,6 +1347,18 @@ class AverageAndFit:
                 # Define bin edges
                 x_min, x_max = min(t_s_flat), max(t_s_flat)
                 time_bins = np.arange(x_min, x_max + time_bin_width, time_bin_width)
+
+                # Compute per-bin distinct spot (particle) counts if needed
+                spot_counts = None
+                if (not shift_traces_to_same_start_time) and (min_spots_per_time_bin is not None) and (min_spots_per_time_bin > 0):
+                    spot_counts = np.zeros(len(time_bins) - 1, dtype=int)
+                    # Iterate over particles; each row corresponds to one particle with its own t_s array
+                    for t_arr in bin_dataframe['t_s'].values:
+                        bin_indices = np.digitize(t_arr, time_bins)
+                        # Count each particle once per bin
+                        for b in np.unique(bin_indices):
+                            if 1 <= b <= len(time_bins) - 1:
+                                spot_counts[b - 1] += 1
 
                 # Assign points to bins
                 time_bin_indices = np.digitize(t_s_flat, time_bins)
@@ -1385,6 +1402,14 @@ class AverageAndFit:
 
                 # Compute bin centers (convert s → min)
                 time_bin_centers = (time_bins[:-1] + time_bins[1:]) / 2 / 60
+
+                # If required, suppress bins with insufficient distinct spots when not shifting traces
+                if spot_counts is not None:
+                    insufficient = spot_counts <= min_spots_per_time_bin
+                    if np.any(insufficient):
+                        time_bin_means[insufficient] = np.nan
+                        time_bin_stddevs[insufficient] = np.nan
+                        time_bin_stderrs[insufficient] = np.nan
 
                 # Drop NaN bins
                 valid = ~np.isnan(time_bin_means)

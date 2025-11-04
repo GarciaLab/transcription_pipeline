@@ -151,6 +151,90 @@ def compile_traces(
 
     return compiled_dataframe
 
+def compile_nuclei(
+    nuclear_tracking_dataframe,
+    compile_columns_nuclear=["nuclear_cycle"],
+):
+    """
+    Compiles nuclear tracking data by particles, with particles indexed by row and
+    properties of interest indexed by column such that the cell corresponding to a
+    (particle, property) pair contains an array tracking the value of that property across time.
+
+    This function mirrors `compile_traces` but does not perform any filtering (e.g.,
+    no negative spot intensity filtering or nuclear cycle collapsing). It is intended
+    for compiling nuclear properties directly from a nuclear tracking dataframe.
+
+    :param nuclear_tracking_dataframe: DataFrame containing information about detected
+        and tracked nuclei.
+    :type nuclear_tracking_dataframe: pandas DataFrame
+    :param compile_columns_nuclear: List of properties to extract and compile from
+        `nuclear_tracking_dataframe`. Entries can be strings pointing to column names,
+        or single-entry dictionaries with the key pointing to the column name to compile from,
+        and the value pointing to the new column name to give the compiled property in the
+        compiled dataframe.
+    :type compile_columns_nuclear: List
+    :return: DataFrame of compiled nuclear data indexed by particle.
+    :rtype: pd.DataFrame
+    """
+    # Determine unique particles present in the nuclear dataframe
+    particles = np.sort(np.trim_zeros(nuclear_tracking_dataframe["particle"].unique()))
+
+    compiled_dataframe = pd.DataFrame(data=particles, columns=["particle"])
+
+    for quantity in compile_columns_nuclear:
+        # Support optional renaming via dict entries
+        if isinstance(quantity, dict):
+            property_key = list(quantity.keys())[0]
+            property_value = quantity[property_key]
+            quantity_key = property_key
+            column_name = property_value
+        else:
+            quantity_key = quantity
+            column_name = quantity
+
+        if quantity_key != "division_time":
+            # Preallocate and convert to dtype object to allow storage of arrays
+            compiled_dataframe[column_name] = np.nan
+            compiled_dataframe[column_name] = compiled_dataframe[column_name].astype(object)
+
+            try:
+                compiled_dataframe[column_name] = compiled_dataframe.apply(
+                    _compile_property,
+                    args=(nuclear_tracking_dataframe, quantity_key),
+                    axis=1,
+                )
+            except KeyError:
+                warnings.warn(
+                    "".join(
+                        [
+                            "Property ",
+                            str(quantity_key),
+                            " to compile not found, check that names of provided columns match ",
+                            "respective DataFrame.",
+                        ]
+                    ),
+                    stacklevel=2,
+                )
+
+    # If the user requests division_time explicitly, compute as the minimum t_s per particle
+    # to mimic the behavior in compile_traces without any additional filtering.
+    if ("division_time" in compile_columns_nuclear) or (
+        isinstance(compile_columns_nuclear, list)
+        and any((isinstance(q, dict) and (list(q.keys())[0] == "division_time")) for q in compile_columns_nuclear)
+    ):
+        try:
+            compiled_dataframe["division_time"] = compiled_dataframe.apply(
+                lambda x: _compile_property(x, nuclear_tracking_dataframe, "t_s").min(),
+                axis=1,
+            )
+        except KeyError:
+            warnings.warn(
+                "division_time requested but 't_s' not present in nuclear_tracking_dataframe.",
+                stacklevel=2,
+            )
+
+    return compiled_dataframe
+
 
 def consolidate_traces(
     traces_dataframe,

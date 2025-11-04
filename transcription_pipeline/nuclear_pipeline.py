@@ -587,7 +587,8 @@ class Nuclear:
                         ]
                         - self.series_shifts[i]
                     )
-
+            # Proposed fix for um pixel confusion
+            # pos_columns_um = ["".join([pos, "_um"]) for pos in self.pos_columns]
             if rescale:
                 # Rescale pixel-space position columns to match real space
                 if self.global_metadata is not None:
@@ -666,7 +667,7 @@ class Nuclear:
                 reorder_evaluate = False
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "nuclear_analysis_results"
+                results_path = working_memory_path #/ "nuclear_analysis_results"
                 results_path.mkdir(exist_ok=True)
 
                 reordered_labels = zarr.creation.zeros_like(

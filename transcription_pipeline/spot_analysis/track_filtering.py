@@ -486,6 +486,7 @@ def track_and_filter_spots(
     trackpy_log_path="/tmp/trackpy_log",
     verbose=False,
     client=None,
+    filter_by_sigma=True,
     **kwargs,
 ):
     """
@@ -513,6 +514,7 @@ def track_and_filter_spots(
         that ranged being marked with a `False` value in the added `include_spot_by_sigma`
         column.
     :type sigma_z_bounds: tuple[float]
+    :param bool filter_by_sigma: If False, skips filtering by Gaussian fit sigmas.
     :param nuclear_labels: Labelled movie of nuclear masks.
     :type nuclear_labels: {np.ndarray[np.int], None}
     :param int expand_distance: Euclidean distance in pixels by which to grow the labels,
@@ -604,17 +606,23 @@ def track_and_filter_spots(
             spot_df = spot_dataframe.copy()
 
     with tqdm(total=2, desc="Preliminary spot filtering") as pbar:
-        # First filter out spots with unphysical sigmas
-        filter_spots_by_sigma(
-            spot_df, sigma_x_y_bounds=sigma_x_y_bounds, sigma_z_bounds=sigma_z_bounds
-        )
-        if verbose:
-            spot_dataframe["include_spot_by_sigma"] = False
-            spot_dataframe.loc[spot_df.index, "include_spot_by_sigma"] = spot_df[
-                "include_spot_by_sigma"
-            ]
+        # First filter out spots with unphysical sigmas (optional)
+        if filter_by_sigma:
+            filter_spots_by_sigma(
+                spot_df, sigma_x_y_bounds=sigma_x_y_bounds, sigma_z_bounds=sigma_z_bounds
+            )
+            if verbose:
+                spot_dataframe["include_spot_by_sigma"] = False
+                spot_dataframe.loc[spot_df.index, "include_spot_by_sigma"] = spot_df[
+                    "include_spot_by_sigma"
+                ]
 
-        spot_df = spot_df[spot_df["include_spot_by_sigma"]]
+            spot_df = spot_df[spot_df["include_spot_by_sigma"]]
+        else:
+            if verbose:
+                # Mark all currently considered spots as included by sigma filter
+                spot_dataframe["include_spot_by_sigma"] = False
+                spot_dataframe.loc[spot_df.index, "include_spot_by_sigma"] = True
         pbar.update(1)
 
         # If quantification is available, we can filter out spots that have a negative

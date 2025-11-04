@@ -517,6 +517,7 @@ class Spot:
         keep_futures=True,
         keep_bandpass=True,
         keep_spot_labels=True,
+        gaussian_fit=False,
     ):
         """
         Constructor method. Instantiates class with no attributes if `data=None`.
@@ -575,6 +576,7 @@ class Spot:
             self.keep_bandpass = keep_bandpass
             self.keep_spot_labels = keep_spot_labels
             self.image_size = data.shape[1:]
+            self.gaussian_fit = gaussian_fit
 
             self.default_params = choose_spot_analysis_parameters(
                 channel_global_metadata=self.global_metadata,
@@ -622,6 +624,7 @@ class Spot:
         rescale=True,
         verbose=False,
         zero_index=True,
+        filter_by_sigma=True,
     ):
         """
         Runs through the spot segmentation, tracking, fitting and quantification
@@ -655,6 +658,7 @@ class Spot:
         :param bool zero_index: If `True`, the frames are 0-indexed instead of 1-indexed.
         :param bool rescale: If `True`, rescales particle positions to correspond
             to real space.
+        :param bool filter_by_sigma: If `False`, disables filtering spots by Gaussian fit sigmas.
         """
         # Update stitch conditional
         self.stitch = stitch
@@ -791,15 +795,16 @@ class Spot:
                     self.bandpassed_movie_futures = None
 
             if self.client is not None:
-                add_fits_func = partial(
-                    fitting.add_fits_spots_dataframe,
-                    image_size=self.image_size,
-                    **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
-                )
+                if self.gaussian_fit:
+                    add_fits_func = partial(
+                        fitting.add_fits_spots_dataframe,
+                        image_size=self.image_size,
+                        **(self.default_params["add_fits_spots_dataframe_parallel_params"]),
+                    )
 
-                self.spot_dataframe_futures = self.client.map(
-                    add_fits_func, self.spot_dataframe_futures
-                )
+                    self.spot_dataframe_futures = self.client.map(
+                        add_fits_func, self.spot_dataframe_futures
+                    )
 
                 add_neighborhood_intensity_func = partial(
                     fitting.add_neighborhood_intensity_spot_dataframe,
@@ -924,6 +929,7 @@ class Spot:
                 client=self.client,
                 monitor_progress=monitor_progress,
                 trackpy_log_path=trackpy_log_path,
+                filter_by_sigma=filter_by_sigma,
                 **(self.default_params["track_and_filter_spots_params"]),
             )
         except SubnetOversizeException:
@@ -941,6 +947,7 @@ class Spot:
                 verbose=verbose,
                 monitor_progress=monitor_progress,
                 trackpy_log_path=trackpy_log_path,
+                filter_by_sigma=filter_by_sigma,
                 **(self.default_params["track_and_filter_spots_params"]),
             )
 
@@ -966,6 +973,7 @@ class Spot:
                     client=self.client,
                     monitor_progress=monitor_progress,
                     trackpy_log_path=trackpy_log_path,
+                    filter_by_sigma=filter_by_sigma,
                     **(self.default_params["retrack_spots_params"]),
                 )
             except SubnetOversizeException:
@@ -983,6 +991,7 @@ class Spot:
                     verbose=verbose,
                     monitor_progress=monitor_progress,
                     trackpy_log_path=trackpy_log_path,
+                    filter_by_sigma=filter_by_sigma,
                     **(self.default_params["retrack_spots_params"]),
                 )
 
@@ -1064,7 +1073,7 @@ class Spot:
                     )
 
                 working_memory_path = Path(working_memory_folder)
-                results_path = working_memory_path / "spot_analysis_results"
+                results_path = working_memory_path # / "spot_analysis_results"
 
                 reordered_spot_labels = zarr.creation.zeros_like(
                     self.data,

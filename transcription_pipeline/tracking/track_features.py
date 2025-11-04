@@ -374,8 +374,16 @@ def segmentation_df(
         if ~frame_df.empty:
             movie_properties_clean.append(frame_df)
 
-    movie_properties = pd.concat(movie_properties_clean)
-    movie_properties = movie_properties.reset_index(drop=True)  # Reset index of rows
+    if movie_properties_clean:
+        movie_properties = pd.concat(movie_properties_clean)
+        movie_properties = movie_properties.reset_index(drop=True)  # Reset index of rows
+    else:
+        # Create empty DataFrame with all required columns
+        base_columns = ["frame", "label", "centroid_weighted", "t_s",
+                       "x", "y", "z", "t_frame", "frame_reverse",
+                       "t_frame_reverse", "original_frame"]
+        all_columns = base_columns + list(extra_properties)
+        movie_properties = pd.DataFrame(columns=all_columns)
 
     # Rename centroid columns
     num_dim_frame = segmentation_mask.ndim - 1
