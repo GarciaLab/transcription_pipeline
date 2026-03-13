@@ -1,5 +1,6 @@
 from ..utils import label_manipulation
 import numpy as np
+import pandas as pd
 import warnings
 from ..tracking import track_features
 
@@ -16,6 +17,9 @@ def _transfer_nuclear_labels_row(
     containing the detected spot in a row of the spot dataframe output by
     :func"`~spot_analysis.detection`.
     """
+    if pd.isna(spot_dataframe_row[frame_column]) or spot_dataframe_row[pos_columns].isna().any():
+        return -1
+
     t_coordinate = spot_dataframe_row[frame_column] - 1
     spatial_coordinates = spot_dataframe_row[pos_columns].astype(float).round().values
     coordinates = np.array([t_coordinate, *spatial_coordinates], dtype=int)

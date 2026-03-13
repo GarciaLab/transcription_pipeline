@@ -40,9 +40,16 @@ def _solve_for_sigma(fwhm, sigma_ratio, ndim):
 
 def _transfer_labels(dataframe_future, labels, params, pos_columns, frame_column):
     """Helper function to transfer labels inside the worker memory."""
+    # Drop rows with NaN frame or coordinates before computing frame range
+    valid = dataframe_future.dropna(subset=[frame_column] + pos_columns)
+    if valid.empty:
+        dataframe = dataframe_future.copy()
+        dataframe["nuclear_label"] = -1
+        return dataframe
+
     # Pull only required frames from labels into memory
-    initial_frame = dataframe_future[frame_column].min() - 1
-    final_frame = dataframe_future[frame_column].max()
+    initial_frame = int(valid[frame_column].min()) - 1
+    final_frame = int(valid[frame_column].max())
     labels_subarray = labels[initial_frame:final_frame]
 
     dataframe = dataframe_future.copy()
